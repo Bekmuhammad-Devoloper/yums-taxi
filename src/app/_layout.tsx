@@ -1,18 +1,42 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { View } from 'react-native';
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
+import { ToastHost } from '@/components/toast';
+import { StoreProvider, useStore } from '@/lib/store';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+function Root() {
+  const { ready, dark, colors } = useStore();
+
+  useEffect(() => {
+    if (ready) SplashScreen.hideAsync();
+  }, [ready]);
+
+  if (!ready) return null;
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
+    <ThemeProvider value={dark ? DarkTheme : DefaultTheme}>
+      <StatusBar style={dark ? 'light' : 'dark'} />
+      <View style={{ flex: 1, backgroundColor: colors.bg }}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'slide_from_right' }}>
+          <Stack.Screen name="index" options={{ animation: 'fade' }} />
+          <Stack.Screen name="login" options={{ animation: 'fade', gestureEnabled: false }} />
+          <Stack.Screen name="search" options={{ animation: 'slide_from_bottom' }} />
+        </Stack>
+        <ToastHost />
+      </View>
     </ThemeProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <StoreProvider>
+      <Root />
+    </StoreProvider>
   );
 }
