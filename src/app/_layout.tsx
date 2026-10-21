@@ -16,10 +16,10 @@ import { StoreProvider, useStore } from '@/lib/store';
 
 SplashScreen.preventAutoHideAsync();
 
-// Vebda brauzerning to'rtburchak fokus ramkasi o'chiriladi: maydonlar va tugmalar o'z holatini ko'rsatadi
+// Vebda brauzerning to'rtburchak fokus ramkasi va aylantirish chiziqlari (scrollbar) yashiriladi — ilova mobil ko'rinishda qoladi
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
   const css = document.createElement('style');
-  css.textContent = 'input,textarea,[tabindex],[role=button]{outline:none!important}input,textarea{caret-color:#E0A800}html{overflow:hidden;overscroll-behavior:none}';
+  css.textContent = 'input,textarea,[tabindex],[role=button]{outline:none!important}input,textarea{caret-color:#E0A800}html{overflow:hidden;overscroll-behavior:none}*{scrollbar-width:none;-ms-overflow-style:none}*::-webkit-scrollbar{display:none;width:0;height:0}';
   document.head.appendChild(css);
 }
 
