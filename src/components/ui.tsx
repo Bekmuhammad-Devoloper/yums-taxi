@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import type { ComponentProps, ReactNode } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { haptic, useColors } from '@/lib/store';
@@ -139,14 +139,19 @@ export function Avatar({ name, size = 48, bg }: { name: string; size?: number; b
 }
 
 /** Ichki sahifalar uchun karkas: sarlavha + aylantiriladigan kontent */
-export function Screen({ title, children, right, scroll = true, footer }: { title: string; children: ReactNode; right?: ReactNode; scroll?: boolean; footer?: ReactNode }) {
+export function Screen({ title, subtitle, children, right, scroll = true, footer, back = true }: {
+  title: string; subtitle?: string; children: ReactNode; right?: ReactNode; scroll?: boolean; footer?: ReactNode; back?: boolean;
+}) {
   const c = useColors();
   const insets = useSafeAreaInsets();
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <IconButton name="chevron-back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} size={42} />
-        <Txt v="h2" style={{ flex: 1 }} numberOfLines={1}>{title}</Txt>
+      <View style={[styles.header, { paddingTop: insets.top + 8 }, !back && { paddingLeft: 20 }]}>
+        {back && <IconButton name="chevron-back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} size={42} />}
+        <View style={{ flex: 1 }}>
+          <Txt v={back ? 'h2' : 'h1'} numberOfLines={1}>{title}</Txt>
+          {subtitle ? <Txt v="small" muted numberOfLines={1}>{subtitle}</Txt> : null}
+        </View>
         {right}
       </View>
       {scroll ? (
@@ -163,6 +168,176 @@ export function SectionTitle({ children }: { children: ReactNode }) {
   return <Txt v="tiny" faint style={{ textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 8, marginLeft: 4 }}>{children}</Txt>;
 }
 
+/** Bo'lim sarlavhasi + «Barchasi» havolasi */
+export function SectionHeader({ title, action, onAction, style }: { title: string; action?: string; onAction?: () => void; style?: StyleProp<ViewStyle> }) {
+  const c = useColors();
+  return (
+    <Row style={[{ justifyContent: 'space-between', marginTop: 6 }, style]}>
+      <Txt v="h2" style={{ flex: 1 }} numberOfLines={1}>{title}</Txt>
+      {action ? (
+        <Pressable onPress={() => { haptic.tap(); onAction?.(); }} hitSlop={10} style={styles.headerLink}>
+          <Txt v="small" color={c.accent} style={{ fontWeight: '700' }}>{action}</Txt>
+          <Ionicons name="chevron-forward" size={14} color={c.accent} />
+        </Pressable>
+      ) : null}
+    </Row>
+  );
+}
+
+export type Tone = 'brand' | 'ok' | 'warn' | 'danger' | 'accent' | 'violet' | 'muted';
+
+export function useTone(tone: Tone) {
+  const c = useColors();
+  return {
+    brand: { fg: c.brandDeep, bg: c.brandSoft },
+    ok: { fg: c.ok, bg: c.okSoft },
+    warn: { fg: c.warn, bg: c.warnSoft },
+    danger: { fg: c.danger, bg: c.dangerSoft },
+    accent: { fg: c.accent, bg: c.accentSoft },
+    violet: { fg: c.violet, bg: c.violetSoft },
+    muted: { fg: c.muted, bg: c.surface2 },
+  }[tone];
+}
+
+export function Badge({ label, tone = 'muted', icon, style }: { label: string; tone?: Tone; icon?: IconName; style?: StyleProp<ViewStyle> }) {
+  const t = useTone(tone);
+  return (
+    <View style={[styles.badge, { backgroundColor: t.bg }, style]}>
+      {icon && <Ionicons name={icon} size={12} color={t.fg} />}
+      <Text style={{ color: t.fg, fontSize: 11.5, fontWeight: '800' }} numberOfLines={1}>{label}</Text>
+    </View>
+  );
+}
+
+/** Tasdiqlangan profil belgisi — faqat tekshiruvdan keyin beriladi */
+export function Verified({ size = 15 }: { size?: number }) {
+  const c = useColors();
+  return <Ionicons name="checkmark-circle" size={size} color={c.accent} accessibilityLabel="Tasdiqlangan" />;
+}
+
+export function Field({ label, hint, error, style, inputStyle, prefix, ...rest }: TextInputProps & { label?: string; hint?: string; error?: string; prefix?: string; inputStyle?: StyleProp<TextStyle> }) {
+  const c = useColors();
+  return (
+    <View style={[{ gap: 6 }, style as StyleProp<ViewStyle>]}>
+      {label ? <Txt v="small" muted style={{ fontWeight: '700', marginLeft: 2 }}>{label}</Txt> : null}
+      <View style={[styles.field, { backgroundColor: c.surface2, borderColor: error ? c.danger : c.line }, rest.multiline && { alignItems: 'flex-start', paddingVertical: 12 }]}>
+        {prefix ? <Txt v="h3" muted>{prefix}</Txt> : null}
+        <TextInput
+          placeholderTextColor={c.faint}
+          {...rest}
+          style={[{ flex: 1, minWidth: 0, color: c.text, fontSize: 15.5, fontWeight: '600', minHeight: rest.multiline ? 84 : 48, textAlignVertical: rest.multiline ? 'top' : 'center' }, inputStyle]}
+        />
+      </View>
+      {error ? <Txt v="tiny" color={c.danger} style={{ marginLeft: 2 }}>{error}</Txt> : hint ? <Txt v="tiny" faint style={{ marginLeft: 2 }}>{hint}</Txt> : null}
+    </View>
+  );
+}
+
+export function SearchBar({ value, onChangeText, placeholder, onPress, right, autoFocus, style }: {
+  value?: string; onChangeText?: (s: string) => void; placeholder: string; onPress?: () => void; right?: ReactNode; autoFocus?: boolean; style?: StyleProp<ViewStyle>;
+}) {
+  const c = useColors();
+  const inner = (
+    <>
+      <Ionicons name="search" size={20} color={c.muted} />
+      {onPress ? (
+        <Txt muted style={{ flex: 1 }} numberOfLines={1}>{placeholder}</Txt>
+      ) : (
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={c.faint}
+          autoFocus={autoFocus}
+          returnKeyType="search"
+          style={{ flex: 1, minWidth: 0, color: c.text, fontSize: 15.5, fontWeight: '600', height: '100%' }}
+        />
+      )}
+      {value && onChangeText ? (
+        <Pressable onPress={() => onChangeText('')} hitSlop={10}><Ionicons name="close-circle" size={19} color={c.faint} /></Pressable>
+      ) : null}
+      {right}
+    </>
+  );
+  const box = [styles.search, { backgroundColor: c.surface, borderColor: c.line }, shadow(c, 0.4), style];
+  if (onPress) return <Pressable onPress={() => { haptic.tap(); onPress(); }} style={({ pressed }) => [box, { opacity: pressed ? 0.85 : 1 }]}>{inner}</Pressable>;
+  return <View style={box}>{inner}</View>;
+}
+
+export function Segmented<T extends string>({ items, value, onChange, style }: { items: { id: T; label: string; badge?: number }[]; value: T; onChange: (v: T) => void; style?: StyleProp<ViewStyle> }) {
+  const c = useColors();
+  return (
+    <View style={[styles.seg, { backgroundColor: c.surface2 }, style]}>
+      {items.map(it => {
+        const on = it.id === value;
+        return (
+          <Pressable key={it.id} onPress={() => { haptic.tap(); onChange(it.id); }} style={[styles.segItem, on && [{ backgroundColor: c.surface }, shadow(c, 0.4)]]}>
+            <Text style={{ color: on ? c.text : c.muted, fontWeight: '800', fontSize: 13.5 }} numberOfLines={1}>{it.label}</Text>
+            {it.badge ? <View style={[styles.segBadge, { backgroundColor: c.danger }]}><Text style={styles.segBadgeText}>{it.badge}</Text></View> : null}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+export function EmptyState({ icon, title, sub, action, onAction }: { icon: IconName; title: string; sub?: string; action?: string; onAction?: () => void }) {
+  const c = useColors();
+  return (
+    <View style={{ alignItems: 'center', paddingVertical: 40, paddingHorizontal: 24, gap: 8 }}>
+      <View style={[styles.emptyIco, { backgroundColor: c.surface2 }]}><Ionicons name={icon} size={34} color={c.muted} /></View>
+      <Txt v="h2" style={{ textAlign: 'center', marginTop: 6 }}>{title}</Txt>
+      {sub ? <Txt muted style={{ textAlign: 'center', lineHeight: 21 }}>{sub}</Txt> : null}
+      {action ? <Button title={action} small onPress={onAction} style={{ marginTop: 10 }} /> : null}
+    </View>
+  );
+}
+
+export function Stat({ value, label, style }: { value: string; label: string; style?: StyleProp<ViewStyle> }) {
+  return (
+    <View style={[{ flex: 1, alignItems: 'center', gap: 1 }, style]}>
+      <Txt v="h2">{value}</Txt>
+      <Txt v="tiny" faint numberOfLines={1}>{label}</Txt>
+    </View>
+  );
+}
+
+/** Pastdan chiqadigan oyna */
+export function Sheet({ visible, onClose, title, children, footer }: { visible: boolean; onClose: () => void; title?: string; children: ReactNode; footer?: ReactNode }) {
+  const c = useColors();
+  const insets = useSafeAreaInsets();
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        <Pressable style={[styles.sheetBg, { backgroundColor: c.overlay }]} onPress={onClose}>
+          <Pressable style={[styles.sheet, { backgroundColor: c.surface, paddingBottom: insets.bottom + 16 }]} onPress={() => {}}>
+            <View style={[styles.grab, { backgroundColor: c.surface3 }]} />
+            {title ? (
+              <Row style={{ justifyContent: 'space-between' }}>
+                <Txt v="h2" style={{ flex: 1 }}>{title}</Txt>
+                <Pressable onPress={onClose} hitSlop={10} style={[styles.close, { backgroundColor: c.surface2 }]}><Ionicons name="close" size={18} color={c.text} /></Pressable>
+              </Row>
+            ) : null}
+            <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={{ gap: 12, paddingBottom: 4 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+              {children}
+            </ScrollView>
+            {footer}
+          </Pressable>
+        </Pressable>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+export function Progress({ value, color, style }: { value: number; color?: string; style?: StyleProp<ViewStyle> }) {
+  const c = useColors();
+  return (
+    <View style={[{ height: 6, borderRadius: 3, backgroundColor: c.surface2, overflow: 'hidden' }, style]}>
+      <View style={{ height: 6, borderRadius: 3, width: `${Math.round(Math.min(1, Math.max(0, value)) * 100)}%`, backgroundColor: color ?? c.brand }} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   btn: { height: 56, borderRadius: 18, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   item: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 16 },
@@ -170,4 +345,17 @@ const styles = StyleSheet.create({
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 38, paddingHorizontal: 14, borderRadius: 19, borderWidth: 1 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingBottom: 10 },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 12, paddingHorizontal: 16, borderTopWidth: StyleSheet.hairlineWidth },
+  headerLink: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  badge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start' },
+  field: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: radius.m, borderWidth: 1.5, paddingHorizontal: 14 },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 52, borderRadius: radius.m, borderWidth: 1, paddingHorizontal: 14 },
+  seg: { flexDirection: 'row', padding: 4, borderRadius: 15, gap: 4 },
+  segItem: { flex: 1, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 6 },
+  segBadge: { minWidth: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  segBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  emptyIco: { width: 76, height: 76, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
+  sheetBg: { flex: 1, justifyContent: 'flex-end' },
+  sheet: { borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 20, paddingTop: 10, gap: 14, maxHeight: '92%' },
+  grab: { width: 42, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 2 },
+  close: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });

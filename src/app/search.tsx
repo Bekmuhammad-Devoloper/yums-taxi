@@ -116,5 +116,5 @@ const styles = StyleSheet.create({
   box: { marginHorizontal: 16, borderRadius: 20, paddingHorizontal: 14, marginBottom: 8 },
   field: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 54 },
   dot: { width: 12, height: 12, borderRadius: 6, marginLeft: 4 },
-  input: { flex: 1, fontSize: 17, fontWeight: '600', height: 54 },
+  input: { flex: 1, minWidth: 0, fontSize: 17, fontWeight: '600', height: 54 },
 });

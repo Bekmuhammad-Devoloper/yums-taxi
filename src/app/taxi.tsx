@@ -13,7 +13,7 @@ import { addressOf } from '@/lib/geo';
 import { useStore } from '@/lib/store';
 import { shadow } from '@/lib/theme';
 
-export default function Home() {
+export default function Taxi() {
   const s = useStore();
   const { colors: c, order, user } = s;
   const insets = useSafeAreaInsets();
@@ -148,7 +148,7 @@ export default function Home() {
         {order.phase === 'choosing' ? (
           <IconButton name="arrow-back" onPress={() => s.setDestination(null)} />
         ) : (
-          <IconButton name="menu" onPress={() => router.push('/menu')} />
+          <IconButton name="grid-outline" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         )}
         <View style={[styles.brand, { backgroundColor: c.surface }, shadow(c)]}>
           <Text style={[styles.brandY, { backgroundColor: c.brand, color: c.brandText }]}>Y</Text>
@@ -157,7 +157,7 @@ export default function Home() {
         {inTrip ? (
           <IconButton name="shield-checkmark" color={c.ok} onPress={() => router.push('/safety')} />
         ) : (
-          <IconButton name="gift-outline" badge onPress={() => router.push('/payment')} />
+          <IconButton name="menu" badge={!!s.promo} onPress={() => router.push('/menu')} />
         )}
       </View>
 

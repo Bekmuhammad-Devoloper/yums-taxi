@@ -1,23 +1,35 @@
-# YUMS Taxi
+# YUMS — xalqaro raqamli loyihalar platformasi
 
-Taksi chaqirish uchun mobil ilova (Android / iOS) — YUMS xalqaro raqamli platformasining transport yo'nalishi.
+Dunyo mamlakatlaridagi loyihalar, kompaniyalar, investorlar, mutaxassislar va xizmatlarni yagona mobil ilovada bog'laydigan platforma (Android / iOS / veb). Ilovaga transport yo'nalishi — **YUMS Taxi** ham kiritilgan.
 
 React Native + Expo (SDK 58), Expo Router, TypeScript.
 
-## Imkoniyatlar
+## Bo'limlar (texnik topshiriq bo'yicha)
 
-- Telefon raqami va SMS kod orqali kirish
-- Xarita: GPS joylashuv, pinni surib olish nuqtasini tanlash
-- Manzil qidiruvi, Uy/Ish va so'nggi manzillar
-- Haqiqiy ko'chalar bo'yicha marshrut (OSRM), masofa va vaqt
-- Tariflar: Start, Komfort, Biznes, Miniven, Yetkazish; yuqori talab koeffitsienti
-- To'lov: naqd, karta (Uzcard / Humo / Visa), YUMS balans, promokodlar, 3% keshbek
-- Istaklar: bolalar o'rindig'i, konditsioner, uy hayvoni, izoh
-- Haydovchi qidirish → kelish → kutish → safar → baholash va choy puli
-- Xavfsizlik: SOS 112, 102, 103, 101; safarni ulashish
-- Safarlar tarixi va takrorlash, yordam, sozlamalar, yorug'/qorong'i mavzu
+| Bo'lim | Ekran | Imkoniyatlar |
+| --- | --- | --- |
+| YUMS PROJECT | `/projects`, `/project/[id]`, `/project/edit` | Loyiha yaratish, tahrirlash, o'chirish, moderatsiyaga yuborish; sarlavha, tavsif, maqsad, byudjet oralig'i, hudud, muddat, tillar, bosqich, aloqa usuli; fayl va taqdimot biriktirish |
+| YUMS BUSINESS | `/business`, `/company/[id]` | Kompaniya profillari, xizmatlar katalogi, B2B takliflar |
+| YUMS INVEST | `/invest` | Investorlar katalogi, moliyalashtirish izlayotgan loyihalar, taklif yuborish, litsenziya ogohlantirishi |
+| YUMS MARKET | `/market`, `/market/[id]`, `/market/new` | Tovarlar, raqamli mahsulotlar, xizmatlar; e'lon joylashtirish (moderatsiya bilan) |
+| YUMS TECHNOLOGY | `/tech`, `/specialist/[id]` | Dasturchi, muhandis, dizayner va boshqa mutaxassislar |
+| YUMS CONNECT | `/connect`, `/chat/[id]` | Xabarlar, hamkorlik so'rovlari, onlayn uchrashuvlar, hujjat almashish, bloklash |
+| YUMS WORLD | `/world`, `/sectors` | Mamlakat, mintaqa, til, soha, bosqich bo'yicha xalqaro qidiruv va filtrlar |
+| YUMS TAXI | `/taxi` va uning ekranlari | Xarita, marshrut, tariflar, to'lov, haydovchi, xavfsizlik |
 
-> Hozircha server qismi yo'q: haydovchilar, SMS kod va to'lovlar demo rejimida, ma'lumotlar qurilmada saqlanadi.
+### Birinchi versiya funksiyalari
+
+- Ro'yxatdan o'tish: telefon (bir nechta mamlakat kodi) yoki email + tasdiqlash kodi; jismoniy shaxs yoki kompaniya profili
+- Shaxsiy kabinet (`/profile`): loyihalar, e'lonlar, saqlanganlar, bildirishnomalar, tarif
+- Profilni tasdiqlash (`/verify`): hujjat yuklash → moderator tekshiruvi → «Tasdiqlangan» belgisi
+- Moderatsiya paneli (`/moderation`): e'lonlar navbati (avto-filtr bilan), shikoyatlar, bloklash, profillarni tasdiqlash
+- Shikoyat qilish — loyiha, kompaniya, mutaxassis, e'lon va suhbat sahifalaridan
+- Huquqiy hujjatlar (`/legal`): foydalanish shartlari, maxfiylik, cookie, ma'lumotlarni saqlash, moderatsiya qoidalari, investitsiya ogohlantirishi
+- Xavfsizlik (`/security`): ruxsat darajalari (foydalanuvchi / moderator / administrator), 2 bosqichli himoya, kirishlar tarixi, ma'lumotlar nusxasini eksport qilish
+- Daromad modeli (`/plans`): Free / Pro / Business tariflar, TOPga chiqarish, reklama kampaniyalari, professional xizmatlar, savdo komissiyasi
+- 25 ta soha, 28 mamlakat, ko'p tilli interfeys (o'zbek, rus, ingliz), yorug'/qorong'i mavzu
+
+> Hozircha server qismi yo'q: barcha ma'lumotlar qurilmada saqlanadi, moderatsiya, javoblar, SMS kod va to'lovlar demo rejimida ishlaydi.
 
 ## Ishga tushirish
 
@@ -26,23 +38,35 @@ npm install
 npx expo start
 ```
 
-Telefonda **Expo Go** ilovasi bilan QR-kodni skanerlang (telefon va kompyuter bitta Wi-Fi'da bo'lishi kerak).
-Demo kirish: istalgan 9 xonali raqam, SMS kod — istalgan 4 ta raqam.
-Demo promokodlar: `YUMS20`, `YANGI30`, `TOSHKENT`.
+Telefonda **Expo Go** ilovasi bilan QR-kodni skanerlang.
+Demo kirish: istalgan raqam yoki email, kod — istalgan 4 ta raqam.
+
+Demo ssenariylar:
+- Loyiha yaratib «Yuborish»ni bosing — bir necha soniyada avtomatik moderatsiyadan o'tadi. Matnda «kafolatlangan daromad» kabi iboralar bo'lsa, moderator navbatida qoladi.
+- Kabinet → Xavfsizlik → Ruxsat darajasi → «Moderator» — moderatsiya paneli ochiladi.
+- Investorga «Taklif yuborish» — so'rov bir necha soniyada qabul qilinadi.
+- Taksi promokodlari: `YUMS20`, `YANGI30`, `TOSHKENT`.
 
 ## Tuzilma
 
 ```
 src/
-  app/          ekranlar (Expo Router)
-  components/   xarita, buyurtma panellari, UI elementlar
-  lib/          holat (store), geo-hisoblar, ma'lumotlar, mavzu
+  app/
+    (tabs)/       Asosiy, Qidiruv (World), Xabarlar (Connect), Kabinet
+    project/ company/ specialist/ market/ chat/   platforma sahifalari
+    taxi.tsx      YUMS Taxi xaritasi (+ menu, payment, history, … ekranlari)
+  components/     UI tizimi, platforma kartalari, xarita, buyurtma panellari
+  lib/
+    store.tsx         hisob, mavzu, til, taksi holati
+    platform.tsx      platforma holati: loyihalar, chatlar, moderatsiya, tariflar
+    platform-data.ts  turlar, sohalar, mamlakatlar, namuna ma'lumotlar
+    i18n.ts           o'zbek / rus / ingliz matnlari
 ```
 
 ## Tekshiruvlar
 
 ```bash
 npx tsc --noEmit
-npx eslint src
+npx expo lint
 npx expo-doctor
 ```

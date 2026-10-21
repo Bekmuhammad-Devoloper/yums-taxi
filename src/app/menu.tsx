@@ -10,7 +10,7 @@ export default function Menu() {
   const { colors: c, user, balance, rides, logout } = useStore();
   const done = rides.filter(r => r.status === 'done');
   return (
-    <Screen title="Menyu">
+    <Screen title="YUMS Taxi" subtitle="Safarlar, to'lovlar va sozlamalar">
       <Card>
         <Row>
           <Avatar name={user?.name ?? '?'} size={60} />
@@ -52,11 +52,12 @@ export default function Menu() {
       </Card>
 
       <Card style={{ padding: 6 }}>
+        <ListItem icon="grid-outline" iconBg={c.brandSoft} title="YUMS platformasi" sub="Loyihalar, biznes, investitsiya, bozor" onPress={() => router.dismissTo('/')} />
         <ListItem icon="log-out-outline" title="Chiqish" danger onPress={() => { logout(); router.replace('/login'); }} />
       </Card>
 
       <Divider style={{ marginTop: 4 }} />
-      <Txt v="tiny" faint style={{ textAlign: 'center' }}>YUMS Taxi 1.0 · YUMS xalqaro raqamli platformasi</Txt>
+      <Txt v="tiny" faint style={{ textAlign: 'center' }}>YUMS Taxi 1.0 · YUMS xalqaro raqamli platformasining transport yo'nalishi</Txt>
     </Screen>
   );
 }

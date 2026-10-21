@@ -5,10 +5,25 @@ import { Platform, useColorScheme } from 'react-native';
 
 import { DRIVERS, SEED_RIDES, TARIFFS, type Card, type Driver, type LatLng, type PaymentId, type Place, type Ride } from './data';
 import { fetchRoute, nearbyPoint, pathLength, pointAt, priceFor, type RouteInfo } from './geo';
+import { DICTS, type Lang, type TKey } from './i18n';
 import { palette, type Colors } from './theme';
 
 export type Phase = 'idle' | 'choosing' | 'searching' | 'accepted' | 'arrived' | 'inride' | 'done';
-export type User = { name: string; phone: string; rating: number };
+export type Role = 'user' | 'moderator' | 'admin';
+export type AccountKind = 'person' | 'company';
+export type User = {
+  name: string;
+  phone: string;
+  rating: number;
+  id?: string;
+  email?: string;
+  kind?: AccountKind;
+  company?: string;
+  country?: string;
+  bio?: string;
+  role?: Role;
+  joinedAt?: string;
+};
 export type ThemePref = 'system' | 'light' | 'dark';
 export type Saved = { home?: Place; work?: Place };
 export type Promo = { code: string; percent: number };
@@ -59,7 +74,11 @@ type Ctx = {
   setTheme: (t: ThemePref) => void;
   user: User | null;
   login: (u: Omit<User, 'rating'>) => void;
+  updateUser: (patch: Partial<User>) => void;
   logout: () => void;
+  lang: Lang;
+  setLang: (l: Lang) => void;
+  t: (k: TKey) => string;
   order: Order;
   setPickup: (p: Place) => void;
   setDestination: (p: Place | null) => void;
@@ -96,14 +115,16 @@ export const useStore = () => {
   return c;
 };
 export const useColors = () => useStore().colors;
+export const useT = () => useStore().t;
 
-const K = { user: 'yt:user', rides: 'yt:rides', saved: 'yt:saved', cards: 'yt:cards', theme: 'yt:theme', payment: 'yt:payment', recent: 'yt:recent', balance: 'yt:balance' };
+const K = { user: 'yt:user', rides: 'yt:rides', saved: 'yt:saved', cards: 'yt:cards', theme: 'yt:theme', payment: 'yt:payment', recent: 'yt:recent', balance: 'yt:balance', lang: 'yt:lang' };
 const persist = (k: string, v: unknown) => { AsyncStorage.setItem(k, JSON.stringify(v)).catch(() => {}); };
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const scheme = useColorScheme();
   const [ready, setReady] = useState(false);
   const [theme, setThemeState] = useState<ThemePref>('system');
+  const [lang, setLangState] = useState<Lang>('uz');
   const [user, setUser] = useState<User | null>(null);
   const [rides, setRides] = useState<Ride[]>(SEED_RIDES);
   const [saved, setSaved] = useState<Saved>({});
@@ -129,6 +150,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (m[K.saved]) setSaved(m[K.saved]);
         if (m[K.cards]) setCards(m[K.cards]);
         if (m[K.theme]) setThemeState(m[K.theme]);
+        if (m[K.lang] && m[K.lang] in DICTS) setLangState(m[K.lang]);
         if (m[K.payment]) setPaymentState(m[K.payment]);
         if (m[K.recent]) setRecent(m[K.recent]);
         if (typeof m[K.balance] === 'number') setBalance(m[K.balance]);
@@ -267,8 +289,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     ready, colors, dark, theme,
     setTheme: t => { setThemeState(t); persist(K.theme, t); },
     user,
-    login: u => { const nu = { ...u, rating: 4.9 }; setUser(nu); persist(K.user, nu); },
+    login: u => {
+      const nu: User = { role: 'user', kind: 'person', country: 'UZ', joinedAt: new Date().toISOString(), ...u, id: u.id ?? 'me', rating: 4.9 };
+      setUser(nu); persist(K.user, nu);
+    },
+    updateUser: patch => setUser(cur => { if (!cur) return cur; const nu = { ...cur, ...patch }; persist(K.user, nu); return nu; }),
     logout: () => { setUser(null); AsyncStorage.removeItem(K.user).catch(() => {}); },
+    lang,
+    setLang: l => { setLangState(l); persist(K.lang, l); },
+    t: k => DICTS[lang][k] ?? DICTS.uz[k] ?? k,
     order, setPickup, setDestination,
     setTariff: id => { haptic.tap(); setOrder(o => ({ ...o, tariffId: id })); },
     toggleOption: id => setOrder(o => ({ ...o, options: o.options.includes(id) ? o.options.filter(x => x !== id) : [...o.options, id] })),

@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "YUMS Taxi",
+    "name": "YUMS",
     "slug": "yums-taxi",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,7 +11,7 @@
       "bundleIdentifier": "uz.yums.taxi",
       "supportsTablet": false,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "YUMS Taxi sizni qayerdan olib ketishni aniqlash uchun joylashuvingizdan foydalanadi."
+        "NSLocationWhenInUseUsageDescription": "YUMS Taxi xizmati sizni qayerdan olib ketishni aniqlash uchun joylashuvingizdan foydalanadi."
       }
     },
     "android": {
@@ -34,7 +34,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "YUMS Taxi sizni qayerdan olib ketishni aniqlash uchun joylashuvingizdan foydalanadi."
+          "locationWhenInUsePermission": "YUMS Taxi xizmati sizni qayerdan olib ketishni aniqlash uchun joylashuvingizdan foydalanadi."
         }
       ],
       [
