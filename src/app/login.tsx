@@ -44,6 +44,7 @@ export default function Login() {
   const [country, setCountry] = useState('UZ');
   const [agree, setAgree] = useState(false);
   const [timer, setTimer] = useState(0);
+  const [phoneFocus, setPhoneFocus] = useState(false);
   const [picker, setPicker] = useState<'cc' | 'country' | null>(null);
   const codeRef = useRef<ComponentRef<typeof TextInput>>(null);
 
@@ -96,8 +97,8 @@ export default function Login() {
           <BrandLogo width={step === 'contact' ? 170 : 130} style={{ alignSelf: 'center', marginTop: 8, marginBottom: 14 }} />
           <Text style={styles.tagline}>Xalqaro raqamli loyihalar platformasi{'\n'}Loyihalar, hamkorlar va investorlar — bir joyda</Text>
           <View style={styles.sections}>
-            {SECTIONS.map(s => <IconTile key={s.id} name={s.icon} color={s.color} size={32} glass />)}
-            <IconTile name="car-sport-outline" color="#FFC800" size={32} glass />
+            {SECTIONS.map(s => <IconTile key={s.id} name={s.icon} color="#F5C542" size={34} glass />)}
+            <IconTile name="car-sport-outline" color="#F5C542" size={34} glass />
           </View>
         </LinearGradient>
 
@@ -108,7 +109,7 @@ export default function Login() {
               <Txt muted>Tasdiqlash kodi {method === 'phone' ? 'SMS' : 'email'} orqali yuboriladi</Txt>
               <Segmented value={method} onChange={m => { setMethod(m); }} items={[{ id: 'phone', label: 'Telefon' }, { id: 'email', label: 'Email' }]} />
               {method === 'phone' ? (
-                <View style={[styles.phone, { backgroundColor: c.surface2, borderColor: phoneOk ? c.brand : c.line }]}>
+                <View style={[styles.phone, { backgroundColor: phoneFocus ? c.surface : c.surface2, borderColor: phoneFocus || phoneOk ? c.brand : c.line }]}>
                   <Pressable onPress={() => setPicker('cc')} style={styles.cc} hitSlop={6}>
                     <Text style={{ fontSize: 20 }}>{cc.flag}</Text>
                     <Text style={[styles.prefix, { color: c.text }]}>{cc.code}</Text>
@@ -118,6 +119,8 @@ export default function Login() {
                     value={formatPhone(digits, cc.code)}
                     onChangeText={v => setDigits(v.replace(/\D/g, '').slice(0, cc.len))}
                     keyboardType="phone-pad"
+                    onFocus={() => setPhoneFocus(true)}
+                    onBlur={() => setPhoneFocus(false)}
                     placeholder={cc.code === '+998' ? '90 123 45 67' : '123 456 78 90'}
                     placeholderTextColor={c.faint}
                     autoFocus
@@ -206,15 +209,15 @@ const styles = StyleSheet.create({
   glow: { position: 'absolute', alignSelf: 'center', width: 300, height: 300, borderRadius: 150, backgroundColor: 'rgba(255,200,0,0.07)' },
   back: { position: 'absolute', left: 16, width: 40, height: 40, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
   tagline: { fontSize: 14.5, fontFamily: F.medium, color: 'rgba(255,255,255,0.68)', lineHeight: 21, textAlign: 'center', letterSpacing: 0.2 },
-  sections: { flexDirection: 'row', gap: 7, marginTop: 18, flexWrap: 'wrap', justifyContent: 'center' },
+  sections: { flexDirection: 'row', gap: 6, marginTop: 18, flexWrap: 'wrap', justifyContent: 'center' },
   card: { flex: 1, marginTop: -28, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, gap: 14 },
-  phone: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 62, borderRadius: 18, borderWidth: 2, paddingHorizontal: 14 },
+  phone: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 60, borderRadius: 18, borderWidth: 1.5, paddingHorizontal: 14 },
   cc: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   prefix: { fontSize: 19, fontFamily: F.heavy },
-  phoneInput: { flex: 1, minWidth: 0, outlineWidth: 0, fontSize: 20, fontFamily: F.bold, letterSpacing: 0.5, height: '100%' },
+  phoneInput: { flex: 1, minWidth: 0, fontSize: 20, fontFamily: F.bold, letterSpacing: 0.5, height: '100%' },
   agree: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   otpRow: { flexDirection: 'row', gap: 12, justifyContent: 'center', marginVertical: 10 },
-  otp: { width: 62, height: 70, borderRadius: 18, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  otp: { width: 62, height: 70, borderRadius: 18, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   otpText: { fontSize: 26, fontFamily: F.display },
   hidden: { position: 'absolute', opacity: 0, width: 1, height: 1 },
   kind: { flex: 1, padding: 14, borderRadius: 18, borderWidth: 2, gap: 4 },

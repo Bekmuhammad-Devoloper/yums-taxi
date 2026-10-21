@@ -85,14 +85,16 @@ export const lightMapStyle = [
 ];
 
 /**
- * Shriftlar: sarlavhalar — Unbounded (YUMS logotipidagi keng geometrik harflarga mos),
- * matn — Manrope. Har bir og'irlik alohida fayl, shuning uchun fontWeight o'rniga oila nomi ishlatiladi.
+ * Shriftlar: butun interfeys — Onest (lotin va kirill, o'zbekcha o'/g' uchun toza belgilar),
+ * «YUMS» brend yozuvi — Unbounded (logotipdagi keng harflarga mos).
+ * Har bir og'irlik alohida fayl, shuning uchun fontWeight o'rniga oila nomi ishlatiladi.
  */
 export const F = {
-  display: 'Unbounded_700Bold',
-  displaySemi: 'Unbounded_600SemiBold',
-  medium: 'Manrope_500Medium',
-  semi: 'Manrope_600SemiBold',
-  bold: 'Manrope_700Bold',
-  heavy: 'Manrope_800ExtraBold',
+  brand: 'Unbounded_700Bold',
+  display: 'Onest_700Bold',
+  displaySemi: 'Onest_600SemiBold',
+  medium: 'Onest_500Medium',
+  semi: 'Onest_600SemiBold',
+  bold: 'Onest_700Bold',
+  heavy: 'Onest_800ExtraBold',
 };

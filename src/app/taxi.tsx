@@ -193,7 +193,7 @@ export default function Taxi() {
 const styles = StyleSheet.create({
   top: { position: 'absolute', left: 0, right: 0, top: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, paddingLeft: 6, paddingRight: 16, borderRadius: 23 },
-  brandText: { fontFamily: F.display, fontSize: 15, letterSpacing: 0.4 },
+  brandText: { fontFamily: F.brand, fontSize: 15, letterSpacing: 0.4 },
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 16, paddingTop: 8 },
   grab: { width: 42, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 12 },
   // paddingBottom pin uchini (tayoqcha oxirini) aynan xarita markaziga to'g'rilaydi

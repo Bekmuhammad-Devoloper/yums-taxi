@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import type { ComponentProps, ReactNode } from 'react';
+import { useState, type ComponentProps, type ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -18,13 +18,13 @@ export function Icon({ name, size = 22, color, style }: { name: IconName; size?:
 
 type Variant = 'title' | 'h1' | 'h2' | 'h3' | 'body' | 'small' | 'tiny';
 const sizes: Record<Variant, TextStyle> = {
-  title: { fontSize: 26, fontFamily: F.display, letterSpacing: -0.8, lineHeight: 32 },
-  h1: { fontSize: 21, fontFamily: F.display, letterSpacing: -0.6, lineHeight: 27 },
-  h2: { fontSize: 16.5, fontFamily: F.displaySemi, letterSpacing: -0.3, lineHeight: 22 },
-  h3: { fontSize: 15.5, fontFamily: F.bold, letterSpacing: -0.1 },
-  body: { fontSize: 15, fontFamily: F.medium, lineHeight: 21 },
-  small: { fontSize: 13, fontFamily: F.medium, lineHeight: 18 },
-  tiny: { fontSize: 11.5, fontFamily: F.bold, letterSpacing: 0.1 },
+  title: { fontSize: 30, fontFamily: F.display, letterSpacing: -1, lineHeight: 36 },
+  h1: { fontSize: 24, fontFamily: F.display, letterSpacing: -0.7, lineHeight: 30 },
+  h2: { fontSize: 19, fontFamily: F.display, letterSpacing: -0.5, lineHeight: 25 },
+  h3: { fontSize: 16, fontFamily: F.semi, letterSpacing: -0.2, lineHeight: 21 },
+  body: { fontSize: 15, fontFamily: F.medium, lineHeight: 22 },
+  small: { fontSize: 13.5, fontFamily: F.medium, lineHeight: 19 },
+  tiny: { fontSize: 11.5, fontFamily: F.semi, letterSpacing: 0.1 },
 };
 
 export function Txt({ v = 'body', muted, faint, color, style, ...rest }: TextProps & { v?: Variant; muted?: boolean; faint?: boolean; color?: string }) {
@@ -266,15 +266,23 @@ export function Verified({ size = 15 }: { size?: number }) {
 
 export function Field({ label, hint, error, style, inputStyle, prefix, ...rest }: TextInputProps & { label?: string; hint?: string; error?: string; prefix?: string; inputStyle?: StyleProp<TextStyle> }) {
   const c = useColors();
+  const [focused, setFocused] = useState(false);
+  const editable = rest.editable !== false;
   return (
     <View style={[{ gap: 6 }, style as StyleProp<ViewStyle>]}>
       {label ? <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>{label}</Txt> : null}
-      <View style={[styles.field, { backgroundColor: c.surface2, borderColor: error ? c.danger : c.line }, rest.multiline && { alignItems: 'flex-start', paddingVertical: 12 }]}>
+      <View style={[
+        styles.field,
+        { backgroundColor: focused ? c.surface : c.surface2, borderColor: error ? c.danger : focused ? c.brand : c.line, opacity: editable ? 1 : 0.7 },
+        rest.multiline && { alignItems: 'flex-start', paddingVertical: 12 },
+      ]}>
         {prefix ? <Txt v="h3" muted>{prefix}</Txt> : null}
         <TextInput
           placeholderTextColor={c.faint}
           {...rest}
-          style={[{ flex: 1, minWidth: 0, outlineWidth: 0, color: c.text, fontSize: 15.5, fontFamily: F.semi, minHeight: rest.multiline ? 84 : 48, textAlignVertical: rest.multiline ? 'top' : 'center' }, inputStyle]}
+          onFocus={e => { setFocused(true); rest.onFocus?.(e); }}
+          onBlur={e => { setFocused(false); rest.onBlur?.(e); }}
+          style={[{ flex: 1, minWidth: 0, color: c.text, fontSize: 15.5, fontFamily: F.semi, minHeight: rest.multiline ? 84 : 48, textAlignVertical: rest.multiline ? 'top' : 'center' }, inputStyle]}
         />
       </View>
       {error ? <Txt v="tiny" color={c.danger} style={{ marginLeft: 2 }}>{error}</Txt> : hint ? <Txt v="tiny" faint style={{ marginLeft: 2 }}>{hint}</Txt> : null}
@@ -299,7 +307,7 @@ export function SearchBar({ value, onChangeText, placeholder, onPress, right, au
           placeholderTextColor={c.faint}
           autoFocus={autoFocus}
           returnKeyType="search"
-          style={{ flex: 1, minWidth: 0, outlineWidth: 0, color: c.text, fontSize: 15.5, fontFamily: F.semi, height: '100%' }}
+          style={{ flex: 1, minWidth: 0, color: c.text, fontSize: 15.5, fontFamily: F.semi, height: '100%' }}
         />
       )}
       {value && onChangeText ? (
