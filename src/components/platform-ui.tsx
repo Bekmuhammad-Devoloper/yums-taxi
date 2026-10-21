@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -6,10 +7,10 @@ import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type View
 import { REPORT_REASONS, type Conversation, SEEKS, STAGES, STATUS_META, INVESTOR_KINDS, type Company, type Investor, type ListingStatus, type MarketItem, type Project, type ReportTarget, type Specialist } from '@/lib/platform-data';
 import { budget, countryOf, sectorOf, short, usd, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
-import { radius, shadow } from '@/lib/theme';
+import { F, radius, shadow } from '@/lib/theme';
 
 import { toast } from './toast';
-import { Avatar, Badge, Button, Card, IconTile, Row, Sheet, Txt, Verified, type IconName } from './ui';
+import { Avatar, Badge, Button, Card, IconTile, Row, Sheet, Txt, Verified, shade, type IconName } from './ui';
 
 /* ---------- Kichik bo'laklar ---------- */
 
@@ -17,7 +18,7 @@ export function Logo({ name, color, size = 48 }: { name: string; color: string; 
   const init = name.replace(/[^\p{L}\p{N} ]/gu, '').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
   return (
     <View style={{ width: size, height: size, borderRadius: size / 3.2, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: '#fff', fontWeight: '900', fontSize: size * 0.36 }}>{init}</Text>
+      <Text style={{ color: '#fff', fontFamily: F.heavy, fontSize: size * 0.36 }}>{init}</Text>
     </View>
   );
 }
@@ -102,15 +103,15 @@ export function ProjectTile({ p }: { p: Project }) {
   return (
     <Pressable
       onPress={() => { haptic.tap(); router.push({ pathname: '/project/[id]', params: { id: p.id } }); }}
-      style={({ pressed }) => [styles.tile, { backgroundColor: c.surface, transform: [{ scale: pressed ? 0.98 : 1 }] }, shadow(c, 0.6)]}>
-      <View style={[styles.tileTop, { backgroundColor: sec.color }]}>
-        <Ionicons name={sec.icon} size={84} color="rgba(255,255,255,0.18)" style={{ position: 'absolute', right: -8, bottom: -14 }} />
+      style={({ pressed }) => [styles.tile, { backgroundColor: c.surface, borderColor: c.line, transform: [{ scale: pressed ? 0.98 : 1 }] }, shadow(c, 0.25)]}>
+      <LinearGradient colors={[sec.color, shade(sec.color)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.tileTop}>
+        <Ionicons name={sec.icon} size={96} color="rgba(255,255,255,0.13)" style={{ position: 'absolute', right: -10, bottom: -18 }} />
         <Row gap={6}>
           {p.boosted && <View style={styles.topBadge}><Ionicons name="flash" size={11} color="#0E1525" /><Text style={styles.topBadgeText}>TOP</Text></View>}
           <View style={[styles.topBadge, { backgroundColor: 'rgba(255,255,255,0.9)' }]}><Text style={styles.topBadgeText}>{stageName(p.stage)}</Text></View>
         </Row>
         <Text style={styles.tileSector} numberOfLines={1}>{sec.name}</Text>
-      </View>
+      </LinearGradient>
       <View style={{ padding: 14, gap: 6, flex: 1 }}>
         <Txt v="h3" numberOfLines={2} style={{ minHeight: 42 }}>{p.title}</Txt>
         <Row gap={4}>
@@ -146,12 +147,12 @@ export function CompanyCard({ co }: { co: Company }) {
           <Badge label={sectorOf(co.sector).name} />
           {co.plan === 'business' && <Badge label="Business" tone="violet" icon="diamond" />}
         </View>
-        <Row gap={3}><Ionicons name="star" size={14} color="#F5A524" /><Txt v="small" style={{ fontWeight: '800' }}>{co.rating.toFixed(1)}</Txt></Row>
+        <Row gap={3}><Ionicons name="star" size={14} color="#F5A524" /><Txt v="small" style={{ fontFamily: F.heavy }}>{co.rating.toFixed(1)}</Txt></Row>
       </Row>
       {co.offers.length ? (
         <View style={[styles.note, { backgroundColor: c.okSoft }]}>
           <Ionicons name="hand-left-outline" size={16} color={c.ok} />
-          <Txt v="small" color={c.ok} style={{ flex: 1, fontWeight: '700' }} numberOfLines={1}>B2B: {co.offers[0].title}</Txt>
+          <Txt v="small" color={c.ok} style={{ flex: 1, fontFamily: F.bold }} numberOfLines={1}>B2B: {co.offers[0].title}</Txt>
         </View>
       ) : null}
     </Card>
@@ -181,8 +182,8 @@ export function SpecialistCard({ sp }: { sp: Specialist }) {
         {sp.skills.slice(0, 4).map(s => <Badge key={s} label={s} />)}
       </View>
       <Row style={{ justifyContent: 'space-between' }}>
-        <Row gap={3}><Ionicons name="star" size={14} color="#F5A524" /><Txt v="small" style={{ fontWeight: '800' }}>{sp.rating.toFixed(1)}</Txt><Txt v="small" faint>({sp.reviews})</Txt></Row>
-        <Txt v="small" color={sp.available ? c.ok : c.faint} style={{ fontWeight: '700' }}>{sp.available ? (sp.remote ? 'Masofaviy · bo\'sh' : 'Bo\'sh') : 'Band'}</Txt>
+        <Row gap={3}><Ionicons name="star" size={14} color="#F5A524" /><Txt v="small" style={{ fontFamily: F.heavy }}>{sp.rating.toFixed(1)}</Txt><Txt v="small" faint>({sp.reviews})</Txt></Row>
+        <Txt v="small" color={sp.available ? c.ok : c.faint} style={{ fontFamily: F.bold }}>{sp.available ? (sp.remote ? 'Masofaviy · bo\'sh' : 'Bo\'sh') : 'Band'}</Txt>
       </Row>
     </Card>
   );
@@ -245,7 +246,7 @@ export function MarketCard({ m, style }: { m: MarketItem; style?: StyleProp<View
         <FavButton k={'market:' + m.id} size={20} style={[styles.marketFav, { backgroundColor: c.surface }]} />
       </View>
       <View style={{ padding: 12, gap: 4, flex: 1 }}>
-        <Txt v="small" style={{ fontWeight: '700', minHeight: 36 }} numberOfLines={2}>{m.title}</Txt>
+        <Txt v="small" style={{ fontFamily: F.bold, minHeight: 36 }} numberOfLines={2}>{m.title}</Txt>
         <Txt v="h3">{usd(m.price)}{m.unit ? <Txt v="tiny" faint> / {m.unit}</Txt> : null}</Txt>
         <Row gap={3}>
           <Txt v="tiny" faint numberOfLines={1} style={{ flexShrink: 1 }}>{countryOf(m.country).flag} {m.sellerName}</Txt>
@@ -265,7 +266,7 @@ export const PEER_LABEL: Record<Conversation['peerKind'], string> = {
 export function PeerAvatar({ conv, size = 50 }: { conv: Conversation; size?: number }) {
   const { colors: c } = useStore();
   if (conv.peerKind === 'support') {
-    return <View style={{ width: size, height: size, borderRadius: size / 3, backgroundColor: c.brand, alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontWeight: '900', fontSize: size * 0.42, color: c.brandText }}>Y</Text></View>;
+    return <View style={{ width: size, height: size, borderRadius: size / 3, backgroundColor: c.brand, alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontFamily: F.heavy, fontSize: size * 0.42, color: c.brandText }}>Y</Text></View>;
   }
   if (conv.peerKind === 'company' || conv.peerKind === 'investor') return <Logo name={conv.peerName} color={conv.peerKind === 'investor' ? c.violet : c.ok} size={size} />;
   return <Avatar name={conv.peerName} size={size} bg={c.accent} />;
@@ -282,7 +283,7 @@ export function AdBanner() {
         <Text style={styles.adTitle}>Xitoydan Toshkentgacha{'\n'}yuk — 12 kunda</Text>
         <Text style={styles.adSub}>Konsolidatsiya · bojxona · ombor</Text>
       </View>
-      <Text style={{ fontSize: 54 }}>🚛</Text>
+      <IconTile name="cube-outline" color="#FFC800" size={58} glass />
     </Pressable>
   );
 }
@@ -350,7 +351,7 @@ export function PickerSheet({ visible, onClose, title, options, selected, onChan
       {options.length > 8 && (
         <View style={[styles.pickSearch, { backgroundColor: c.surface2 }]}>
           <Ionicons name="search" size={18} color={c.muted} />
-          <TextInput value={q} onChangeText={setQ} placeholder="Qidirish" placeholderTextColor={c.faint} style={{ flex: 1, minWidth: 0, color: c.text, fontSize: 15, fontWeight: '600', height: '100%' }} />
+          <TextInput value={q} onChangeText={setQ} placeholder="Qidirish" placeholderTextColor={c.faint} style={{ flex: 1, minWidth: 0, color: c.text, fontSize: 15, fontFamily: F.semi, height: '100%' }} />
         </View>
       )}
       <View style={{ gap: 2 }}>
@@ -360,7 +361,7 @@ export function PickerSheet({ visible, onClose, title, options, selected, onChan
             <Pressable key={o.id} onPress={() => pick(o.id)} style={[styles.option, { backgroundColor: on ? c.brandSoft : 'transparent' }]}>
               {o.emoji ? <Text style={{ fontSize: 22 }}>{o.emoji}</Text> : o.icon ? <Ionicons name={o.icon} size={20} color={c.text} /> : null}
               <View style={{ flex: 1 }}>
-                <Txt style={{ fontWeight: on ? '800' : '600' }}>{o.label}</Txt>
+                <Txt style={{ fontFamily: on ? F.heavy : F.semi }}>{o.label}</Txt>
                 {o.sub ? <Txt v="tiny" faint numberOfLines={1}>{o.sub}</Txt> : null}
               </View>
               {on && <Ionicons name={multi ? 'checkbox' : 'checkmark'} size={20} color={c.brandDeep} />}
@@ -377,10 +378,10 @@ export function SelectField({ label, value, placeholder, onPress, icon }: { labe
   const { colors: c } = useStore();
   return (
     <View style={{ gap: 6 }}>
-      <Txt v="small" muted style={{ fontWeight: '700', marginLeft: 2 }}>{label}</Txt>
+      <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>{label}</Txt>
       <Pressable onPress={() => { haptic.tap(); onPress(); }} style={[styles.select, { backgroundColor: c.surface2, borderColor: c.line }]}>
         {icon && <Ionicons name={icon} size={18} color={c.muted} />}
-        <Txt style={{ flex: 1, fontWeight: '600' }} muted={!value} numberOfLines={1}>{value || placeholder}</Txt>
+        <Txt style={{ flex: 1, fontFamily: F.semi }} muted={!value} numberOfLines={1}>{value || placeholder}</Txt>
         <Ionicons name="chevron-down" size={18} color={c.faint} />
       </Pressable>
     </View>
@@ -407,11 +408,11 @@ export function KeyValue({ items }: { items: { label: string; value: string; ico
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   note: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 12 },
-  tile: { width: 262, borderRadius: radius.l, overflow: 'hidden' },
-  tileTop: { height: 104, padding: 12, justifyContent: 'space-between', overflow: 'hidden' },
+  tile: { width: 262, borderRadius: radius.l, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
+  tileTop: { height: 112, padding: 14, justifyContent: 'space-between', overflow: 'hidden' },
   topBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#FFC800', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7 },
-  topBadgeText: { color: '#0E1525', fontSize: 11, fontWeight: '900' },
-  tileSector: { color: '#fff', fontWeight: '800', fontSize: 13, opacity: 0.95 },
+  topBadgeText: { color: '#0E1525', fontSize: 11, fontFamily: F.heavy },
+  tileSector: { color: '#fff', fontFamily: F.heavy, fontSize: 13, opacity: 0.95 },
   dot: { position: 'absolute', right: -2, bottom: -2, width: 15, height: 15, borderRadius: 8, borderWidth: 3 },
   mini: { width: 128, padding: 12, borderRadius: radius.l, alignItems: 'center', gap: 4 },
   kv: { flex: 1, padding: 10, borderRadius: 14, gap: 2 },
@@ -419,9 +420,9 @@ const styles = StyleSheet.create({
   marketImg: { height: 112, alignItems: 'center', justifyContent: 'center' },
   marketFav: { position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   ad: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 18, borderRadius: radius.l, backgroundColor: '#0F1E3D' },
-  adLabel: { color: '#FFC800', fontSize: 10.5, fontWeight: '900', letterSpacing: 0.8 },
-  adTitle: { color: '#fff', fontSize: 18, fontWeight: '900', letterSpacing: -0.3, lineHeight: 23 },
-  adSub: { color: 'rgba(255,255,255,0.65)', fontSize: 12.5, fontWeight: '600' },
+  adLabel: { color: '#FFC800', fontSize: 10.5, fontFamily: F.heavy, letterSpacing: 0.8 },
+  adTitle: { color: '#fff', fontSize: 16, fontFamily: F.display, letterSpacing: -0.5, lineHeight: 22 },
+  adSub: { color: 'rgba(255,255,255,0.65)', fontSize: 12.5, fontFamily: F.semi },
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 14 },
   input: { minHeight: 80, borderRadius: 16, padding: 14, fontSize: 15, textAlignVertical: 'top' },
   pickSearch: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, borderRadius: 14, paddingHorizontal: 12 },

@@ -83,3 +83,16 @@ export const lightMapStyle = [
   { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
   { featureType: 'transit', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
 ];
+
+/**
+ * Shriftlar: sarlavhalar — Unbounded (YUMS logotipidagi keng geometrik harflarga mos),
+ * matn — Manrope. Har bir og'irlik alohida fayl, shuning uchun fontWeight o'rniga oila nomi ishlatiladi.
+ */
+export const F = {
+  display: 'Unbounded_700Bold',
+  displaySemi: 'Unbounded_600SemiBold',
+  medium: 'Manrope_500Medium',
+  semi: 'Manrope_600SemiBold',
+  bold: 'Manrope_700Bold',
+  heavy: 'Manrope_800ExtraBold',
+};

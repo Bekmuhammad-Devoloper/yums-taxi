@@ -8,6 +8,7 @@ import { toast } from '@/components/toast';
 import { Button, Card, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
+import { F } from '@/lib/theme';
 
 const DOCS = {
   person: ['Pasport yoki ID karta', 'Hujjat bilan selfi'],
@@ -76,7 +77,7 @@ export default function Verify() {
         <Row>
           <Ionicons name={user?.email ? 'mail' : 'call'} size={20} color={c.ok} />
           <Txt style={{ flex: 1 }}>{user?.email || user?.phone}</Txt>
-          <Row gap={4}><Ionicons name="checkmark-circle" size={16} color={c.ok} /><Txt v="small" color={c.ok} style={{ fontWeight: '700' }}>Tasdiqlangan</Txt></Row>
+          <Row gap={4}><Ionicons name="checkmark-circle" size={16} color={c.ok} /><Txt v="small" color={c.ok} style={{ fontFamily: F.bold }}>Tasdiqlangan</Txt></Row>
         </Row>
       </Card>
 

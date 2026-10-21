@@ -1,14 +1,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Logo, ProjectCard } from '@/components/platform-ui';
-import { Avatar, Badge, Button, Card, Divider, ListItem, Row, SectionHeader, Stat, Txt } from '@/components/ui';
+import { Avatar, Badge, Button, Card, Divider, IconTile, ListItem, Row, SectionHeader, Stat, Txt } from '@/components/ui';
 import { PLANS } from '@/lib/platform-data';
 import { countryOf, short, usePlatform } from '@/lib/platform';
 import { useStore } from '@/lib/store';
-import { radius } from '@/lib/theme';
+import { F, radius } from '@/lib/theme';
 
 export default function Profile() {
   const { colors: c, user, t, logout } = useStore();
@@ -65,6 +66,7 @@ export default function Profile() {
 
       {p.plan === 'free' && (
         <Pressable onPress={() => router.push('/plans')} style={({ pressed }) => [styles.plan, { opacity: pressed ? 0.9 : 1 }]}>
+          <LinearGradient colors={['#000000', '#0D0B06', '#231C08']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           <View style={{ flex: 1 }}>
             <Text style={styles.planKicker}>YUMS PRO</Text>
             <Text style={styles.planTitle}>Loyihangizni TOPga chiqaring</Text>
@@ -79,7 +81,7 @@ export default function Profile() {
         p.myProjects.slice(0, 2).map(x => <ProjectCard key={x.id} p={x} mine />)
       ) : (
         <Card style={{ alignItems: 'center', gap: 8, paddingVertical: 22 }}>
-          <Text style={{ fontSize: 34 }}>💡</Text>
+          <IconTile name="bulb-outline" color={c.brandDeep} size={50} />
           <Txt v="h3">Hali loyihalaringiz yo'q</Txt>
           <Txt v="small" muted style={{ textAlign: 'center' }}>Birinchi loyihangizni joylashtiring — bu bepul</Txt>
           <Button title={t('home.createBtn')} small icon="add" onPress={() => router.push('/project/edit')} style={{ marginTop: 4 }} />
@@ -121,8 +123,8 @@ export default function Profile() {
 
 const styles = StyleSheet.create({
   gear: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  plan: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: radius.l, backgroundColor: '#0F1E3D' },
-  planKicker: { color: '#FFC800', fontSize: 10.5, fontWeight: '900', letterSpacing: 1 },
-  planTitle: { color: '#fff', fontSize: 17, fontWeight: '900', marginTop: 2 },
-  planSub: { color: 'rgba(255,255,255,0.65)', fontSize: 12.5, fontWeight: '600', marginTop: 2 },
+  plan: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: radius.l, backgroundColor: '#000', overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,200,0,0.25)' },
+  planKicker: { color: '#FFC800', fontSize: 10.5, fontFamily: F.heavy, letterSpacing: 1 },
+  planTitle: { color: '#fff', fontSize: 15.5, fontFamily: F.display, letterSpacing: -0.4, marginTop: 4 },
+  planSub: { color: 'rgba(255,255,255,0.65)', fontSize: 12.5, fontFamily: F.semi, marginTop: 2 },
 });

@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Card, ListItem, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { LANGS } from '@/lib/i18n';
 import { haptic, useStore, type ThemePref } from '@/lib/store';
+import { F } from '@/lib/theme';
 
 export default function Settings() {
   const { colors: c, theme, setTheme, lang, setLang, t } = useStore();
@@ -31,7 +32,7 @@ export default function Settings() {
           return (
             <Pressable key={x.id} onPress={() => { haptic.tap(); setTheme(x.id); }} style={[styles.theme, { backgroundColor: on ? c.brandSoft : c.surface, borderColor: on ? c.brand : c.line }]}>
               <Ionicons name={x.icon} size={24} color={c.text} />
-              <Txt v="small" style={{ fontWeight: '700' }}>{x.label}</Txt>
+              <Txt v="small" style={{ fontFamily: F.bold }}>{x.label}</Txt>
             </Pressable>
           );
         })}

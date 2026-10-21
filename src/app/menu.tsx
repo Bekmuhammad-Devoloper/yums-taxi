@@ -5,6 +5,7 @@ import { toast } from '@/components/toast';
 import { Avatar, Card, Divider, ListItem, Row, Screen, Txt } from '@/components/ui';
 import { som } from '@/lib/geo';
 import { useStore } from '@/lib/store';
+import { F } from '@/lib/theme';
 
 export default function Menu() {
   const { colors: c, user, balance, rides, logout } = useStore();
@@ -27,9 +28,9 @@ export default function Menu() {
 
       <Row gap={10}>
         <Card style={{ flex: 1, backgroundColor: c.brand }} onPress={() => router.push('/payment')}>
-          <Text style={{ color: c.brandText, opacity: 0.7, fontWeight: '700', fontSize: 12.5 }}>YUMS balans</Text>
-          <Text style={{ color: c.brandText, fontWeight: '900', fontSize: 20, marginTop: 2 }}>{som(balance)}</Text>
-          <Text style={{ color: c.brandText, opacity: 0.7, fontWeight: '600', fontSize: 11.5, marginTop: 4 }}>Har safardan 3% keshbek</Text>
+          <Text style={{ color: c.brandText, opacity: 0.7, fontFamily: F.bold, fontSize: 12.5 }}>YUMS balans</Text>
+          <Text style={{ color: c.brandText, fontFamily: F.display, fontSize: 18, letterSpacing: -0.4, marginTop: 4 }}>{som(balance)}</Text>
+          <Text style={{ color: c.brandText, opacity: 0.7, fontFamily: F.semi, fontSize: 11.5, marginTop: 4 }}>Har safardan 3% keshbek</Text>
         </Card>
         <Card style={{ flex: 1 }} onPress={() => router.push('/history')}>
           <Txt v="small" muted>Safarlar</Txt>

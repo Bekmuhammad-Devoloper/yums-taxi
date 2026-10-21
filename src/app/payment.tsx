@@ -7,6 +7,7 @@ import { Button, Card, Row, Screen, SectionTitle, Txt, type IconName } from '@/c
 import type { Card as PayCard, PaymentId } from '@/lib/data';
 import { som } from '@/lib/geo';
 import { haptic, useStore } from '@/lib/store';
+import { F } from '@/lib/theme';
 
 const brandOf = (n: string): PayCard['brand'] => (n.startsWith('9860') ? 'Humo' : n.startsWith('4') ? 'Visa' : 'Uzcard');
 const fmtCard = (d: string) => d.replace(/(\d{4})(?=\d)/g, '$1 ');
@@ -113,5 +114,5 @@ export default function Payment() {
 const styles = StyleSheet.create({
   opt: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 12, borderRadius: 16 },
   optIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  input: { height: 52, borderRadius: 14, paddingHorizontal: 14, fontSize: 16, fontWeight: '600' },
+  input: { height: 52, borderRadius: 14, paddingHorizontal: 14, fontSize: 16, fontFamily: F.semi },
 });

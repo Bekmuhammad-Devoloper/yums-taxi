@@ -8,7 +8,7 @@ import type { IconName } from '@/components/ui';
 import type { TKey } from '@/lib/i18n';
 import { usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
-import { shadow } from '@/lib/theme';
+import { F, shadow } from '@/lib/theme';
 
 const TABS: Record<string, { icon: IconName; active: IconName; label: TKey }> = {
   index: { icon: 'home-outline', active: 'home', label: 'tab.home' },
@@ -50,7 +50,7 @@ function TabBar({ state, navigateToTab, insets }: BottomTabBarProps) {
                 <Ionicons name={on ? meta.active : meta.icon} size={23} color={on ? c.text : c.muted} />
                 {badge ? <View style={[styles.badge, { backgroundColor: c.danger, borderColor: c.surface }]}><Text style={styles.badgeText}>{badge > 9 ? '9+' : badge}</Text></View> : null}
               </View>
-              <Text style={[styles.label, { color: on ? c.text : c.muted, fontWeight: on ? '800' : '600' }]} numberOfLines={1}>{t(meta.label)}</Text>
+              <Text style={[styles.label, { color: on ? c.text : c.muted, fontFamily: on ? F.heavy : F.semi }]} numberOfLines={1}>{t(meta.label)}</Text>
             </Pressable>
           </Fragment>
         );
@@ -79,5 +79,5 @@ const styles = StyleSheet.create({
   label: { fontSize: 11 },
   plus: { width: 52, height: 40, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: -4 },
   badge: { position: 'absolute', top: -3, right: 6, minWidth: 18, height: 18, borderRadius: 9, borderWidth: 2, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
-  badgeText: { color: '#fff', fontSize: 10, fontWeight: '900' },
+  badgeText: { color: '#fff', fontSize: 10, fontFamily: F.heavy },
 });

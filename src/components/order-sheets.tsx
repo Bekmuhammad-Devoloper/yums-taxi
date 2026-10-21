@@ -7,10 +7,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RATING_TAGS, RIDE_OPTIONS, TARIFFS, type Place } from '@/lib/data';
 import { som } from '@/lib/geo';
 import { haptic, surgeNow, useStore } from '@/lib/store';
-import { radius } from '@/lib/theme';
+import { F, radius } from '@/lib/theme';
 
 import { toast } from './toast';
-import { Avatar, Button, Chip, Divider, Row, Txt, type IconName } from './ui';
+import { Avatar, Button, Chip, Divider, IconTile, Row, Txt, type IconName } from './ui';
 
 /* ---------- Kichik bo'laklar ---------- */
 function AddressRow({ dot, label, place, onPress, placeholder }: { dot: 'from' | 'to'; label: string; place?: Place | null; onPress?: () => void; placeholder?: string }) {
@@ -54,7 +54,7 @@ export function IdleSheet() {
       <AddressRow dot="from" label="Qayerdan" place={order.pickup} onPress={() => router.push('/search?mode=from')} />
       <Pressable onPress={() => { haptic.tap(); router.push('/search?mode=to'); }} style={({ pressed }) => [styles.whereTo, { backgroundColor: c.surface2, opacity: pressed ? 0.8 : 1 }]}>
         <Ionicons name="search" size={22} color={c.text} />
-        <Text style={{ flex: 1, fontSize: 18, fontWeight: '800', color: c.text }}>Qayerga boramiz?</Text>
+        <Text style={{ flex: 1, fontSize: 16, fontFamily: F.display, letterSpacing: -0.4, color: c.text }}>Qayerga boramiz?</Text>
         <View style={[styles.arrowBtn, { backgroundColor: c.brand }]}><Ionicons name="arrow-forward" size={18} color={c.brandText} /></View>
       </Pressable>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
@@ -62,7 +62,7 @@ export function IdleSheet() {
           <Pressable key={q.key} onPress={() => { haptic.tap(); q.onPress(); }} style={[styles.quick, { backgroundColor: c.surface, borderColor: c.line }]}>
             <Ionicons name={q.icon} size={17} color={c.text} />
             <View style={{ maxWidth: 140 }}>
-              <Txt v="small" style={{ fontWeight: '700' }} numberOfLines={1}>{q.title}</Txt>
+              <Txt v="small" style={{ fontFamily: F.bold }} numberOfLines={1}>{q.title}</Txt>
               {q.place && q.key.length < 5 ? <Txt v="tiny" faint numberOfLines={1}>{q.place.title}</Txt> : null}
             </View>
           </Pressable>
@@ -108,7 +108,7 @@ export function ChoosingSheet({ onOptions }: { onOptions: () => void }) {
           return (
             <Pressable key={t.id} onPress={() => s.setTariff(t.id)} style={[styles.tariff, { backgroundColor: on ? c.brandSoft : c.surface2, borderColor: on ? c.brand : 'transparent' }]}>
               <Text style={{ fontSize: 34 }}>{t.emoji}</Text>
-              <Txt v="small" style={{ fontWeight: '800' }}>{t.name}</Txt>
+              <Txt v="small" style={{ fontFamily: F.heavy }}>{t.name}</Txt>
               {r ? <Txt v="h3" style={{ fontSize: 15 }}>{som(priceOf(t.id))}</Txt> : <ActivityIndicator size="small" color={c.muted} style={{ alignSelf: 'flex-start' }} />}
               <Txt v="tiny" faint>{t.seats !== '—' ? `${t.seats} o'rin · ` : ''}{2 + t.etaExtra} daq</Txt>
             </Pressable>
@@ -120,16 +120,16 @@ export function ChoosingSheet({ onOptions }: { onOptions: () => void }) {
       <Row gap={8}>
         <Pressable onPress={() => router.push('/payment')} style={[styles.pill, { backgroundColor: c.surface2, flex: 1 }]}>
           <Ionicons name={pay.icon} size={18} color={c.text} />
-          <Txt v="small" style={{ fontWeight: '700', flex: 1 }} numberOfLines={1}>{pay.text}</Txt>
+          <Txt v="small" style={{ fontFamily: F.bold, flex: 1 }} numberOfLines={1}>{pay.text}</Txt>
           <Ionicons name="chevron-down" size={16} color={c.faint} />
         </Pressable>
         <Pressable onPress={onOptions} style={[styles.pill, { backgroundColor: c.surface2 }]}>
           <Ionicons name="options-outline" size={18} color={c.text} />
-          <Txt v="small" style={{ fontWeight: '700' }}>Istaklar{order.options.length || order.comment ? ` · ${order.options.length + (order.comment ? 1 : 0)}` : ''}</Txt>
+          <Txt v="small" style={{ fontFamily: F.bold }}>Istaklar{order.options.length || order.comment ? ` · ${order.options.length + (order.comment ? 1 : 0)}` : ''}</Txt>
         </Pressable>
         <Pressable onPress={() => router.push('/payment')} style={[styles.pill, { backgroundColor: promo ? c.okSoft : c.surface2 }]}>
           <Ionicons name="pricetag-outline" size={18} color={promo ? c.ok : c.text} />
-          {promo ? <Txt v="small" color={c.ok} style={{ fontWeight: '800' }}>-{promo.percent}%</Txt> : null}
+          {promo ? <Txt v="small" color={c.ok} style={{ fontFamily: F.heavy }}>-{promo.percent}%</Txt> : null}
         </Pressable>
       </Row>
 
@@ -195,7 +195,7 @@ function DriverCard() {
       </View>
       <View style={[styles.plate, { borderColor: c.text }]}>
         <Text style={[styles.plateText, { color: c.text }]}>{d.plate}</Text>
-        <Text style={{ fontSize: 8, fontWeight: '800', color: c.muted }}>🇺🇿 UZ</Text>
+        <Text style={{ fontSize: 8, fontFamily: F.heavy, color: c.muted }}>🇺🇿 UZ</Text>
       </View>
     </Row>
   );
@@ -307,7 +307,7 @@ export function RatingModal() {
       <View style={[styles.modalBg, { backgroundColor: c.overlay }]}>
         <View style={[styles.modal, { backgroundColor: c.surface, paddingBottom: insets.bottom + 16 }]}>
           <View style={[styles.grab, { backgroundColor: c.surface3 }]} />
-          <Text style={{ fontSize: 44, textAlign: 'center' }}>🎉</Text>
+          <IconTile name="flag-outline" color={c.ok} size={60} style={{ alignSelf: 'center' }} />
           <Txt v="h1" style={{ textAlign: 'center' }}>Yetib keldingiz!</Txt>
           <Txt muted style={{ textAlign: 'center' }}>{order.destination?.title}</Txt>
           <View style={[styles.total, { backgroundColor: c.surface2 }]}>
@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   trackFill: { height: 6, borderRadius: 3 },
   driverCard: { padding: 12, borderRadius: 20 },
   plate: { borderWidth: 2, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, alignItems: 'center' },
-  plateText: { fontSize: 13, fontWeight: '900', letterSpacing: 0.5 },
+  plateText: { fontSize: 13, fontFamily: F.heavy, letterSpacing: 0.5 },
   action: { alignItems: 'center', gap: 6, minWidth: 64 },
   actionIco: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   confirm: { padding: 14, borderRadius: 18, gap: 4 },

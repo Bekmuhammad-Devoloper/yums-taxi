@@ -7,7 +7,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, Sc
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { haptic, useColors } from '@/lib/store';
-import { radius, shadow } from '@/lib/theme';
+import { F, radius, shadow } from '@/lib/theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -18,13 +18,13 @@ export function Icon({ name, size = 22, color, style }: { name: IconName; size?:
 
 type Variant = 'title' | 'h1' | 'h2' | 'h3' | 'body' | 'small' | 'tiny';
 const sizes: Record<Variant, TextStyle> = {
-  title: { fontSize: 30, fontWeight: '800', letterSpacing: -0.6 },
-  h1: { fontSize: 24, fontWeight: '800', letterSpacing: -0.4 },
-  h2: { fontSize: 19, fontWeight: '800', letterSpacing: -0.2 },
-  h3: { fontSize: 16, fontWeight: '700' },
-  body: { fontSize: 15, fontWeight: '500' },
-  small: { fontSize: 13, fontWeight: '500' },
-  tiny: { fontSize: 11.5, fontWeight: '600' },
+  title: { fontSize: 26, fontFamily: F.display, letterSpacing: -0.8, lineHeight: 32 },
+  h1: { fontSize: 21, fontFamily: F.display, letterSpacing: -0.6, lineHeight: 27 },
+  h2: { fontSize: 16.5, fontFamily: F.displaySemi, letterSpacing: -0.3, lineHeight: 22 },
+  h3: { fontSize: 15.5, fontFamily: F.bold, letterSpacing: -0.1 },
+  body: { fontSize: 15, fontFamily: F.medium, lineHeight: 21 },
+  small: { fontSize: 13, fontFamily: F.medium, lineHeight: 18 },
+  tiny: { fontSize: 11.5, fontFamily: F.bold, letterSpacing: 0.1 },
 };
 
 export function Txt({ v = 'body', muted, faint, color, style, ...rest }: TextProps & { v?: Variant; muted?: boolean; faint?: boolean; color?: string }) {
@@ -63,8 +63,8 @@ export function Button({ title, onPress, kind = 'brand', icon, disabled, loading
         <>
           {icon && <Ionicons name={icon} size={small ? 17 : 20} color={fg} />}
           <View style={{ alignItems: 'center' }}>
-            <Text style={{ color: fg, fontSize: small ? 14 : 16, fontWeight: '800' }}>{title}</Text>
-            {sub ? <Text style={{ color: fg, opacity: 0.7, fontSize: 12, fontWeight: '600' }}>{sub}</Text> : null}
+            <Text style={{ color: fg, fontSize: small ? 14 : 16, fontFamily: F.heavy }}>{title}</Text>
+            {sub ? <Text style={{ color: fg, opacity: 0.7, fontSize: 12, fontFamily: F.semi }}>{sub}</Text> : null}
           </View>
         </>
       )}
@@ -77,8 +77,8 @@ export function IconButton({ name, onPress, style, badge, size = 46, color }: { 
   return (
     <Pressable
       onPress={() => { haptic.tap(); onPress?.(); }}
-      style={({ pressed }) => [{ width: size, height: size, borderRadius: size / 2.8, backgroundColor: c.surface, alignItems: 'center', justifyContent: 'center', transform: [{ scale: pressed ? 0.94 : 1 }] }, shadow(c), style]}>
-      <Ionicons name={name} size={22} color={color ?? c.text} />
+      style={({ pressed }) => [{ width: size, height: size, borderRadius: size / 2.8, backgroundColor: c.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: c.line, alignItems: 'center', justifyContent: 'center', transform: [{ scale: pressed ? 0.94 : 1 }] }, shadow(c, 0.35), style]}>
+      <Ionicons name={name} size={21} color={color ?? c.text} />
       {badge && <View style={{ position: 'absolute', top: 10, right: 11, width: 9, height: 9, borderRadius: 5, backgroundColor: c.danger, borderWidth: 2, borderColor: c.surface }} />}
     </Pressable>
   );
@@ -86,7 +86,7 @@ export function IconButton({ name, onPress, style, badge, size = 46, color }: { 
 
 export function Card({ children, style, onPress }: { children: ReactNode; style?: StyleProp<ViewStyle>; onPress?: () => void }) {
   const c = useColors();
-  const base = [{ backgroundColor: c.surface, borderRadius: radius.l, padding: 16 }, shadow(c, 0.6), style];
+  const base = [{ backgroundColor: c.surface, borderRadius: radius.l, padding: 16, borderWidth: StyleSheet.hairlineWidth, borderColor: c.line }, shadow(c, 0.2), style];
   if (!onPress) return <View style={base}>{children}</View>;
   return <Pressable onPress={onPress} style={({ pressed }) => [base, { opacity: pressed ? 0.85 : 1 }]}>{children}</Pressable>;
 }
@@ -120,7 +120,7 @@ export function Chip({ label, active, onPress, icon }: { label: string; active?:
       onPress={() => { haptic.tap(); onPress?.(); }}
       style={[styles.chip, { backgroundColor: active ? c.ink : c.surface2, borderColor: active ? c.ink : c.line }]}>
       {icon && <Ionicons name={icon} size={16} color={active ? c.bg : c.text} />}
-      <Text style={{ color: active ? c.bg : c.text, fontWeight: '700', fontSize: 13.5 }}>{label}</Text>
+      <Text style={{ color: active ? c.bg : c.text, fontFamily: F.bold, fontSize: 13.5 }}>{label}</Text>
     </Pressable>
   );
 }
@@ -135,13 +135,20 @@ export function Avatar({ name, size = 48, bg }: { name: string; size?: number; b
   const init = name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2.6, backgroundColor: bg ?? c.brand, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: c.brandText, fontWeight: '800', fontSize: size * 0.36 }}>{init}</Text>
+      <Text style={{ color: c.brandText, fontFamily: F.heavy, fontSize: size * 0.36 }}>{init}</Text>
     </View>
   );
 }
 
 /** Rangli hex'ga shaffoflik qo'shish: '#2457F5' + 0.12 → '#2457F51F' */
 export const alpha = (hex: string, a: number) => hex + Math.round(a * 255).toString(16).padStart(2, '0');
+
+/** Rangni qoraga aralashtirish — chuqur gradientlar uchun */
+export const shade = (hex: string, k = 0.55) => {
+  const n = parseInt(hex.slice(1, 7), 16);
+  const ch = (v: number) => Math.round(v * (1 - k)).toString(16).padStart(2, '0');
+  return `#${ch((n >> 16) & 255)}${ch((n >> 8) & 255)}${ch(n & 255)}`;
+};
 
 /**
  * Zamonaviy nozik ikonka: yengil shisha fon, ingichka chegara va outline belgi.
@@ -218,7 +225,7 @@ export function SectionHeader({ title, action, onAction, style }: { title: strin
       <Txt v="h2" style={{ flex: 1 }} numberOfLines={1}>{title}</Txt>
       {action ? (
         <Pressable onPress={() => { haptic.tap(); onAction?.(); }} hitSlop={10} style={styles.headerLink}>
-          <Txt v="small" color={c.accent} style={{ fontWeight: '700' }}>{action}</Txt>
+          <Txt v="small" color={c.accent} style={{ fontFamily: F.bold }}>{action}</Txt>
           <Ionicons name="chevron-forward" size={14} color={c.accent} />
         </Pressable>
       ) : null}
@@ -246,7 +253,7 @@ export function Badge({ label, tone = 'muted', icon, style }: { label: string; t
   return (
     <View style={[styles.badge, { backgroundColor: t.bg }, style]}>
       {icon && <Ionicons name={icon} size={12} color={t.fg} />}
-      <Text style={{ color: t.fg, fontSize: 11.5, fontWeight: '800' }} numberOfLines={1}>{label}</Text>
+      <Text style={{ color: t.fg, fontSize: 11.5, fontFamily: F.heavy }} numberOfLines={1}>{label}</Text>
     </View>
   );
 }
@@ -261,13 +268,13 @@ export function Field({ label, hint, error, style, inputStyle, prefix, ...rest }
   const c = useColors();
   return (
     <View style={[{ gap: 6 }, style as StyleProp<ViewStyle>]}>
-      {label ? <Txt v="small" muted style={{ fontWeight: '700', marginLeft: 2 }}>{label}</Txt> : null}
+      {label ? <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>{label}</Txt> : null}
       <View style={[styles.field, { backgroundColor: c.surface2, borderColor: error ? c.danger : c.line }, rest.multiline && { alignItems: 'flex-start', paddingVertical: 12 }]}>
         {prefix ? <Txt v="h3" muted>{prefix}</Txt> : null}
         <TextInput
           placeholderTextColor={c.faint}
           {...rest}
-          style={[{ flex: 1, minWidth: 0, outlineWidth: 0, color: c.text, fontSize: 15.5, fontWeight: '600', minHeight: rest.multiline ? 84 : 48, textAlignVertical: rest.multiline ? 'top' : 'center' }, inputStyle]}
+          style={[{ flex: 1, minWidth: 0, outlineWidth: 0, color: c.text, fontSize: 15.5, fontFamily: F.semi, minHeight: rest.multiline ? 84 : 48, textAlignVertical: rest.multiline ? 'top' : 'center' }, inputStyle]}
         />
       </View>
       {error ? <Txt v="tiny" color={c.danger} style={{ marginLeft: 2 }}>{error}</Txt> : hint ? <Txt v="tiny" faint style={{ marginLeft: 2 }}>{hint}</Txt> : null}
@@ -292,7 +299,7 @@ export function SearchBar({ value, onChangeText, placeholder, onPress, right, au
           placeholderTextColor={c.faint}
           autoFocus={autoFocus}
           returnKeyType="search"
-          style={{ flex: 1, minWidth: 0, outlineWidth: 0, color: c.text, fontSize: 15.5, fontWeight: '600', height: '100%' }}
+          style={{ flex: 1, minWidth: 0, outlineWidth: 0, color: c.text, fontSize: 15.5, fontFamily: F.semi, height: '100%' }}
         />
       )}
       {value && onChangeText ? (
@@ -301,7 +308,7 @@ export function SearchBar({ value, onChangeText, placeholder, onPress, right, au
       {right}
     </>
   );
-  const box = [styles.search, { backgroundColor: c.surface, borderColor: c.line }, shadow(c, 0.4), style];
+  const box = [styles.search, { backgroundColor: c.surface, borderColor: c.line }, shadow(c, 0.15), style];
   if (onPress) return <Pressable onPress={() => { haptic.tap(); onPress(); }} style={({ pressed }) => [box, { opacity: pressed ? 0.85 : 1 }]}>{inner}</Pressable>;
   return <View style={box}>{inner}</View>;
 }
@@ -314,7 +321,7 @@ export function Segmented<T extends string>({ items, value, onChange, style }: {
         const on = it.id === value;
         return (
           <Pressable key={it.id} onPress={() => { haptic.tap(); onChange(it.id); }} style={[styles.segItem, on && [{ backgroundColor: c.surface }, shadow(c, 0.4)]]}>
-            <Text style={{ color: on ? c.text : c.muted, fontWeight: '800', fontSize: 13.5 }} numberOfLines={1}>{it.label}</Text>
+            <Text style={{ color: on ? c.text : c.muted, fontFamily: F.heavy, fontSize: 13.5 }} numberOfLines={1}>{it.label}</Text>
             {it.badge ? <View style={[styles.segBadge, { backgroundColor: c.danger }]}><Text style={styles.segBadgeText}>{it.badge}</Text></View> : null}
           </Pressable>
         );
@@ -394,7 +401,7 @@ const styles = StyleSheet.create({
   seg: { flexDirection: 'row', padding: 4, borderRadius: 15, gap: 4 },
   segItem: { flex: 1, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 6 },
   segBadge: { minWidth: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
-  segBadgeText: { color: '#fff', fontSize: 11, fontWeight: '800' },
+  segBadgeText: { color: '#fff', fontSize: 11, fontFamily: F.heavy },
   emptyIco: { width: 76, height: 76, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
   sheetBg: { flex: 1, justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 20, paddingTop: 10, gap: 14, maxHeight: '92%' },

@@ -7,6 +7,7 @@ import { Badge, Card, ListItem, Row, Screen, SectionTitle, Segmented, Txt } from
 import { confirm } from '@/lib/confirm';
 import { ago, usePlatform } from '@/lib/platform';
 import { useStore, type Role } from '@/lib/store';
+import { F } from '@/lib/theme';
 
 const ROLES: { id: Role; label: string; short: string; can: string }[] = [
   { id: 'user', label: 'Foydalanuvchi', short: 'Oddiy', can: "Loyiha va e'lon joylashtirish, xabarlar, shikoyat yuborish" },
@@ -60,7 +61,7 @@ export default function Security() {
           <Row key={e.id} gap={10}>
             <Ionicons name={e.ok ? 'checkmark-circle' : 'warning'} size={18} color={e.ok ? c.ok : c.danger} />
             <View style={{ flex: 1 }}>
-              <Txt v="small" style={{ fontWeight: '700' }}>{e.event}</Txt>
+              <Txt v="small" style={{ fontFamily: F.bold }}>{e.event}</Txt>
               <Txt v="tiny" faint>{e.device} · {ago(e.at)}</Txt>
             </View>
           </Row>
@@ -74,7 +75,7 @@ export default function Security() {
           <Row key={r.id} gap={10} style={{ alignItems: 'flex-start', opacity: r.id === role ? 1 : 0.55 }}>
             <Ionicons name={r.id === role ? 'radio-button-on' : 'radio-button-off'} size={18} color={r.id === role ? c.brandDeep : c.faint} />
             <View style={{ flex: 1 }}>
-              <Txt v="small" style={{ fontWeight: '800' }}>{r.label}</Txt>
+              <Txt v="small" style={{ fontFamily: F.heavy }}>{r.label}</Txt>
               <Txt v="tiny" faint>{r.can}</Txt>
             </View>
           </Row>

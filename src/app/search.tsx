@@ -9,6 +9,7 @@ import { Divider, IconButton, ListItem, SectionTitle, Txt, type IconName } from 
 import { PLACES, type Place } from '@/lib/data';
 import { distanceKm } from '@/lib/geo';
 import { useStore } from '@/lib/store';
+import { F } from '@/lib/theme';
 
 type Mode = 'to' | 'from' | 'home' | 'work';
 const TITLES: Record<Mode, string> = { to: 'Qayerga?', from: 'Qayerdan?', home: 'Uy manzili', work: 'Ish manzili' };
@@ -116,5 +117,5 @@ const styles = StyleSheet.create({
   box: { marginHorizontal: 16, borderRadius: 20, paddingHorizontal: 14, marginBottom: 8 },
   field: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 54 },
   dot: { width: 12, height: 12, borderRadius: 6, marginLeft: 4 },
-  input: { flex: 1, minWidth: 0, fontSize: 17, fontWeight: '600', height: 54 },
+  input: { flex: 1, minWidth: 0, fontSize: 17, fontFamily: F.semi, height: 54 },
 });

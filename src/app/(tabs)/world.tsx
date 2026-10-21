@@ -10,6 +10,7 @@ import { useContactInvestor } from '@/lib/actions';
 import { COUNTRIES, LANGUAGES, SECTORS, STAGES, type Country } from '@/lib/platform-data';
 import { countryOf, sectorOf, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
+import { F } from '@/lib/theme';
 
 export type SearchType = 'projects' | 'companies' | 'specialists' | 'market' | 'investors';
 const TYPES: SearchType[] = ['projects', 'companies', 'specialists', 'market', 'investors'];
@@ -122,7 +123,7 @@ export default function World() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.chips, { paddingTop: 0, gap: 14 }]}>
           {REGIONS.map(r => (
             <Pressable key={r} onPress={() => { haptic.tap(); setRegion(r); }} hitSlop={6}>
-              <Txt v="small" color={region === r ? c.text : c.faint} style={{ fontWeight: '800', textDecorationLine: region === r ? 'underline' : 'none' }}>
+              <Txt v="small" color={region === r ? c.text : c.faint} style={{ fontFamily: F.heavy, textDecorationLine: region === r ? 'underline' : 'none' }}>
                 {r === 'all' ? 'Butun dunyo' : r}
               </Txt>
             </Pressable>
@@ -170,7 +171,7 @@ function Filter({ label, on, onPress, icon, toggle }: { label: string; on: boole
   return (
     <Pressable onPress={() => { haptic.tap(); onPress(); }} style={[styles.filter, { backgroundColor: on ? c.brandSoft : c.surface, borderColor: on ? c.brand : c.line }]}>
       {icon && <Ionicons name={icon} size={15} color={on ? c.brandDeep : c.muted} />}
-      <Txt v="small" style={{ fontWeight: '700' }} numberOfLines={1}>{label}</Txt>
+      <Txt v="small" style={{ fontFamily: F.bold }} numberOfLines={1}>{label}</Txt>
       {!toggle && !icon && <Ionicons name="chevron-down" size={14} color={c.faint} />}
     </Pressable>
   );

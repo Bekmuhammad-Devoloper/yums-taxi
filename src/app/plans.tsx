@@ -9,7 +9,7 @@ import { useStartChat } from '@/lib/actions';
 import { PLANS, PRO_SERVICES, type Plan } from '@/lib/platform-data';
 import { usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
-import { radius } from '@/lib/theme';
+import { F, radius } from '@/lib/theme';
 
 const BOOST_PRICE = 5;
 
@@ -126,7 +126,7 @@ export default function Plans() {
         <Button title="Moderatsiyaga yuborish" icon="send" disabled={adTitle.trim().length < 4} onPress={() => { p.createAd(adTitle.trim(), adBudget); setAdOpen(false); setAdTitle(''); toast('Reklama tekshiruvga yuborildi', 'megaphone'); }} />
       }>
         <Field label="Reklama sarlavhasi" value={adTitle} onChangeText={setAdTitle} placeholder="Masalan: Xalqaro yuk tashish — 12 kunda" maxLength={60} />
-        <Txt v="small" muted style={{ fontWeight: '700' }}>Byudjet</Txt>
+        <Txt v="small" muted style={{ fontFamily: F.bold }}>Byudjet</Txt>
         <Row gap={8}>{[50, 150, 500, 1000].map(b => <Chip key={b} label={`$${b}`} active={adBudget === b} onPress={() => setAdBudget(b)} />)}</Row>
         <Txt v="tiny" faint>Taxminan {adBudget * 120} ko'rsatish. Reklama «Reklama» belgisi bilan ko'rsatiladi.</Txt>
       </Sheet>
@@ -137,7 +137,7 @@ export default function Plans() {
 const styles = StyleSheet.create({
   planIco: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   ad: { padding: 18, borderRadius: radius.l, gap: 6 },
-  adKicker: { color: '#FFC800', fontSize: 10.5, fontWeight: '900', letterSpacing: 1 },
-  adTitle: { color: '#fff', fontSize: 18, fontWeight: '900', lineHeight: 23 },
-  adSub: { color: 'rgba(255,255,255,0.65)', fontSize: 13, fontWeight: '600', lineHeight: 18 },
+  adKicker: { color: '#FFC800', fontSize: 10.5, fontFamily: F.heavy, letterSpacing: 1 },
+  adTitle: { color: '#fff', fontSize: 16, fontFamily: F.display, letterSpacing: -0.5, lineHeight: 22 },
+  adSub: { color: 'rgba(255,255,255,0.65)', fontSize: 13, fontFamily: F.semi, lineHeight: 18 },
 });

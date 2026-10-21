@@ -7,6 +7,7 @@ import { toast } from '@/components/toast';
 import { Badge, Button, Card, EmptyState, Row, Screen, Segmented, Sheet, Stat, Txt } from '@/components/ui';
 import { countryOf, ago, flagged, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
+import { F } from '@/lib/theme';
 
 type Tab = 'queue' | 'reports' | 'verify';
 const REJECT = ["Soxta yoki tekshirib bo'lmaydigan ma'lumot", 'Taqiqlangan faoliyat', 'Litsenziya talab qilinadi', "Kontent to'liq emas", "Takroriy e'lon"];
@@ -71,7 +72,7 @@ export default function Moderation() {
           {q.flags.length > 0 && (
             <View style={[styles.flag, { backgroundColor: c.dangerSoft }]}>
               <Ionicons name="warning" size={16} color={c.danger} />
-              <Txt v="small" color={c.danger} style={{ flex: 1, fontWeight: '700' }}>Avto-filtr: «{q.flags.join('», «')}»</Txt>
+              <Txt v="small" color={c.danger} style={{ flex: 1, fontFamily: F.bold }}>Avto-filtr: «{q.flags.join('», «')}»</Txt>
             </View>
           )}
           <Row gap={8}>
@@ -91,7 +92,7 @@ export default function Moderation() {
                 <Txt v="tiny" faint>{ago(r.createdAt)}</Txt>
               </Row>
               <Txt v="h3">{r.targetTitle}</Txt>
-              <Txt v="small" style={{ fontWeight: '700' }}>{r.reason}</Txt>
+              <Txt v="small" style={{ fontFamily: F.bold }}>{r.reason}</Txt>
               {r.note ? <Txt v="small" muted>«{r.note}»</Txt> : null}
               <Txt v="tiny" faint>Shikoyatchi: {r.by}</Txt>
               <Row gap={8} style={{ marginTop: 4 }}>
@@ -104,7 +105,7 @@ export default function Moderation() {
           {closed.map(r => (
             <Card key={r.id} style={{ gap: 4, opacity: 0.75 }}>
               <Row style={{ justifyContent: 'space-between' }}>
-                <Txt v="small" style={{ fontWeight: '700', flex: 1 }} numberOfLines={1}>{r.targetTitle}</Txt>
+                <Txt v="small" style={{ fontFamily: F.bold, flex: 1 }} numberOfLines={1}>{r.targetTitle}</Txt>
                 <Badge label={r.action ?? r.status} tone={r.status === 'resolved' ? 'danger' : 'muted'} />
               </Row>
               <Txt v="tiny" faint>{r.reason}</Txt>

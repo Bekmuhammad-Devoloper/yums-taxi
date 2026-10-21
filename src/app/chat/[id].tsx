@@ -11,6 +11,7 @@ import { Button, Chip, EmptyState, Field, IconButton, ListItem, Row, Screen, She
 import type { Attachment, Message, ReportTarget } from '@/lib/platform-data';
 import { fileSize, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
+import { F } from '@/lib/theme';
 
 const hhmm = (iso: string) => { const d = new Date(iso); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 const DAYS = ['Yak', 'Dush', 'Sesh', 'Chor', 'Pay', 'Jum', 'Shan'];
@@ -100,7 +101,7 @@ export default function ChatScreen() {
 
         {pendingIn && (
           <View style={[styles.banner, { backgroundColor: c.warnSoft }]}>
-            <Txt v="small" color={c.warn} style={{ fontWeight: '700' }}>{cv.peerName} siz bilan hamkorlik qilmoqchi</Txt>
+            <Txt v="small" color={c.warn} style={{ fontFamily: F.bold }}>{cv.peerName} siz bilan hamkorlik qilmoqchi</Txt>
             <Row gap={8}>
               <Button title="Rad etish" kind="ghost" small style={{ flex: 1 }} onPress={() => p.respondRequest(cv.id, false)} />
               <Button title="Qabul qilish" small icon="checkmark" style={{ flex: 1.4 }} onPress={() => { p.respondRequest(cv.id, true); haptic.success(); }} />
@@ -169,21 +170,21 @@ function Bubble({ m }: { m: Message }) {
     <View style={[styles.bubble, me ? { alignSelf: 'flex-end', backgroundColor: c.brand, borderBottomRightRadius: 6 } : { alignSelf: 'flex-start', backgroundColor: c.surface, borderBottomLeftRadius: 6 }]}>
       {meeting ? (
         <View style={{ gap: 6 }}>
-          <Row gap={8}><Ionicons name="videocam" size={18} color={fg} /><Text style={{ color: fg, fontWeight: '800', fontSize: 15 }}>Onlayn uchrashuv</Text></Row>
-          <Text style={{ color: fg, fontWeight: '600' }}>{meeting.title}</Text>
+          <Row gap={8}><Ionicons name="videocam" size={18} color={fg} /><Text style={{ color: fg, fontFamily: F.heavy, fontSize: 15 }}>Onlayn uchrashuv</Text></Row>
+          <Text style={{ color: fg, fontFamily: F.semi }}>{meeting.title}</Text>
           <Text style={{ color: fg, opacity: 0.75, fontSize: 13 }}>
             {DAYS[new Date(meeting.at).getDay()]}, {new Date(meeting.at).getDate()}-{['yan', 'fev', 'mar', 'apr', 'may', 'iyun', 'iyul', 'avg', 'sen', 'okt', 'noy', 'dek'][new Date(meeting.at).getMonth()]} · {hhmm(meeting.at)} · {meeting.durationMin} daq
           </Text>
           {meeting.status === 'cancelled'
-            ? <Text style={{ color: fg, fontWeight: '800', fontSize: 13 }}>Bekor qilingan</Text>
-            : <Pressable onPress={() => Linking.openURL(meeting.link).catch(() => toast('Havola ochilmadi', 'alert-circle'))} style={[styles.join, { backgroundColor: me ? 'rgba(14,21,37,0.12)' : c.surface2 }]}><Text style={{ color: fg, fontWeight: '800' }}>Qo'shilish</Text></Pressable>}
+            ? <Text style={{ color: fg, fontFamily: F.heavy, fontSize: 13 }}>Bekor qilingan</Text>
+            : <Pressable onPress={() => Linking.openURL(meeting.link).catch(() => toast('Havola ochilmadi', 'alert-circle'))} style={[styles.join, { backgroundColor: me ? 'rgba(14,21,37,0.12)' : c.surface2 }]}><Text style={{ color: fg, fontFamily: F.heavy }}>Qo'shilish</Text></Pressable>}
         </View>
       ) : m.file ? (
         <Pressable onPress={() => (m.file?.uri ? Linking.openURL(m.file.uri).catch(() => toast("Faylni ochib bo'lmadi", 'alert-circle')) : toast('Fayl yuklab olindi', 'download'))} style={{ gap: 6 }}>
           <Row gap={10}>
             <View style={[styles.fileIco, { backgroundColor: me ? 'rgba(14,21,37,0.12)' : c.accentSoft }]}><Ionicons name="document-text" size={20} color={me ? fg : c.accent} /></View>
             <View style={{ flexShrink: 1 }}>
-              <Text style={{ color: fg, fontWeight: '800' }} numberOfLines={1}>{m.file.name}</Text>
+              <Text style={{ color: fg, fontFamily: F.heavy }} numberOfLines={1}>{m.file.name}</Text>
               <Text style={{ color: fg, opacity: 0.7, fontSize: 12 }}>{fileSize(m.file.size) || 'hujjat'}</Text>
             </View>
           </Row>
@@ -215,15 +216,15 @@ function MeetingSheet({ visible, onClose, onCreate }: { visible: boolean; onClos
   return (
     <Sheet visible={visible} onClose={onClose} title="Onlayn uchrashuv" footer={<Button title="Taklif yuborish" icon="videocam" onPress={create} />}>
       <Field label="Mavzu" value={title} onChangeText={setTitle} />
-      <Txt v="small" muted style={{ fontWeight: '700' }}>Kun</Txt>
+      <Txt v="small" muted style={{ fontFamily: F.bold }}>Kun</Txt>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
         {days.map((d, i) => <Chip key={i} label={i === 0 ? 'Bugun' : i === 1 ? 'Ertaga' : `${DAYS[d.getDay()]}, ${d.getDate()}`} active={day === i} onPress={() => setDay(i)} />)}
       </ScrollView>
-      <Txt v="small" muted style={{ fontWeight: '700' }}>Vaqt</Txt>
+      <Txt v="small" muted style={{ fontFamily: F.bold }}>Vaqt</Txt>
       <Row gap={8} style={{ flexWrap: 'wrap' }}>
         {['09:00', '11:00', '13:00', '15:00', '17:00', '19:00'].map(t => <Chip key={t} label={t} active={time === t} onPress={() => setTime(t)} />)}
       </Row>
-      <Txt v="small" muted style={{ fontWeight: '700' }}>Davomiyligi</Txt>
+      <Txt v="small" muted style={{ fontFamily: F.bold }}>Davomiyligi</Txt>
       <Row gap={8}>{[15, 30, 60].map(m => <Chip key={m} label={`${m} daq`} active={dur === m} onPress={() => setDur(m)} />)}</Row>
       <Txt v="tiny" faint>Video havola avtomatik yaratiladi va suhbatga yuboriladi.</Txt>
     </Sheet>

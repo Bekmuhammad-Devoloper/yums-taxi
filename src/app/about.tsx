@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { BrandLogo, Card, IconTile, Row, Screen, SectionHeader, Txt } from '@/components/ui';
 import { SECTIONS, SECTORS } from '@/lib/platform-data';
 import { haptic, useStore } from '@/lib/store';
-import { radius } from '@/lib/theme';
+import { F, radius } from '@/lib/theme';
 
 const GOALS = [
   "Dunyo bo'yicha loyihalarni joylashtirish va qidirish imkoniyatini yaratish",
@@ -45,7 +45,7 @@ export default function About() {
       <Card style={{ gap: 12 }}>
         {GOALS.map((g, i) => (
           <Row key={g} gap={12} style={{ alignItems: 'flex-start' }}>
-            <View style={[styles.num, { backgroundColor: c.brandSoft }]}><Txt v="small" color={c.brandDeep} style={{ fontWeight: '900' }}>{i + 1}</Txt></View>
+            <View style={[styles.num, { backgroundColor: c.brandSoft }]}><Txt v="small" color={c.brandDeep} style={{ fontFamily: F.heavy }}>{i + 1}</Txt></View>
             <Txt v="small" style={{ flex: 1, lineHeight: 20 }}>{g}</Txt>
           </Row>
         ))}
@@ -71,7 +71,7 @@ export default function About() {
         {REVENUE.map(([i, t, d]) => (
           <Row key={t} gap={12}>
             <Ionicons name={i} size={20} color={c.ok} />
-            <View style={{ flex: 1 }}><Txt v="small" style={{ fontWeight: '800' }}>{t}</Txt><Txt v="tiny" faint>{d}</Txt></View>
+            <View style={{ flex: 1 }}><Txt v="small" style={{ fontFamily: F.heavy }}>{t}</Txt><Txt v="tiny" faint>{d}</Txt></View>
           </Row>
         ))}
       </Card>
@@ -89,7 +89,7 @@ export default function About() {
                 {i < ROADMAP.length - 1 && <View style={[styles.line, { backgroundColor: c.line }]} />}
               </View>
               <View style={{ flex: 1, paddingBottom: 14 }}>
-                <Txt v="small" style={{ fontWeight: '800' }}>{i + 1}-bosqich · {r.title}{r.state === 'now' ? ' (joriy)' : ''}</Txt>
+                <Txt v="small" style={{ fontFamily: F.heavy }}>{i + 1}-bosqich · {r.title}{r.state === 'now' ? ' (joriy)' : ''}</Txt>
                 <Txt v="tiny" faint>{r.desc}</Txt>
               </View>
             </Row>
@@ -112,7 +112,7 @@ function SectionDesc({ id }: { id: string }) {
 
 const styles = StyleSheet.create({
   hero: { padding: 20, borderRadius: radius.xl, gap: 8 },
-  sub: { color: 'rgba(255,255,255,0.72)', fontSize: 14, fontWeight: '600', lineHeight: 21 },
+  sub: { color: 'rgba(255,255,255,0.72)', fontSize: 14, fontFamily: F.semi, lineHeight: 21 },
   num: { width: 26, height: 26, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   section: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: radius.l },
   step: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },

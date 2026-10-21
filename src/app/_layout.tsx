@@ -1,3 +1,10 @@
+import { Manrope_500Medium } from '@expo-google-fonts/manrope/500Medium';
+import { Manrope_600SemiBold } from '@expo-google-fonts/manrope/600SemiBold';
+import { Manrope_700Bold } from '@expo-google-fonts/manrope/700Bold';
+import { Manrope_800ExtraBold } from '@expo-google-fonts/manrope/800ExtraBold';
+import { Unbounded_600SemiBold } from '@expo-google-fonts/unbounded/600SemiBold';
+import { Unbounded_700Bold } from '@expo-google-fonts/unbounded/700Bold';
+import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -12,12 +19,15 @@ SplashScreen.preventAutoHideAsync();
 
 function Root() {
   const { ready, dark, colors } = useStore();
+  const [fontsLoaded, fontError] = useFonts({ Unbounded_600SemiBold, Unbounded_700Bold, Manrope_500Medium, Manrope_600SemiBold, Manrope_700Bold, Manrope_800ExtraBold });
+  // Shrift yuklanmasa ham ilova tizim shrifti bilan ochiladi
+  const loaded = ready && (fontsLoaded || !!fontError);
 
   useEffect(() => {
-    if (ready) SplashScreen.hideAsync();
-  }, [ready]);
+    if (loaded) SplashScreen.hideAsync();
+  }, [loaded]);
 
-  if (!ready) return null;
+  if (!loaded) return null;
 
   return (
     <ThemeProvider value={dark ? DarkTheme : DefaultTheme}>

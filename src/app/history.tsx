@@ -7,6 +7,7 @@ import { TARIFFS } from '@/lib/data';
 import { fmtDate } from '@/lib/format';
 import { som } from '@/lib/geo';
 import { useStore } from '@/lib/store';
+import { F } from '@/lib/theme';
 
 export default function History() {
   const { colors: c, rides } = useStore();
@@ -27,7 +28,7 @@ export default function History() {
             <Row style={{ justifyContent: 'space-between' }}>
               <Txt v="small" muted>{fmtDate(r.createdAt)} · {t?.name}</Txt>
               {cancelled
-                ? <Txt v="small" color={c.danger} style={{ fontWeight: '700' }}>Bekor qilingan</Txt>
+                ? <Txt v="small" color={c.danger} style={{ fontFamily: F.bold }}>Bekor qilingan</Txt>
                 : <Txt v="h3">{som(r.price)}</Txt>}
             </Row>
             <View style={{ marginTop: 10, gap: 8 }}>

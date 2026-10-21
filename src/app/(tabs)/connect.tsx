@@ -10,6 +10,7 @@ import { Badge, Button, Card, EmptyState, Row, Segmented, Txt, Verified } from '
 import type { Conversation } from '@/lib/platform-data';
 import { ago, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
+import { F } from '@/lib/theme';
 
 type Tab = 'chats' | 'requests' | 'meetings';
 
@@ -65,7 +66,7 @@ export default function Connect() {
                 {cv.peerVerified && <Verified size={14} />}
                 {cv.blocked && <Ionicons name="ban" size={14} color={c.danger} />}
               </Row>
-              <Txt v="small" muted={!cv.unread} numberOfLines={1} style={cv.unread ? { fontWeight: '700' } : undefined}>{preview(cv)}</Txt>
+              <Txt v="small" muted={!cv.unread} numberOfLines={1} style={cv.unread ? { fontFamily: F.bold } : undefined}>{preview(cv)}</Txt>
             </View>
             <View style={{ alignItems: 'flex-end', gap: 6 }}>
               <Txt v="tiny" faint>{cv.messages.length ? ago(cv.messages[cv.messages.length - 1].at) : ''}</Txt>
@@ -127,6 +128,6 @@ export default function Connect() {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20 },
   unread: { minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
-  unreadText: { fontWeight: '900', fontSize: 12 },
+  unreadText: { fontFamily: F.heavy, fontSize: 12 },
   date: { width: 56, height: 60, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
 });

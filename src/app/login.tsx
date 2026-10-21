@@ -11,6 +11,7 @@ import { BrandLogo, Button, Field, IconTile, Segmented, Txt } from '@/components
 import { COUNTRIES, SECTIONS } from '@/lib/platform-data';
 import { countryOf, usePlatform } from '@/lib/platform';
 import { haptic, useStore, type AccountKind } from '@/lib/store';
+import { F } from '@/lib/theme';
 
 const CODES = [
   { code: '+998', flag: '🇺🇿', country: 'UZ', len: 9 },
@@ -151,7 +152,7 @@ export default function Login() {
               </Pressable>
               <TextInput ref={codeRef} value={code} onChangeText={onCode} keyboardType="number-pad" maxLength={4} style={styles.hidden} autoFocus />
               <Pressable disabled={timer > 0} onPress={sendCode}>
-                <Txt v="small" muted={timer > 0} color={timer > 0 ? undefined : c.accent} style={{ textAlign: 'center', fontWeight: '700' }}>
+                <Txt v="small" muted={timer > 0} color={timer > 0 ? undefined : c.accent} style={{ textAlign: 'center', fontFamily: F.bold }}>
                   {timer > 0 ? `Kodni qayta yuborish: 0:${String(timer).padStart(2, '0')}` : 'Kodni qayta yuborish'}
                 </Txt>
               </Pressable>
@@ -179,7 +180,7 @@ export default function Login() {
               <Field label={kind === 'company' ? "Mas'ul shaxs" : 'Ismingiz'} value={name} onChangeText={setName} placeholder="Masalan: Aziz Karimov" autoCapitalize="words" />
               <SelectField label="Mamlakat" value={`${k.flag} ${k.name}`} placeholder="Mamlakat" onPress={() => setPicker('country')} />
               <View style={[styles.bonus, { backgroundColor: c.brandSoft }]}>
-                <Text style={{ fontSize: 26 }}>🎁</Text>
+                <IconTile name="gift-outline" color={c.brandDeep} size={44} />
                 <View style={{ flex: 1 }}>
                   <Txt v="h3">Xush kelibsiz sovg'asi</Txt>
                   <Txt v="small" muted>Birinchi loyiha joylashtirish bepul + YUMS Taxi balansiga 25 000 so'm</Txt>
@@ -204,17 +205,17 @@ const styles = StyleSheet.create({
   hero: { paddingHorizontal: 24, paddingBottom: 52, overflow: 'hidden' },
   glow: { position: 'absolute', alignSelf: 'center', width: 300, height: 300, borderRadius: 150, backgroundColor: 'rgba(255,200,0,0.07)' },
   back: { position: 'absolute', left: 16, width: 40, height: 40, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
-  tagline: { fontSize: 14.5, fontWeight: '500', color: 'rgba(255,255,255,0.68)', lineHeight: 21, textAlign: 'center', letterSpacing: 0.2 },
+  tagline: { fontSize: 14.5, fontFamily: F.medium, color: 'rgba(255,255,255,0.68)', lineHeight: 21, textAlign: 'center', letterSpacing: 0.2 },
   sections: { flexDirection: 'row', gap: 7, marginTop: 18, flexWrap: 'wrap', justifyContent: 'center' },
   card: { flex: 1, marginTop: -28, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, gap: 14 },
   phone: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 62, borderRadius: 18, borderWidth: 2, paddingHorizontal: 14 },
   cc: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  prefix: { fontSize: 19, fontWeight: '800' },
-  phoneInput: { flex: 1, minWidth: 0, outlineWidth: 0, fontSize: 20, fontWeight: '700', letterSpacing: 0.5, height: '100%' },
+  prefix: { fontSize: 19, fontFamily: F.heavy },
+  phoneInput: { flex: 1, minWidth: 0, outlineWidth: 0, fontSize: 20, fontFamily: F.bold, letterSpacing: 0.5, height: '100%' },
   agree: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   otpRow: { flexDirection: 'row', gap: 12, justifyContent: 'center', marginVertical: 10 },
   otp: { width: 62, height: 70, borderRadius: 18, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  otpText: { fontSize: 30, fontWeight: '800' },
+  otpText: { fontSize: 26, fontFamily: F.display },
   hidden: { position: 'absolute', opacity: 0, width: 1, height: 1 },
   kind: { flex: 1, padding: 14, borderRadius: 18, borderWidth: 2, gap: 4 },
   bonus: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18 },

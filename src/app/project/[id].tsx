@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
@@ -6,13 +7,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FavButton, KeyValue, Logo, ReportSheet, StatusBadge } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { Avatar, Badge, Button, Card, EmptyState, IconButton, ListItem, Row, Screen, Sheet, Txt, Verified } from '@/components/ui';
+import { Avatar, Badge, Button, Card, EmptyState, IconButton, ListItem, Row, Screen, shade, Sheet, Txt, Verified } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
 import { confirm } from '@/lib/confirm';
 import { LANGUAGES, SEEKS, STAGES } from '@/lib/platform-data';
 import { ago, budget, countryOf, fileSize, flagged, sectorOf, short, usePlatform } from '@/lib/platform';
 import { useStore } from '@/lib/store';
-import { radius } from '@/lib/theme';
+import { F, radius } from '@/lib/theme';
 
 export default function ProjectScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -76,7 +77,8 @@ export default function ProjectScreen() {
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}>
         <View style={[styles.hero, { backgroundColor: sec.color, paddingTop: insets.top + 8 }]}>
-          <Ionicons name={sec.icon} size={190} color="rgba(255,255,255,0.14)" style={{ position: 'absolute', right: -30, bottom: -40 }} />
+          <LinearGradient colors={[sec.color, shade(sec.color, 0.6)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+          <Ionicons name={sec.icon} size={190} color="rgba(255,255,255,0.1)" style={{ position: 'absolute', right: -30, bottom: -40 }} />
           <Row style={{ justifyContent: 'space-between' }}>
             <IconButton name="chevron-back" size={42} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
             <Row gap={8}>
@@ -126,7 +128,7 @@ export default function ProjectScreen() {
           {mine && pr.status === 'review' && (
             <View style={[styles.alert, { backgroundColor: c.warnSoft }]}>
               <Ionicons name="hourglass" size={20} color={c.warn} />
-              <Txt v="small" color={c.warn} style={{ flex: 1, fontWeight: '700' }}>
+              <Txt v="small" color={c.warn} style={{ flex: 1, fontFamily: F.bold }}>
                 {warn.length ? `Loyiha qo'lda tekshiriladi: «${warn[0]}» iborasi qoidalarga zid bo'lishi mumkin` : "Moderator tekshirmoqda — odatda bir necha daqiqa"}
               </Txt>
             </View>
@@ -217,8 +219,8 @@ export default function ProjectScreen() {
 const styles = StyleSheet.create({
   hero: { paddingHorizontal: 16, paddingBottom: 40, overflow: 'hidden' },
   heroPill: { backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8 },
-  heroPillText: { color: '#fff', fontWeight: '800', fontSize: 11.5 },
-  heroTitle: { color: '#fff', fontSize: 26, fontWeight: '900', letterSpacing: -0.5, lineHeight: 31 },
+  heroPillText: { color: '#fff', fontFamily: F.heavy, fontSize: 11.5 },
+  heroTitle: { color: '#fff', fontSize: 23, fontFamily: F.display, letterSpacing: -0.7, lineHeight: 29 },
   favWrap: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   alert: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: radius.m },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 12, paddingHorizontal: 16, borderTopWidth: StyleSheet.hairlineWidth },

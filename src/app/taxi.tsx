@@ -11,7 +11,7 @@ import { BrandMark, IconButton } from '@/components/ui';
 import { DEFAULT_CENTER, type LatLng, type Place } from '@/lib/data';
 import { addressOf } from '@/lib/geo';
 import { useStore } from '@/lib/store';
-import { shadow } from '@/lib/theme';
+import { F, shadow } from '@/lib/theme';
 
 export default function Taxi() {
   const s = useStore();
@@ -183,7 +183,7 @@ export default function Taxi() {
       {!granted && idle && order.pickup && (
         <View pointerEvents="none" style={[styles.hint, { top: insets.top + 74, backgroundColor: c.surface }, shadow(c)]}>
           <Ionicons name="navigate-circle-outline" size={18} color={c.muted} />
-          <Text style={{ color: c.muted, fontSize: 12.5, fontWeight: '600' }}>Xaritani surib olish nuqtasini tanlang</Text>
+          <Text style={{ color: c.muted, fontSize: 12.5, fontFamily: F.semi }}>Xaritani surib olish nuqtasini tanlang</Text>
         </View>
       )}
     </View>
@@ -193,13 +193,13 @@ export default function Taxi() {
 const styles = StyleSheet.create({
   top: { position: 'absolute', left: 0, right: 0, top: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, paddingLeft: 6, paddingRight: 16, borderRadius: 23 },
-  brandText: { fontWeight: '900', fontSize: 17, letterSpacing: -0.3 },
+  brandText: { fontFamily: F.display, fontSize: 15, letterSpacing: 0.4 },
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 16, paddingTop: 8 },
   grab: { width: 42, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 12 },
   // paddingBottom pin uchini (tayoqcha oxirini) aynan xarita markaziga to'g'rilaydi
   pinWrap: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', paddingBottom: 76 },
   pinLabel: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, marginBottom: 4 },
-  pinLabelText: { color: '#fff', fontWeight: '800', fontSize: 12.5 },
+  pinLabelText: { color: '#fff', fontFamily: F.heavy, fontSize: 12.5 },
   pinHead: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#FFC800', borderWidth: 4, alignItems: 'center', justifyContent: 'center' },
   pinDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#0F1E3D' },
   pinStick: { width: 4, height: 18, borderRadius: 2, backgroundColor: '#0F1E3D' },

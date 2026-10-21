@@ -9,7 +9,7 @@ import { useStartChat } from '@/lib/actions';
 import { SECTORS } from '@/lib/platform-data';
 import { countryOf, usePlatform } from '@/lib/platform';
 import { useStore } from '@/lib/store';
-import { radius } from '@/lib/theme';
+import { F, radius } from '@/lib/theme';
 
 type Tab = 'companies' | 'offers' | 'services';
 
@@ -55,7 +55,7 @@ export default function Business() {
             <Row>
               <Logo name={co.name} color={co.color} size={40} />
               <View style={{ flex: 1 }}>
-                <Row gap={4}><Txt v="small" style={{ fontWeight: '800', flexShrink: 1 }} numberOfLines={1}>{co.name}</Txt>{co.verified && <Verified size={13} />}</Row>
+                <Row gap={4}><Txt v="small" style={{ fontFamily: F.heavy, flexShrink: 1 }} numberOfLines={1}>{co.name}</Txt>{co.verified && <Verified size={13} />}</Row>
                 <Txt v="tiny" faint>{countryOf(co.country).flag} {co.city} · B2B taklif</Txt>
               </View>
             </Row>
@@ -78,7 +78,7 @@ export default function Business() {
           {co.services.map(s => (
             <Row key={s.title} style={[styles.service, { borderTopColor: c.line }]}>
               <Txt style={{ flex: 1 }} numberOfLines={2}>{s.title}</Txt>
-              <Txt v="small" style={{ fontWeight: '800' }}>{s.price ?? 'Kelishuv'}</Txt>
+              <Txt v="small" style={{ fontFamily: F.heavy }}>{s.price ?? 'Kelishuv'}</Txt>
             </Row>
           ))}
         </Card>

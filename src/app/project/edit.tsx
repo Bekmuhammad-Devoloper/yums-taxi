@@ -10,6 +10,7 @@ import { Button, Card, Chip, Field, Row, Screen, SectionTitle, Txt } from '@/com
 import { COUNTRIES, LANGUAGES, SECTORS, SEEKS, STAGES, type Attachment, type ContactMethod, type Seek, type Stage } from '@/lib/platform-data';
 import { countryOf, fileSize, flagged, sectorOf, usePlatform, type ProjectInput } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
+import { F } from '@/lib/theme';
 
 const FREE_LIMIT = 3;
 const num = (s: string) => Number(s.replace(/[^\d]/g, '')) || 0;
@@ -104,7 +105,7 @@ export default function EditProject() {
       {overLimit && (
         <Pressable onPress={() => router.push('/plans')} style={[styles.note, { backgroundColor: c.violetSoft }]}>
           <Ionicons name="diamond" size={18} color={c.violet} />
-          <Txt v="small" color={c.violet} style={{ flex: 1, fontWeight: '700' }}>Free tarifda {FREE_LIMIT} tagacha faol loyiha. Qoralama saqlash mumkin, yuborish uchun Pro tarif kerak.</Txt>
+          <Txt v="small" color={c.violet} style={{ flex: 1, fontFamily: F.bold }}>Free tarifda {FREE_LIMIT} tagacha faol loyiha. Qoralama saqlash mumkin, yuborish uchun Pro tarif kerak.</Txt>
         </Pressable>
       )}
 
@@ -115,7 +116,7 @@ export default function EditProject() {
         <SelectField label="Soha" value={sec?.name} placeholder="Sohani tanlang" icon={sec?.icon ?? 'grid-outline'} onPress={() => setPicker('sector')} />
         {err('sector') ? <Txt v="tiny" color={c.danger}>{err('sector')}</Txt> : null}
         <View style={{ gap: 6 }}>
-          <Txt v="small" muted style={{ fontWeight: '700', marginLeft: 2 }}>Bosqich</Txt>
+          <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>Bosqich</Txt>
           <View style={styles.wrap}>{STAGES.map(s => <Chip key={s.id} label={s.name} icon={s.icon} active={stage === s.id} onPress={() => setStage(s.id)} />)}</View>
         </View>
       </Card>
@@ -176,7 +177,7 @@ export default function EditProject() {
           <Row key={f.id} style={[styles.file, { backgroundColor: c.surface2 }]}>
             <Ionicons name={f.name.toLowerCase().endsWith('.pdf') ? 'document-text' : 'document-attach'} size={22} color={c.accent} />
             <View style={{ flex: 1 }}>
-              <Txt v="small" style={{ fontWeight: '700' }} numberOfLines={1}>{f.name}</Txt>
+              <Txt v="small" style={{ fontFamily: F.bold }} numberOfLines={1}>{f.name}</Txt>
               <Txt v="tiny" faint>{fileSize(f.size) || 'fayl'}</Txt>
             </View>
             <Pressable hitSlop={10} onPress={() => setFiles(x => x.filter(y => y.id !== f.id))}><Ionicons name="close-circle" size={22} color={c.faint} /></Pressable>
@@ -184,7 +185,7 @@ export default function EditProject() {
         ))}
         <Pressable onPress={attach} style={[styles.drop, { borderColor: c.line }]}>
           <Ionicons name="cloud-upload-outline" size={26} color={c.muted} />
-          <Txt v="small" style={{ fontWeight: '700' }}>Pitch-deck, biznes-reja yoki rasm qo'shish</Txt>
+          <Txt v="small" style={{ fontFamily: F.bold }}>Pitch-deck, biznes-reja yoki rasm qo'shish</Txt>
           <Txt v="tiny" faint>PDF, DOCX, XLSX, rasm · 25 MB gacha · 10 tagacha</Txt>
         </Pressable>
       </Card>

@@ -10,6 +10,7 @@ import { useStartChat } from '@/lib/actions';
 import { LANGUAGES } from '@/lib/platform-data';
 import { countryOf, sectorOf, usePlatform } from '@/lib/platform';
 import { useStore } from '@/lib/store';
+import { F } from '@/lib/theme';
 
 export default function CompanyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -68,7 +69,7 @@ export default function CompanyScreen() {
 
       {co.website && (
         <Card onPress={() => Linking.openURL(`https://${co.website}`).catch(() => toast('Sayt ochilmadi', 'globe'))}>
-          <Row><Ionicons name="globe-outline" size={20} color={c.accent} /><Txt color={c.accent} style={{ flex: 1, fontWeight: '700' }}>{co.website}</Txt><Ionicons name="open-outline" size={18} color={c.faint} /></Row>
+          <Row><Ionicons name="globe-outline" size={20} color={c.accent} /><Txt color={c.accent} style={{ flex: 1, fontFamily: F.bold }}>{co.website}</Txt><Ionicons name="open-outline" size={18} color={c.faint} /></Row>
         </Card>
       )}
 
@@ -78,7 +79,7 @@ export default function CompanyScreen() {
           <Row key={s.title} style={[styles.service, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}>
             <Ionicons name="checkmark-circle-outline" size={18} color={c.ok} />
             <Txt style={{ flex: 1 }}>{s.title}</Txt>
-            <Txt v="small" style={{ fontWeight: '800' }}>{s.price ?? 'Kelishuv'}</Txt>
+            <Txt v="small" style={{ fontFamily: F.heavy }}>{s.price ?? 'Kelishuv'}</Txt>
           </Row>
         ))}
       </Card>

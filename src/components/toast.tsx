@@ -4,6 +4,7 @@ import { Animated, StyleSheet, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { IconName } from './ui';
+import { F } from '@/lib/theme';
 
 type Msg = { id: number; text: string; icon: IconName };
 const listeners = new Set<(m: Msg) => void>();
@@ -48,5 +49,5 @@ const styles = StyleSheet.create({
     borderRadius: 16, backgroundColor: '#0F1E3D',
     shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8,
   },
-  text: { color: '#fff', fontWeight: '700', fontSize: 14, flexShrink: 1 },
+  text: { color: '#fff', fontFamily: F.bold, fontSize: 14, flexShrink: 1 },
 });

@@ -4,6 +4,7 @@ import { Linking, Pressable, Share, StyleSheet, Text, View } from 'react-native'
 import { toast } from '@/components/toast';
 import { Card, ListItem, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { useStore } from '@/lib/store';
+import { F } from '@/lib/theme';
 
 const call = (n: string) => Linking.openURL(`tel:${n}`).catch(() => toast(`Qo'ng'iroq: ${n}`, 'call'));
 
@@ -64,7 +65,7 @@ export default function Safety() {
 const styles = StyleSheet.create({
   sos: { flexDirection: 'row', alignItems: 'center', gap: 16, padding: 18, borderRadius: 24, backgroundColor: '#E5484D' },
   sosRing: { width: 64, height: 64, borderRadius: 32, borderWidth: 4, borderColor: 'rgba(255,255,255,0.5)', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.15)' },
-  sosText: { color: '#fff', fontWeight: '900', fontSize: 18 },
-  sosTitle: { color: '#fff', fontWeight: '800', fontSize: 18 },
-  sosSub: { color: 'rgba(255,255,255,0.85)', fontWeight: '600', fontSize: 13.5, marginTop: 2 },
+  sosText: { color: '#fff', fontFamily: F.heavy, fontSize: 18 },
+  sosTitle: { color: '#fff', fontFamily: F.heavy, fontSize: 18 },
+  sosSub: { color: 'rgba(255,255,255,0.85)', fontFamily: F.semi, fontSize: 13.5, marginTop: 2 },
 });
