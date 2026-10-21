@@ -8,7 +8,7 @@ import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type View
 import { REPORT_REASONS, type Conversation, SEEKS, STAGES, STATUS_META, INVESTOR_KINDS, type Company, type Investor, type ListingStatus, type MarketItem, type Project, type ReportTarget, type Specialist } from '@/lib/platform-data';
 import { coverOf, AD_BANNER } from '@/lib/covers';
 import { budget, countryOf, sectorOf, short, usd, usePlatform } from '@/lib/platform';
-import { SECTION_ART } from '@/lib/section-art';
+import { SECTION_ART, SECTION_ART_SCALE } from '@/lib/section-art';
 import { haptic, useStore } from '@/lib/store';
 import { F, radius, shadow } from '@/lib/theme';
 
@@ -38,7 +38,7 @@ export function SectionArt({ id, icon, color, size = 54 }: { id: string; icon: I
   return (
     <View style={{ width: size, height: size, borderRadius: size * 0.32, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: alpha(color, 0.22) }}>
       <LinearGradient colors={[alpha(color, 0.16), alpha(color, 0.05)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Image source={art} style={{ width: size * 0.8, height: size * 0.8 }} contentFit="contain" />
+        <Image source={art} style={{ width: size * (SECTION_ART_SCALE[id] ?? 0.8), height: size * (SECTION_ART_SCALE[id] ?? 0.8) }} contentFit="contain" />
       </LinearGradient>
     </View>
   );
