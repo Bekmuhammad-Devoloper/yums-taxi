@@ -11,21 +11,23 @@ import { budget, countryOf, sectorOf, short, usd, usePlatform } from '@/lib/plat
 import { SECTION_ART, SECTION_ART_SCALE } from '@/lib/section-art';
 import { PEOPLE_ART } from '@/lib/people-art';
 import { SECTOR_ART } from '@/lib/sector-art';
+import { COMPANY_LOGOS } from '@/lib/company-logos';
 import { haptic, useStore } from '@/lib/store';
 import { F, radius, shadow } from '@/lib/theme';
 
 import { toast } from './toast';
-import { Avatar, Badge, Button, Card, Flag, IconTile, Row, Sheet, Txt, Verified, alpha, shade, type IconName } from './ui';
+import { Avatar, Badge, BrandMark, Button, Card, Flag, IconTile, Row, Sheet, Txt, Verified, alpha, shade, type IconName } from './ui';
 
 /* ---------- Kichik bo'laklar ---------- */
 
-export function Logo({ name, color, size = 48 }: { name: string; color: string; size?: number }) {
-  const init = name.replace(/[^\p{L}\p{N} ]/gu, '').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
-  return (
-    <View style={{ width: size, height: size, borderRadius: size / 3.2, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: '#fff', fontFamily: F.heavy, fontSize: size * 0.36 }}>{init}</Text>
-    </View>
-  );
+/**
+ * Kompaniya logotipi: yuklangan rasm → namuna logotip → YUMS emblemasi.
+ * `color` endi faqat moslik uchun qoldirilgan.
+ */
+export function Logo({ name, size = 48, uri }: { name: string; color?: string; size?: number; uri?: string }) {
+  const src = uri ? { uri } : COMPANY_LOGOS[name];
+  if (!src) return <BrandMark size={size} style={{ borderRadius: size / 3.2 }} />;
+  return <Image source={src} style={{ width: size, height: size, borderRadius: size / 3.2, backgroundColor: '#fff' }} contentFit="cover" accessibilityLabel={name} />;
 }
 
 /** Rangli shisha katak ichida 3D rasm */
