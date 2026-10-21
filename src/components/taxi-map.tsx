@@ -123,10 +123,10 @@ export default function TaxiMap(props: TaxiMapProps) {
 }
 
 const styles = StyleSheet.create({
-  car: { width: 18, height: 32 },
+  car: { width: 21, height: 38 },
   dot: { width: 24, height: 24, borderRadius: 12, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   dotInner: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#fff' },
   flag: { width: 30, height: 30, borderRadius: 10, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   stick: { width: 3, height: 10, borderRadius: 2 },
-  driver: { width: 24, height: 43 },
+  driver: { width: 28, height: 50 },
 });

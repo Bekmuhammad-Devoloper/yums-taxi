@@ -402,7 +402,7 @@ export default function TaxiMap(props: TaxiMapProps) {
       const i = Math.min(best, driverPath.length - 2);
       heading = bearing(driverPath[i], driverPath[i + 1]);
     }
-    if (!l.driver) l.driver = L.marker(ll(driverPos), { icon: carIcon('taxi', heading, 24), interactive: false, keyboard: false, zIndexOffset: 1000 }).addTo(m);
+    if (!l.driver) l.driver = L.marker(ll(driverPos), { icon: carIcon('taxi', heading, 28), interactive: false, keyboard: false, zIndexOffset: 1000 }).addTo(m);
     else { l.driver.setLatLng(ll(driverPos)); setRot(l.driver, heading); }
   }, [driverPos, driverPath]);
 
@@ -414,7 +414,7 @@ export default function TaxiMap(props: TaxiMapProps) {
     l.nearby = [];
     if (!showNearby) return;
     const cars = seedNearby(pickup ?? initial);
-    l.nearby = cars.map((c, i) => L.marker([c.lat, c.lng], { icon: carIcon(i % 3 === 2 ? 'car' : 'taxi', c.rot, 18), interactive: false, keyboard: false }).addTo(m));
+    l.nearby = cars.map((c, i) => L.marker([c.lat, c.lng], { icon: carIcon(i % 3 === 2 ? 'car' : 'taxi', c.rot, 21), interactive: false, keyboard: false }).addTo(m));
     // Har 2.5 soniyada mashinalar ko'cha bo'ylab biroz siljiydi, ba'zan buriladi
     let tick = 0;
     const iv = setInterval(() => {

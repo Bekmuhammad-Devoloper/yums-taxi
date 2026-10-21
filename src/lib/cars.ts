@@ -8,6 +8,6 @@ export const TARIFF_ART: Record<string, number> = {
 };
 
 export const CAR_TOP = {
-  taxi: require('@/assets/cars/top-taxi.png'),
-  car: require('@/assets/cars/top-car.png'),
+  taxi: require('@/assets/cars/top-taxi.webp'),
+  car: require('@/assets/cars/top-car.webp'),
 };
