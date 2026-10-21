@@ -3,18 +3,19 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PickerSheet, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { BrandLogo, Button, Field, Flag, IconTile, Segmented, Txt } from '@/components/ui';
+import { BrandLogo, Button, Field, Flag, IconTile, Row, Segmented, Txt } from '@/components/ui';
 import { COUNTRIES } from '@/lib/platform-data';
 import { countryOf, usePlatform } from '@/lib/platform';
 import { haptic, useStore, type AccountKind } from '@/lib/store';
 import { F } from '@/lib/theme';
 
 const GLOW = require('@/assets/images/glow.png');
+const CODE_LEN = 5;
 
 const PILLS: { icon: 'rocket-outline' | 'trending-up-outline' | 'car-sport-outline'; label: string }[] = [
   { icon: 'rocket-outline', label: 'Loyihalar' },
@@ -56,6 +57,19 @@ export default function Login() {
   const [phoneFocus, setPhoneFocus] = useState(false);
   const [picker, setPicker] = useState<'cc' | 'country' | null>(null);
   const codeRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const [codeFocus, setCodeFocus] = useState(false);
+  const [blink] = useState(() => new Animated.Value(1));
+
+  // Faol katakdagi kursor miltillashi
+  useEffect(() => {
+    if (step !== 'code') return;
+    const a = Animated.loop(Animated.sequence([
+      Animated.timing(blink, { toValue: 0, duration: 450, delay: 250, useNativeDriver: true }),
+      Animated.timing(blink, { toValue: 1, duration: 450, useNativeDriver: true }),
+    ]));
+    a.start();
+    return () => a.stop();
+  }, [step, blink]);
 
   useEffect(() => {
     if (timer <= 0) return;
@@ -70,14 +84,14 @@ export default function Login() {
 
   const sendCode = () => {
     setStep('code'); setCode(''); setTimer(59);
-    toast('Demo: istalgan 4 ta raqamni kiriting', method === 'phone' ? 'chatbox-ellipses' : 'mail');
+    toast(`Demo: istalgan ${CODE_LEN} ta raqamni kiriting`, method === 'phone' ? 'chatbox-ellipses' : 'mail');
     setTimeout(() => codeRef.current?.focus(), 300);
   };
 
   const onCode = (v: string) => {
-    const d = v.replace(/\D/g, '').slice(0, 4);
+    const d = v.replace(/\D/g, '').slice(0, CODE_LEN);
     setCode(d);
-    if (d.length === 4) { haptic.success(); setTimeout(() => setStep('profile'), 250); }
+    if (d.length === CODE_LEN) { haptic.success(); setTimeout(() => setStep('profile'), 300); }
   };
 
   const profileOk = name.trim().length > 1 && (kind === 'person' || company.trim().length > 1);
@@ -100,7 +114,7 @@ export default function Login() {
           <Image source={GLOW} pointerEvents="none" style={[styles.glow, { top: insets.top - (step === 'contact' ? 70 : 100) }]} contentFit="contain" />
           {step !== 'contact' && (
             <Pressable onPress={back} style={[styles.back, { top: insets.top + 12 }]} hitSlop={10}>
-              <Ionicons name="chevron-back" size={24} color="#fff" />
+              <Ionicons name="chevron-back" size={21} color="#fff" />
             </Pressable>
           )}
           <BrandLogo width={step === 'contact' ? 168 : 120} style={{ alignSelf: 'center', marginTop: step === 'contact' ? 20 : 8 }} />
@@ -162,22 +176,71 @@ export default function Login() {
 
           {step === 'code' && (
             <>
-              <Txt v="h1">Kodni kiriting</Txt>
-              <Txt muted>{target} {method === 'phone' ? 'raqamiga' : 'manziliga'} yuborildi</Txt>
-              <Pressable onPress={() => codeRef.current?.focus()} style={styles.otpRow}>
-                {[0, 1, 2, 3].map(i => (
-                  <View key={i} style={[styles.otp, { backgroundColor: c.surface2, borderColor: code.length === i ? c.brand : c.line }]}>
-                    <Text style={[styles.otpText, { color: c.text }]}>{code[i] ?? ''}</Text>
-                  </View>
-                ))}
+              <View style={{ gap: 6 }}>
+                <Txt v="h1">Kodni kiriting</Txt>
+                <Txt muted>{CODE_LEN} xonali kod {method === 'phone' ? 'SMS orqali' : 'emailga'} yuborildi</Txt>
+                <Row gap={8} style={{ flexWrap: 'wrap' }}>
+                  <Txt style={{ fontFamily: F.bold }}>{target}</Txt>
+                  <Pressable onPress={() => setStep('contact')} hitSlop={8} style={[styles.change, { backgroundColor: c.surface2 }]}>
+                    <Ionicons name="create-outline" size={13} color={c.text} />
+                    <Txt v="tiny">O'zgartirish</Txt>
+                  </Pressable>
+                </Row>
+              </View>
+
+              <Pressable onPress={() => codeRef.current?.focus()} style={styles.otpRow} accessibilityLabel="Tasdiqlash kodi">
+                {Array.from({ length: CODE_LEN }, (_, i) => {
+                  const filled = i < code.length;
+                  const active = codeFocus && i === Math.min(code.length, CODE_LEN - 1) && !(filled && code.length === CODE_LEN);
+                  return (
+                    <View key={i} style={[styles.otp, {
+                      backgroundColor: active ? c.surface : c.surface2,
+                      borderColor: active ? c.brand : filled ? c.surface3 : c.line,
+                    }]}>
+                      {filled
+                        ? <Text style={[styles.otpText, { color: c.text }]}>{code[i]}</Text>
+                        : active
+                          ? <Animated.View style={[styles.caret, { backgroundColor: c.brand, opacity: blink }]} />
+                          : <View style={[styles.otpDot, { backgroundColor: c.faint }]} />}
+                    </View>
+                  );
+                })}
               </Pressable>
-              <TextInput ref={codeRef} value={code} onChangeText={onCode} keyboardType="number-pad" maxLength={4} style={styles.hidden} autoFocus />
-              <Pressable disabled={timer > 0} onPress={sendCode}>
-                <Txt v="small" muted={timer > 0} color={timer > 0 ? undefined : c.accent} style={{ textAlign: 'center', fontFamily: F.bold }}>
-                  {timer > 0 ? `Kodni qayta yuborish: 0:${String(timer).padStart(2, '0')}` : 'Kodni qayta yuborish'}
-                </Txt>
-              </Pressable>
-              <Txt v="tiny" faint style={{ textAlign: 'center' }}>Xavfsizlik: kodni hech kimga aytmang — YUMS xodimlari uni hech qachon so'ramaydi</Txt>
+              <TextInput
+                ref={codeRef}
+                value={code}
+                onChangeText={onCode}
+                onFocus={() => setCodeFocus(true)}
+                onBlur={() => setCodeFocus(false)}
+                keyboardType="number-pad"
+                textContentType="oneTimeCode"
+                autoComplete="one-time-code"
+                maxLength={CODE_LEN}
+                style={styles.hidden}
+                autoFocus
+              />
+
+              <View style={styles.resend}>
+                {timer > 0 ? (
+                  <>
+                    <Ionicons name="time-outline" size={16} color={c.muted} />
+                    <Txt v="small" muted>Kodni qayta yuborish</Txt>
+                    <Txt v="small" style={{ fontFamily: F.bold, fontVariant: ['tabular-nums'] }}>0:{String(timer).padStart(2, '0')}</Txt>
+                  </>
+                ) : (
+                  <Pressable onPress={sendCode} hitSlop={8} style={styles.resendBtn}>
+                    <Ionicons name="refresh" size={16} color={c.accent} />
+                    <Txt v="small" color={c.accent} style={{ fontFamily: F.bold }}>Kodni qayta yuborish</Txt>
+                  </Pressable>
+                )}
+              </View>
+
+              <Button title="Tasdiqlash" disabled={code.length < CODE_LEN} onPress={() => setStep('profile')} />
+
+              <View style={[styles.secure, { backgroundColor: c.surface2, borderColor: c.line }]}>
+                <IconTile name="shield-checkmark-outline" color={c.ok} size={38} />
+                <Txt v="small" muted style={{ flex: 1 }}>Kodni hech kimga aytmang. YUMS xodimlari uni hech qachon so'ramaydi.</Txt>
+              </View>
             </>
           )}
 
@@ -225,7 +288,7 @@ export default function Login() {
 const styles = StyleSheet.create({
   hero: { paddingHorizontal: 24, paddingBottom: 52, overflow: 'hidden' },
   glow: { position: 'absolute', alignSelf: 'center', width: 420, height: 420 },
-  back: { position: 'absolute', left: 16, width: 40, height: 40, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+  back: { position: 'absolute', left: 16, width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
   tagTitle: { fontSize: 17, fontFamily: F.semi, color: '#fff', textAlign: 'center', letterSpacing: -0.3, marginTop: 14 },
   tagSub: { fontSize: 13.5, fontFamily: F.medium, color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginTop: 4 },
   pills: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 20 },
@@ -238,8 +301,14 @@ const styles = StyleSheet.create({
   prefix: { fontSize: 19, fontFamily: F.heavy },
   phoneInput: { flex: 1, minWidth: 0, fontSize: 20, fontFamily: F.bold, letterSpacing: 0.5, height: '100%' },
   agree: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  otpRow: { flexDirection: 'row', gap: 12, justifyContent: 'center', marginVertical: 10 },
-  otp: { width: 62, height: 70, borderRadius: 18, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  change: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 9 },
+  otpRow: { flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 8 },
+  otp: { flex: 1, maxWidth: 64, height: 64, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  caret: { width: 2, height: 26, borderRadius: 1 },
+  otpDot: { width: 6, height: 6, borderRadius: 3, opacity: 0.5 },
+  resend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 24 },
+  resendBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  secure: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth },
   otpText: { fontSize: 26, fontFamily: F.display },
   hidden: { position: 'absolute', opacity: 0, width: 1, height: 1 },
   kind: { flex: 1, padding: 14, borderRadius: 18, borderWidth: 2, gap: 4 },

@@ -39,7 +39,7 @@ npx expo start
 ```
 
 Telefonda **Expo Go** ilovasi bilan QR-kodni skanerlang.
-Demo kirish: istalgan raqam yoki email, kod — istalgan 4 ta raqam.
+Demo kirish: istalgan raqam yoki email, kod — istalgan 5 ta raqam.
 
 Demo ssenariylar:
 - Loyiha yaratib «Yuborish»ni bosing — bir necha soniyada avtomatik moderatsiyadan o'tadi. Matnda «kafolatlangan daromad» kabi iboralar bo'lsa, moderator navbatida qoladi.
