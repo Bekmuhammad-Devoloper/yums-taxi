@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { PickerSheet, SectorIcon, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { Button, Card, Chip, Field, Row, Screen, SectionTitle, Txt } from '@/components/ui';
+import { Button, Card, Chip, Field, Flag, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { COUNTRIES, LANGUAGES, SECTORS, SEEKS, STAGES, type Attachment, type ContactMethod, type Seek, type Stage } from '@/lib/platform-data';
 import { countryOf, fileSize, flagged, sectorOf, usePlatform, type ProjectInput } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
@@ -129,7 +129,7 @@ export default function EditProject() {
 
       <SectionTitle>Hudud va til</SectionTitle>
       <Card style={{ gap: 14 }}>
-        <SelectField label="Mamlakat" value={`${k.flag} ${k.name}`} placeholder="Mamlakat" onPress={() => setPicker('country')} />
+        <SelectField label="Mamlakat" value={k.name} left={<Flag code={k.code} emoji={k.flag} size={22} />} placeholder="Mamlakat" onPress={() => setPicker('country')} />
         <Field label="Shahar / hudud" value={city} onChangeText={setCity} placeholder="Masalan: Toshkent" error={err('city')} />
         <SelectField label="Loyiha tillari" value={languages.map(l => LANGUAGES.find(x => x.id === l)?.name).join(', ')} placeholder="Tillarni tanlang" icon="language-outline" onPress={() => setPicker('lang')} />
       </Card>

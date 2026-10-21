@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { REPORT_REASONS, type Conversation, SEEKS, STAGES, STATUS_META, INVESTOR_KINDS, type Company, type Investor, type ListingStatus, type MarketItem, type Project, type ReportTarget, type Specialist } from '@/lib/platform-data';
@@ -374,13 +374,13 @@ export function PickerSheet({ visible, onClose, title, options, selected, onChan
 }
 
 /** Tanlangan qiymatni ko'rsatuvchi maydon — bosilganda PickerSheet ochadi */
-export function SelectField({ label, value, placeholder, onPress, icon }: { label: string; value?: string; placeholder: string; onPress: () => void; icon?: IconName }) {
+export function SelectField({ label, value, placeholder, onPress, icon, left }: { label: string; value?: string; placeholder: string; onPress: () => void; icon?: IconName; left?: ReactNode }) {
   const { colors: c } = useStore();
   return (
     <View style={{ gap: 6 }}>
       <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>{label}</Txt>
       <Pressable onPress={() => { haptic.tap(); onPress(); }} style={[styles.select, { backgroundColor: c.surface2, borderColor: c.line }]}>
-        {icon && <Ionicons name={icon} size={18} color={c.muted} />}
+        {left ?? (icon && <Ionicons name={icon} size={18} color={c.muted} />)}
         <Txt style={{ flex: 1, fontFamily: F.semi }} muted={!value} numberOfLines={1}>{value || placeholder}</Txt>
         <Ionicons name="chevron-down" size={18} color={c.faint} />
       </Pressable>

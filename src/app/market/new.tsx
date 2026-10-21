@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PickerSheet, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { Button, Card, Chip, Field, Row, Screen, SectionTitle, Txt } from '@/components/ui';
+import { Button, Card, Chip, Field, Flag, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { COUNTRIES, MARKET_KINDS, SECTORS, type MarketKind } from '@/lib/platform-data';
 import { countryOf, flagged, sectorOf, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
@@ -66,7 +66,7 @@ export default function NewMarketItem() {
         </Row>
         <Field label="Tavsif" value={desc} onChangeText={setDesc} multiline placeholder="Sifat, sertifikatlar, shartlar…" error={tried ? errors.desc : undefined} inputStyle={{ minHeight: 100 }} />
         <SelectField label="Soha" value={sec.name} placeholder="Soha" icon={sec.icon} onPress={() => setPicker('sector')} />
-        <SelectField label="Mamlakat" value={`${k.flag} ${k.name}`} placeholder="Mamlakat" onPress={() => setPicker('country')} />
+        <SelectField label="Mamlakat" value={k.name} left={<Flag code={k.code} emoji={k.flag} size={22} />} placeholder="Mamlakat" onPress={() => setPicker('country')} />
         {kind === 'goods' && (
           <>
             <Field label="Yetkazib berish" value={delivery} onChangeText={setDelivery} placeholder="Masalan: DHL, 5–9 kun" />

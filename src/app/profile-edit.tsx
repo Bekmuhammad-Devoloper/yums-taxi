@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 import { PickerSheet, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { Button, Card, Chip, Field, Row, Screen, SectionTitle, Txt } from '@/components/ui';
+import { Button, Card, Chip, Field, Flag, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { COUNTRIES } from '@/lib/platform-data';
 import { countryOf } from '@/lib/platform';
 import { useStore, type AccountKind } from '@/lib/store';
@@ -39,7 +39,7 @@ export default function ProfileEdit() {
         <Field label={kind === 'company' ? 'Mas\'ul shaxs' : 'Ism familiya'} value={name} onChangeText={setName} autoCapitalize="words" />
         <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholder="name@example.com" error={emailOk ? undefined : "Email noto'g'ri"} />
         <Field label="Telefon" value={user?.phone} editable={false} hint="Telefon raqami kirish uchun ishlatiladi" />
-        <SelectField label="Mamlakat" value={`${k.flag} ${k.name}`} placeholder="Mamlakat" onPress={() => setPicker(true)} />
+        <SelectField label="Mamlakat" value={k.name} left={<Flag code={k.code} emoji={k.flag} size={22} />} placeholder="Mamlakat" onPress={() => setPicker(true)} />
         <Field label={kind === 'company' ? 'Kompaniya haqida' : "O'zingiz haqingizda"} value={bio} onChangeText={setBio} multiline maxLength={300} placeholder="Faoliyat, tajriba, nimalarni taklif qilasiz…" hint={`${bio.length}/300`} />
       </Card>
       <Txt v="tiny" faint style={{ paddingHorizontal: 4 }}>Profil turini o'zgartirsangiz, «Tasdiqlangan» belgisi uchun hujjatlarni qayta yuborish kerak bo'lishi mumkin.</Txt>

@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PickerSheet, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { BrandLogo, Button, Field, IconTile, Segmented, Txt } from '@/components/ui';
+import { BrandLogo, Button, Field, Flag, IconTile, Segmented, Txt } from '@/components/ui';
 import { COUNTRIES, SECTIONS } from '@/lib/platform-data';
 import { countryOf, usePlatform } from '@/lib/platform';
 import { haptic, useStore, type AccountKind } from '@/lib/store';
@@ -111,7 +111,7 @@ export default function Login() {
               {method === 'phone' ? (
                 <View style={[styles.phone, { backgroundColor: phoneFocus ? c.surface : c.surface2, borderColor: phoneFocus || phoneOk ? c.brand : c.line }]}>
                   <Pressable onPress={() => setPicker('cc')} style={styles.cc} hitSlop={6}>
-                    <Text style={{ fontSize: 20 }}>{cc.flag}</Text>
+                    <Flag code={cc.country} emoji={cc.flag} />
                     <Text style={[styles.prefix, { color: c.text }]}>{cc.code}</Text>
                     <Ionicons name="chevron-down" size={14} color={c.faint} />
                   </Pressable>
@@ -181,7 +181,7 @@ export default function Login() {
               </View>
               {kind === 'company' && <Field label="Kompaniya nomi" value={company} onChangeText={setCompany} placeholder="Masalan: Silk Road Logistics" />}
               <Field label={kind === 'company' ? "Mas'ul shaxs" : 'Ismingiz'} value={name} onChangeText={setName} placeholder="Masalan: Aziz Karimov" autoCapitalize="words" />
-              <SelectField label="Mamlakat" value={`${k.flag} ${k.name}`} placeholder="Mamlakat" onPress={() => setPicker('country')} />
+              <SelectField label="Mamlakat" value={k.name} left={<Flag code={k.code} emoji={k.flag} size={22} />} placeholder="Mamlakat" onPress={() => setPicker('country')} />
               <View style={[styles.bonus, { backgroundColor: c.brandSoft }]}>
                 <IconTile name="gift-outline" color={c.brandDeep} size={44} />
                 <View style={{ flex: 1 }}>
