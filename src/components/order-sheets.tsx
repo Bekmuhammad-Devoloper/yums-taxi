@@ -1,16 +1,18 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Animated, Easing, Linking, Modal, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { TARIFF_ART } from '@/lib/cars';
 import { RATING_TAGS, RIDE_OPTIONS, TARIFFS, type Place } from '@/lib/data';
 import { som } from '@/lib/geo';
 import { haptic, surgeNow, useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
 
 import { toast } from './toast';
-import { Avatar, Button, Chip, Divider, IconTile, Row, Txt, type IconName } from './ui';
+import { Avatar, Button, Chip, Divider, Flag, IconTile, Row, Txt, type IconName } from './ui';
 
 /* ---------- Kichik bo'laklar ---------- */
 function AddressRow({ dot, label, place, onPress, placeholder }: { dot: 'from' | 'to'; label: string; place?: Place | null; onPress?: () => void; placeholder?: string }) {
@@ -44,10 +46,10 @@ export function IdleSheet() {
     ...recent.slice(0, 3).map(p => ({ key: p.title, icon: 'time-outline' as IconName, title: p.title, place: p, onPress: () => setDestination(p) })),
   ];
   const services = [
-    { id: 'start', emoji: '🚕', label: 'Taksi' },
-    { id: 'delivery', emoji: '📦', label: 'Yetkazish' },
-    { id: 'minivan', emoji: '🚐', label: 'Miniven' },
-    { id: 'business', emoji: '🚘', label: 'Biznes' },
+    { id: 'start', label: 'Taksi' },
+    { id: 'comfort', label: 'Komfort' },
+    { id: 'delivery', label: 'Yetkazish' },
+    { id: 'minivan', label: 'Miniven' },
   ];
   return (
     <View style={{ gap: 14 }}>
@@ -71,8 +73,8 @@ export function IdleSheet() {
       <Row gap={8}>
         {services.map(s => (
           <Pressable key={s.id} onPress={() => { setTariff(s.id); router.push('/search?mode=to'); }} style={({ pressed }) => [styles.service, { backgroundColor: c.surface2, transform: [{ scale: pressed ? 0.95 : 1 }] }]}>
-            <Text style={{ fontSize: 28 }}>{s.emoji}</Text>
-            <Txt v="tiny">{s.label}</Txt>
+            <Image source={TARIFF_ART[s.id]} style={styles.serviceArt} contentFit="contain" />
+            <Txt v="tiny" style={{ fontFamily: F.bold }}>{s.label}</Txt>
           </Pressable>
         ))}
       </Row>
@@ -106,11 +108,17 @@ export function ChoosingSheet({ onOptions }: { onOptions: () => void }) {
         {TARIFFS.map(t => {
           const on = t.id === order.tariffId;
           return (
-            <Pressable key={t.id} onPress={() => s.setTariff(t.id)} style={[styles.tariff, { backgroundColor: on ? c.brandSoft : c.surface2, borderColor: on ? c.brand : 'transparent' }]}>
-              <Text style={{ fontSize: 34 }}>{t.emoji}</Text>
+            <Pressable key={t.id} onPress={() => { haptic.tap(); s.setTariff(t.id); }} style={[styles.tariff, { backgroundColor: on ? c.brandSoft : c.surface2, borderColor: on ? c.brand : 'transparent' }]}>
+              <View style={[styles.eta, { backgroundColor: on ? c.brand : c.surface }]}>
+                <Txt v="tiny" color={on ? c.brandText : c.muted} style={{ fontFamily: F.bold }}>{2 + t.etaExtra} daq</Txt>
+              </View>
+              <Image source={TARIFF_ART[t.id]} style={styles.tariffArt} contentFit="contain" />
               <Txt v="small" style={{ fontFamily: F.heavy }}>{t.name}</Txt>
-              {r ? <Txt v="h3" style={{ fontSize: 15 }}>{som(priceOf(t.id))}</Txt> : <ActivityIndicator size="small" color={c.muted} style={{ alignSelf: 'flex-start' }} />}
-              <Txt v="tiny" faint>{t.seats !== '—' ? `${t.seats} o'rin · ` : ''}{2 + t.etaExtra} daq</Txt>
+              {r ? <Txt v="h3" style={{ fontSize: 15 }}>{som(priceOf(t.id))}</Txt> : <ActivityIndicator size="small" color={c.muted} style={{ alignSelf: 'flex-start', height: 20 }} />}
+              <Row gap={3}>
+                <Ionicons name={t.seats !== '—' ? 'person-outline' : 'cube-outline'} size={11} color={c.faint} />
+                <Txt v="tiny" faint>{t.seats !== '—' ? t.seats : 'Posilka'}</Txt>
+              </Row>
             </Pressable>
           );
         })}
@@ -155,7 +163,7 @@ export function SearchingSheet() {
       <Row>
         <View style={{ width: 56, height: 56, alignItems: 'center', justifyContent: 'center' }}>
           <Animated.View style={[styles.pulse, { backgroundColor: c.brand, opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.5, 0] }), transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1.6] }) }] }]} />
-          <View style={[styles.radar, { backgroundColor: c.brand }]}><Text style={{ fontSize: 24 }}>{t.emoji}</Text></View>
+          <View style={[styles.radar, { backgroundColor: c.brandSoft, borderColor: c.brand }]}><Image source={TARIFF_ART[t.id]} style={{ width: 44, height: 22 }} contentFit="contain" /></View>
         </View>
         <View style={{ flex: 1 }}>
           <Txt v="h2">Haydovchi qidirilmoqda</Txt>
@@ -193,11 +201,27 @@ function DriverCard() {
         </Row>
         <Txt v="small" muted numberOfLines={1}>{d.color} {d.car}</Txt>
       </View>
-      <View style={[styles.plate, { borderColor: c.text }]}>
-        <Text style={[styles.plateText, { color: c.text }]}>{d.plate}</Text>
-        <Text style={{ fontSize: 8, fontFamily: F.heavy, color: c.muted }}>🇺🇿 UZ</Text>
+      <View style={{ alignItems: 'flex-end', gap: 6 }}>
+        <Image source={TARIFF_ART[order.tariffId] ?? TARIFF_ART.start} style={{ width: 72, height: 36 }} contentFit="contain" />
+        <Plate value={d.plate} />
       </View>
     </Row>
+  );
+}
+
+/** O'zbekiston davlat raqami: hudud kodi | raqam | bayroq */
+function Plate({ value }: { value: string }) {
+  const region = value.slice(0, 2), rest = value.slice(3);
+  return (
+    <View style={styles.plate}>
+      <Text style={styles.plateRegion}>{region}</Text>
+      <View style={styles.plateSep} />
+      <Text style={styles.plateText}>{rest}</Text>
+      <View style={{ alignItems: 'center', marginLeft: 4 }}>
+        <Flag code="UZ" size={11} />
+        <Text style={styles.plateUz}>UZ</Text>
+      </View>
+    </View>
   );
 }
 
@@ -394,18 +418,24 @@ const styles = StyleSheet.create({
   whereTo: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 62, borderRadius: radius.l, paddingLeft: 18, paddingRight: 10 },
   arrowBtn: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   quick: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, height: 52, borderRadius: 16, borderWidth: 1 },
-  service: { flex: 1, alignItems: 'center', gap: 2, paddingVertical: 10, borderRadius: 18 },
-  tariff: { width: 118, padding: 12, borderRadius: 20, borderWidth: 2, gap: 1 },
+  service: { flex: 1, alignItems: 'center', gap: 4, paddingTop: 8, paddingBottom: 10, borderRadius: 18 },
+  serviceArt: { width: 64, height: 32 },
+  tariff: { width: 124, padding: 12, paddingTop: 10, borderRadius: 20, borderWidth: 2, gap: 1 },
+  tariffArt: { width: 96, height: 48, marginLeft: -6, marginBottom: 2 },
+  eta: { position: 'absolute', top: 8, right: 8, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, zIndex: 1 },
   surge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 9 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, paddingHorizontal: 14, borderRadius: 15 },
   pulse: { position: 'absolute', width: 56, height: 56, borderRadius: 28 },
-  radar: { width: 52, height: 52, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
+  radar: { width: 56, height: 56, borderRadius: 28, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   track: { height: 6, borderRadius: 3, overflow: 'hidden' },
   trackBar: { width: 120, height: 6, borderRadius: 3 },
   trackFill: { height: 6, borderRadius: 3 },
   driverCard: { padding: 12, borderRadius: 20 },
-  plate: { borderWidth: 2, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, alignItems: 'center' },
-  plateText: { fontSize: 13, fontFamily: F.heavy, letterSpacing: 0.5 },
+  plate: { flexDirection: 'row', alignItems: 'center', borderWidth: 1.5, borderColor: '#0E1525', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 2, backgroundColor: '#fff' },
+  plateRegion: { fontSize: 12, fontFamily: F.heavy, color: '#0E1525' },
+  plateSep: { width: 1.5, alignSelf: 'stretch', backgroundColor: '#0E1525', marginHorizontal: 5 },
+  plateText: { fontSize: 12, fontFamily: F.heavy, letterSpacing: 0.6, color: '#0E1525' },
+  plateUz: { fontSize: 6.5, fontFamily: F.heavy, color: '#2457F5', marginTop: 1 },
   action: { alignItems: 'center', gap: 6, minWidth: 64 },
   actionIco: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   confirm: { padding: 14, borderRadius: 18, gap: 4 },

@@ -5,7 +5,6 @@ export type Place = LatLng & { id?: string; title: string; subtitle?: string };
 export type Tariff = {
   id: string;
   name: string;
-  emoji: string;
   seats: string;
   base: number; // so'm
   perKm: number;
@@ -66,11 +65,11 @@ export const PLACES: Place[] = [
 ];
 
 export const TARIFFS: Tariff[] = [
-  { id: 'start', name: 'Start', emoji: '🚕', seats: '4', base: 6000, perKm: 1700, perMin: 250, minFare: 9000, etaExtra: 0, desc: 'Arzon va tez' },
-  { id: 'comfort', name: 'Komfort', emoji: '🚗', seats: '4', base: 9000, perKm: 2200, perMin: 300, minFare: 13000, etaExtra: 1, desc: 'Yangi mashinalar, konditsioner' },
-  { id: 'business', name: 'Biznes', emoji: '🚘', seats: '4', base: 18000, perKm: 3600, perMin: 450, minFare: 28000, etaExtra: 3, desc: 'Premium avtomobillar' },
-  { id: 'minivan', name: 'Miniven', emoji: '🚐', seats: '6–7', base: 14000, perKm: 2800, perMin: 350, minFare: 20000, etaExtra: 4, desc: 'Katta oila va yuklar uchun' },
-  { id: 'delivery', name: 'Yetkazish', emoji: '📦', seats: '—', base: 7000, perKm: 1600, perMin: 200, minFare: 10000, etaExtra: 2, desc: 'Hujjat va posilkalar' },
+  { id: 'start', name: 'Start', seats: '4', base: 6000, perKm: 1700, perMin: 250, minFare: 9000, etaExtra: 0, desc: 'Arzon va tez' },
+  { id: 'comfort', name: 'Komfort', seats: '4', base: 9000, perKm: 2200, perMin: 300, minFare: 13000, etaExtra: 1, desc: 'Yangi mashinalar, konditsioner' },
+  { id: 'business', name: 'Biznes', seats: '4', base: 18000, perKm: 3600, perMin: 450, minFare: 28000, etaExtra: 3, desc: 'Premium avtomobillar' },
+  { id: 'minivan', name: 'Miniven', seats: '6–7', base: 14000, perKm: 2800, perMin: 350, minFare: 20000, etaExtra: 4, desc: 'Katta oila va yuklar uchun' },
+  { id: 'delivery', name: 'Yetkazish', seats: '—', base: 7000, perKm: 1600, perMin: 200, minFare: 10000, etaExtra: 2, desc: 'Hujjat va posilkalar' },
 ];
 
 export const DRIVERS: Driver[] = [

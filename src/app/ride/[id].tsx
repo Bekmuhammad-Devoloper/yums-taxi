@@ -1,7 +1,10 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Avatar, Button, Card, Divider, Row, Screen, Txt } from '@/components/ui';
+import { TARIFF_ART } from '@/lib/cars';
 import { TARIFFS } from '@/lib/data';
 import { fmtDate } from '@/lib/format';
 import { som } from '@/lib/geo';
@@ -29,7 +32,7 @@ export default function RideDetail() {
       title={fmtDate(r.createdAt)}
       footer={<Button title="Shu safarni takrorlash" icon="refresh" onPress={repeat} />}>
       <Card style={{ alignItems: 'center', gap: 4 }}>
-        <Text style={{ fontSize: 44 }}>{t?.emoji}</Text>
+        <Image source={TARIFF_ART[r.tariffId] ?? TARIFF_ART.start} style={{ width: 120, height: 60, opacity: cancelled ? 0.5 : 1 }} contentFit="contain" />
         <Txt v="h1">{cancelled ? 'Bekor qilingan' : som(r.price)}</Txt>
         <Txt muted>{t?.name} · {r.distanceKm} km{r.durationMin ? ` · ${r.durationMin} daq` : ''}</Txt>
       </Card>
@@ -49,7 +52,7 @@ export default function RideDetail() {
         <Row>
           <Avatar name={r.driver.name} />
           <View style={{ flex: 1 }}>
-            <Txt v="h3">{r.driver.name} · ★ {r.driver.rating}</Txt>
+            <Row gap={4}><Txt v="h3">{r.driver.name}</Txt><Ionicons name="star" size={13} color="#F5A524" /><Txt v="small" muted>{r.driver.rating}</Txt></Row>
             <Txt v="small" muted>{r.driver.color} {r.driver.car} · {r.driver.plate}</Txt>
           </View>
         </Row>
@@ -62,7 +65,12 @@ export default function RideDetail() {
           {tip ? <Row style={{ justifyContent: 'space-between' }}><Txt muted>Choy puli</Txt><Txt>{som(tip)}</Txt></Row> : null}
           <Divider />
           <Row style={{ justifyContent: 'space-between' }}><Txt v="h3">Jami · {payName}</Txt><Txt v="h3">{som(r.price)}</Txt></Row>
-          {r.rating ? <Txt v="small" muted>Sizning bahoyingiz: {'★'.repeat(r.rating)}</Txt> : null}
+          {r.rating ? (
+            <Row gap={3}>
+              <Txt v="small" muted>Sizning bahoyingiz:</Txt>
+              {Array.from({ length: 5 }, (_, i) => <Ionicons key={i} name={i < r.rating! ? 'star' : 'star-outline'} size={13} color="#F5A524" />)}
+            </Row>
+          ) : null}
         </Card>
       )}
 

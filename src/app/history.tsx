@@ -1,8 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Card, Row, Screen, Txt } from '@/components/ui';
+import { TARIFF_ART } from '@/lib/cars';
 import { TARIFFS } from '@/lib/data';
 import { fmtDate } from '@/lib/format';
 import { som } from '@/lib/geo';
@@ -15,7 +17,7 @@ export default function History() {
     <Screen title="Safarlar tarixi">
       {rides.length === 0 && (
         <View style={{ alignItems: 'center', padding: 40, gap: 8 }}>
-          <Text style={{ fontSize: 48 }}>🚕</Text>
+          <Image source={TARIFF_ART.start} style={{ width: 140, height: 70 }} contentFit="contain" />
           <Txt v="h2">Hali safarlar yo'q</Txt>
           <Txt muted style={{ textAlign: 'center' }}>Birinchi safaringiz shu yerda paydo bo'ladi</Txt>
         </View>

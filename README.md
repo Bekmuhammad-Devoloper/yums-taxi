@@ -53,6 +53,11 @@ Ro'yxatdan o'tishda (O'zbekiston):
 
 Hisoblar hozircha qurilmada saqlanadi.
 
+Taksi xaritasi:
+- iOS/Android — `react-native-maps` (Apple / Google xaritalari).
+- Veb — Leaflet + OpenStreetMap/CARTO plitkalari (© OpenStreetMap, © CARTO). Plitka serveri ochilmasa, xarita avtomatik ravishda o'zi chizadigan sxematik qatlamga o'tadi — surish, kattalashtirish, marshrut va mashinalar ishlashda davom etadi.
+- Marshrut OSRM orqali olinadi, javob bo'lmasa — taxminiy egri chiziq.
+
 Demo ssenariylar:
 - Loyiha yaratib «Yuborish»ni bosing — bir necha soniyada avtomatik moderatsiyadan o'tadi. Matnda «kafolatlangan daromad» kabi iboralar bo'lsa, moderator navbatida qoladi.
 - Kabinet → Xavfsizlik → Ruxsat darajasi → «Moderator» — moderatsiya paneli ochiladi.

@@ -33,6 +33,8 @@ export default function Taxi() {
 
   // Joylashuvni aniqlash
   const locate = async (recenter = true) => {
+    // Ruxsat so'rovi javobini kutmasdan, standart nuqtani darhol ko'rsatamiz
+    if (!order.pickup) addressOf(DEFAULT_CENTER).then(p => { if (!fromDrag.current) s.setPickup(p); });
     try {
       const perm = await Location.requestForegroundPermissionsAsync();
       if (perm.status !== 'granted') throw new Error('denied');
@@ -44,7 +46,7 @@ export default function Taxi() {
       if (recenter) map.current?.center(p);
       if (!order.pickup || recenter) s.setPickup(await addressOf(p));
     } catch {
-      if (!order.pickup) s.setPickup(await addressOf(DEFAULT_CENTER));
+      // ruxsat berilmadi — standart nuqta yuqorida qo'yilgan
     } finally {
       setLocating(false);
     }
@@ -122,7 +124,9 @@ export default function Taxi() {
         driverPos={inTrip ? order.driverPos : undefined}
         showPickup={!idle && order.phase !== 'inride'}
         showNearby={idle || order.phase === 'choosing' || order.phase === 'searching'}
+        searching={order.phase === 'searching'}
         bottomPad={idle ? 0 : sheetH}
+        overlayBottom={sheetH}
         topPad={idle ? 0 : topPad}
         onCenterChange={onCenterChange}
         onDragStart={onDragStart}
