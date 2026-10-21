@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AdBanner, CompanyCard, ProjectCard, ProjectTile, SpecialistMini } from '@/components/platform-ui';
 import { Avatar, BrandMark, Button, IconButton, IconTile, LOGO_EMBLEM, Row, SearchBar, SectionHeader, Txt } from '@/components/ui';
+import { TAXI_BANNER } from '@/lib/covers';
 import { SECTIONS, SECTORS } from '@/lib/platform-data';
 import { usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
@@ -89,19 +90,14 @@ export default function Home() {
 
       {/* YUMS Taxi */}
       <View style={styles.pad}>
-        <Pressable onPress={() => { haptic.tap(); router.push('/taxi'); }} style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
-          <LinearGradient colors={['#FFD84D', '#FFC800', '#F2B100']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.taxi}>
-            <Ionicons name="car-sport-outline" size={132} color="rgba(14,21,37,0.08)" style={styles.taxiDeco} />
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text style={styles.taxiKicker}>YUMS TAXI</Text>
-              <Text style={styles.taxiTitle}>{t('home.taxiTitle')}</Text>
-              <Row gap={6}>
-                <View style={styles.taxiDot} />
-                <Text style={styles.taxiSub}>{t('sec.taxi')} · {t('home.taxiEta')}</Text>
-              </Row>
-            </View>
-            <View style={styles.taxiArrow}><Ionicons name="arrow-forward" size={20} color="#FFC800" /></View>
-          </LinearGradient>
+        <Pressable onPress={() => { haptic.tap(); router.push('/taxi'); }} style={({ pressed }) => [styles.taxiCard, { transform: [{ scale: pressed ? 0.985 : 1 }] }]}
+          accessibilityRole="button" accessibilityLabel={`YUMS Taxi — ${t('home.taxiTitle')}`}>
+          <Image source={TAXI_BANNER} style={styles.taxiBanner} contentFit="cover" />
+          <Row style={styles.taxiBar}>
+            <View style={styles.taxiDot} />
+            <Text style={styles.taxiSub} numberOfLines={1}>{t('home.taxiTitle')} · {t('home.taxiEta')}</Text>
+            <View style={styles.taxiArrow}><Ionicons name="arrow-forward" size={18} color="#0E1525" /></View>
+          </Row>
         </Pressable>
       </View>
 
@@ -195,13 +191,12 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 18 },
   section: { width: '25%', alignItems: 'center', gap: 8 },
   sectionName: { fontSize: 10.5, fontFamily: F.bold, letterSpacing: 0.6 },
-  taxi: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20, borderRadius: radius.l, overflow: 'hidden' },
-  taxiDeco: { position: 'absolute', right: 52, bottom: -34 },
-  taxiKicker: { color: '#0E1525', opacity: 0.55, fontSize: 9.5, fontFamily: F.heavy, letterSpacing: 1.6 },
-  taxiTitle: { color: '#0E1525', fontSize: 22, fontFamily: F.display, letterSpacing: -0.7 },
+  taxiCard: { borderRadius: radius.l, overflow: 'hidden', backgroundColor: '#0A0A0A' },
+  taxiBanner: { width: '100%', aspectRatio: 16 / 9 },
+  taxiBar: { gap: 8, paddingHorizontal: 14, paddingVertical: 10, backgroundColor: '#0A0A0A' },
   taxiDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#12A66A' },
-  taxiSub: { color: '#0E1525', opacity: 0.72, fontSize: 12.5, fontFamily: F.semi },
-  taxiArrow: { width: 46, height: 46, borderRadius: 16, backgroundColor: '#0E1525', alignItems: 'center', justifyContent: 'center' },
+  taxiSub: { flex: 1, color: 'rgba(255,255,255,0.85)', fontSize: 13, fontFamily: F.semi },
+  taxiArrow: { width: 34, height: 34, borderRadius: 12, backgroundColor: '#FFC800', alignItems: 'center', justifyContent: 'center' },
   verify: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.l, borderWidth: StyleSheet.hairlineWidth },
   sector: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 40, paddingHorizontal: 14, borderRadius: 13, borderWidth: StyleSheet.hairlineWidth },
   cta: { alignItems: 'center', gap: 6, padding: 24, borderRadius: radius.xl, borderWidth: StyleSheet.hairlineWidth },

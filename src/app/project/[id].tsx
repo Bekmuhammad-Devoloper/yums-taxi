@@ -11,6 +11,7 @@ import { toast } from '@/components/toast';
 import { Avatar, Badge, Button, Card, EmptyState, IconButton, ListItem, Row, Screen, shade, Sheet, Txt, Verified } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
 import { confirm } from '@/lib/confirm';
+import { coverOf } from '@/lib/covers';
 import { LANGUAGES, SEEKS, STAGES } from '@/lib/platform-data';
 import { ago, budget, countryOf, fileSize, flagged, sectorOf, short, usePlatform } from '@/lib/platform';
 import { useStore } from '@/lib/store';
@@ -74,34 +75,52 @@ export default function ProjectScreen() {
     </Row>
   );
 
+  const cover = coverOf(pr);
+  const heroButtons = (
+    <Row style={{ justifyContent: 'space-between' }}>
+      <IconButton name="chevron-back" size={42} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+      <Row gap={8}>
+        <IconButton name="share-outline" size={42} onPress={share} />
+        {!mine && <View style={[styles.favWrap, { backgroundColor: c.surface }]}><FavButton k={'project:' + pr.id} /></View>}
+        <IconButton name="ellipsis-horizontal" size={42} onPress={() => setMenu(true)} />
+      </Row>
+    </Row>
+  );
+  const heroTitle = (
+    <View style={{ gap: 8 }}>
+      <Row gap={6} style={{ flexWrap: 'wrap' }}>
+        {(mine || staff) && <StatusBadge status={pr.status} />}
+        {pr.boosted && <Badge label="TOP" icon="flash" tone="brand" />}
+        <View style={styles.heroPill}><Text style={styles.heroPillText}>{sec.name}</Text></View>
+      </Row>
+      <Text style={styles.heroTitle}>{pr.title}</Text>
+    </View>
+  );
+
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}>
-        <View style={[styles.hero, { backgroundColor: sec.color, paddingTop: insets.top + 8 }, pr.cover ? { minHeight: insets.top + 280, justifyContent: 'space-between' } : null]}>
-          <LinearGradient colors={[sec.color, shade(sec.color, 0.6)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-          {pr.cover ? (
-            <>
-              <Image source={{ uri: pr.cover }} style={StyleSheet.absoluteFill} contentFit="cover" />
-              <LinearGradient colors={['rgba(0,0,0,0.45)', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.75)']} style={StyleSheet.absoluteFill} />
-            </>
-          ) : <Ionicons name={sec.icon} size={190} color="rgba(255,255,255,0.1)" style={{ position: 'absolute', right: -30, bottom: -40 }} />}
-          <Row style={{ justifyContent: 'space-between' }}>
-            <IconButton name="chevron-back" size={42} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-            <Row gap={8}>
-              <IconButton name="share-outline" size={42} onPress={share} />
-              {!mine && <View style={[styles.favWrap, { backgroundColor: c.surface }]}><FavButton k={'project:' + pr.id} /></View>}
-              <IconButton name="ellipsis-horizontal" size={42} onPress={() => setMenu(true)} />
-            </Row>
-          </Row>
-          <View style={{ marginTop: 28, gap: 8 }}>
-            <Row gap={6} style={{ flexWrap: 'wrap' }}>
-              {(mine || staff) && <StatusBadge status={pr.status} />}
-              {pr.boosted && <Badge label="TOP" icon="flash" tone="brand" />}
-              <View style={styles.heroPill}><Text style={styles.heroPillText}>{sec.name}</Text></View>
-            </Row>
-            <Text style={styles.heroTitle}>{pr.title}</Text>
+        {cover ? (
+          <View style={{ backgroundColor: '#0B0F17', paddingTop: insets.top }}>
+            {/* banner to'liq ko'rinadi — ustiga yozuv qo'yilmaydi */}
+            <View style={styles.coverBox}>
+              <Image source={cover} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel={pr.title} />
+              <LinearGradient colors={['rgba(0,0,0,0.35)', 'rgba(0,0,0,0)']} style={styles.coverShade} />
+              <View style={styles.coverBar}>{heroButtons}</View>
+            </View>
+            <View style={[styles.hero, { paddingTop: 16 }]}>
+              <LinearGradient colors={[sec.color, shade(sec.color, 0.6)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+              {heroTitle}
+            </View>
           </View>
-        </View>
+        ) : (
+          <View style={[styles.hero, { backgroundColor: sec.color, paddingTop: insets.top + 8 }]}>
+            <LinearGradient colors={[sec.color, shade(sec.color, 0.6)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+            <Ionicons name={sec.icon} size={190} color="rgba(255,255,255,0.1)" style={{ position: 'absolute', right: -30, bottom: -40 }} />
+            {heroButtons}
+            <View style={{ marginTop: 28 }}>{heroTitle}</View>
+          </View>
+        )}
 
         <View style={{ padding: 16, gap: 14, marginTop: -18 }}>
           <Card style={{ gap: 12 }}>
@@ -224,6 +243,9 @@ export default function ProjectScreen() {
 
 const styles = StyleSheet.create({
   hero: { paddingHorizontal: 16, paddingBottom: 40, overflow: 'hidden' },
+  coverBox: { width: '100%', aspectRatio: 16 / 9 },
+  coverShade: { position: 'absolute', left: 0, right: 0, top: 0, height: 80 },
+  coverBar: { position: 'absolute', left: 16, right: 16, top: 8 },
   heroPill: { backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8 },
   heroPillText: { color: '#fff', fontFamily: F.heavy, fontSize: 11.5 },
   heroTitle: { color: '#fff', fontSize: 23, fontFamily: F.display, letterSpacing: -0.7, lineHeight: 29 },

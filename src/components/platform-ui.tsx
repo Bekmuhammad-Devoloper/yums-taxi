@@ -6,6 +6,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { REPORT_REASONS, type Conversation, SEEKS, STAGES, STATUS_META, INVESTOR_KINDS, type Company, type Investor, type ListingStatus, type MarketItem, type Project, type ReportTarget, type Specialist } from '@/lib/platform-data';
+import { coverOf, AD_BANNER } from '@/lib/covers';
 import { budget, countryOf, sectorOf, short, usd, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { F, radius, shadow } from '@/lib/theme';
@@ -68,9 +69,10 @@ const stageName = (id: string) => STAGES.find(s => s.id === id)?.name ?? id;
 export function ProjectCard({ p, mine }: { p: Project; mine?: boolean }) {
   const { colors: c } = useStore();
   const sec = sectorOf(p.sector);
+  const cover = coverOf(p);
   return (
     <Card onPress={() => router.push({ pathname: '/project/[id]', params: { id: p.id } })} style={{ gap: 10, overflow: 'hidden' }}>
-      {p.cover ? <Image source={{ uri: p.cover }} style={styles.cardCover} contentFit="cover" accessibilityLabel={p.title} /> : null}
+      {cover ? <Image source={cover} style={styles.cardCover} contentFit="cover" accessibilityLabel={p.title} /> : null}
       <Row>
         <SectorIcon id={p.sector} />
         <View style={{ flex: 1 }}>
@@ -109,22 +111,25 @@ export function ProjectCard({ p, mine }: { p: Project; mine?: boolean }) {
 export function ProjectTile({ p }: { p: Project }) {
   const { colors: c } = useStore();
   const sec = sectorOf(p.sector);
+  const cover = coverOf(p);
   return (
     <Pressable
       onPress={() => { haptic.tap(); router.push({ pathname: '/project/[id]', params: { id: p.id } }); }}
       style={({ pressed }) => [styles.tile, { backgroundColor: c.surface, borderColor: c.line, transform: [{ scale: pressed ? 0.98 : 1 }] }, shadow(c, 0.25)]}>
-      <LinearGradient colors={[sec.color, shade(sec.color)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.tileTop}>
-        {p.cover ? (
+      <LinearGradient colors={[sec.color, shade(sec.color)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.tileTop, cover ? styles.tileCover : null]}>
+        {cover ? (
+          // banner o'zi to'liq dizayn — ustiga yozuv qo'ymaymiz
+          <Image source={cover} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel={p.title} />
+        ) : (
           <>
-            <Image source={{ uri: p.cover }} style={StyleSheet.absoluteFill} contentFit="cover" />
-            <LinearGradient colors={['rgba(0,0,0,0.35)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0.65)']} style={StyleSheet.absoluteFill} />
+            <Ionicons name={sec.icon} size={96} color="rgba(255,255,255,0.13)" style={{ position: 'absolute', right: -10, bottom: -18 }} />
+            <Row gap={6}>
+              {p.boosted && <View style={styles.topBadge}><Ionicons name="flash" size={11} color="#0E1525" /><Text style={styles.topBadgeText}>TOP</Text></View>}
+              <View style={[styles.topBadge, { backgroundColor: 'rgba(255,255,255,0.9)' }]}><Text style={styles.topBadgeText}>{stageName(p.stage)}</Text></View>
+            </Row>
+            <Text style={styles.tileSector} numberOfLines={1}>{sec.name}</Text>
           </>
-        ) : <Ionicons name={sec.icon} size={96} color="rgba(255,255,255,0.13)" style={{ position: 'absolute', right: -10, bottom: -18 }} />}
-        <Row gap={6}>
-          {p.boosted && <View style={styles.topBadge}><Ionicons name="flash" size={11} color="#0E1525" /><Text style={styles.topBadgeText}>TOP</Text></View>}
-          <View style={[styles.topBadge, { backgroundColor: 'rgba(255,255,255,0.9)' }]}><Text style={styles.topBadgeText}>{stageName(p.stage)}</Text></View>
-        </Row>
-        <Text style={styles.tileSector} numberOfLines={1}>{sec.name}</Text>
+        )}
       </LinearGradient>
       <View style={{ padding: 14, gap: 6, flex: 1 }}>
         <Txt v="h3" numberOfLines={2} style={{ minHeight: 42 }}>{p.title}</Txt>
@@ -321,15 +326,8 @@ export function AdBanner() {
           </>
         ) : (
           <>
-            <LinearGradient colors={['#0B1530', '#14306E', '#1E4BB8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-            <Ionicons name="cube-outline" size={170} color="rgba(255,255,255,0.08)" style={styles.adDeco} />
-            <View style={styles.adChip}><Text style={styles.adChipText}>{t('home.ad').toUpperCase()}</Text></View>
-            <View style={styles.adBody}>
-              <Text style={styles.adBrand}>Silk Road Logistics</Text>
-              <Text style={styles.adTitle}>Xitoydan Toshkentgacha{'\n'}yuk — 12 kunda</Text>
-              <Text style={styles.adSub}>Konsolidatsiya · bojxona · ombor</Text>
-            </View>
-            <View style={styles.adCta}><Text style={styles.adCtaText}>Batafsil</Text><Ionicons name="arrow-forward" size={14} color="#0E1525" /></View>
+            <Image source={AD_BANNER} style={StyleSheet.absoluteFill} contentFit="cover" />
+            <View style={styles.adChipCorner}><Text style={styles.adChipText}>{t('home.ad').toUpperCase()}</Text></View>
           </>
         )}
       </Pressable>
@@ -470,6 +468,7 @@ const styles = StyleSheet.create({
   cardCover: { marginTop: -16, marginHorizontal: -16, marginBottom: 2, aspectRatio: 16 / 9 },
   favRound: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   tileTop: { height: 130, padding: 14, justifyContent: 'space-between', overflow: 'hidden' },
+  tileCover: { height: (262 * 9) / 16, padding: 0 },
   topBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#FFC800', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7 },
   topBadgeText: { color: '#0E1525', fontSize: 11, fontFamily: F.heavy },
   tileSector: { color: '#fff', fontFamily: F.heavy, fontSize: 13, opacity: 0.95 },
@@ -481,15 +480,10 @@ const styles = StyleSheet.create({
   marketFav: { position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   ad: { width: '100%', aspectRatio: 2, borderRadius: radius.l, overflow: 'hidden', backgroundColor: '#0B1530' },
   adChip: { position: 'absolute', top: 12, left: 12, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7, backgroundColor: 'rgba(0,0,0,0.45)' },
+  adChipCorner: { position: 'absolute', right: 10, bottom: 10, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7, backgroundColor: 'rgba(0,0,0,0.45)' },
   adChipText: { color: 'rgba(255,255,255,0.9)', fontSize: 9.5, fontFamily: F.heavy, letterSpacing: 1 },
-  adBody: { position: 'absolute', left: 18, right: 18, bottom: 18, gap: 4 },
   adBottom: { position: 'absolute', left: 16, right: 16, bottom: 14 },
-  adBrand: { color: '#FFC800', fontSize: 11.5, fontFamily: F.bold },
   adTitle: { color: '#fff', fontSize: 20, fontFamily: F.display, letterSpacing: -0.6, lineHeight: 25 },
-  adSub: { color: 'rgba(255,255,255,0.7)', fontSize: 12.5, fontFamily: F.semi },
-  adDeco: { position: 'absolute', right: -24, top: -18 },
-  adCta: { position: 'absolute', right: 16, top: 12, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 11, height: 28, borderRadius: 14, backgroundColor: '#FFC800' },
-  adCtaText: { color: '#0E1525', fontSize: 12, fontFamily: F.bold },
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 14 },
   input: { minHeight: 80, borderRadius: 16, padding: 14, fontSize: 15, textAlignVertical: 'top' },
   pickSearch: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, borderRadius: 14, paddingHorizontal: 12 },
