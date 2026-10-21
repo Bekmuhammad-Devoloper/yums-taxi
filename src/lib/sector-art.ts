@@ -1,4 +1,4 @@
-// Sohalar uchun 3D ikonkalar (tools: gradient + chuqurlik + yaltiroq qatlam, Ionicons asosida)
+// Sohalar uchun 3D ikonkalar — Microsoft Fluent Emoji 3D (MIT, assets/sectors/LICENSE.md)
 export const SECTOR_ART: Record<string, number> = {
   agro: require('@/assets/sectors/agro.webp'),
   ai: require('@/assets/sectors/ai.webp'),
