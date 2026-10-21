@@ -1,5 +1,6 @@
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
+import { Platform } from 'react-native';
 
 export type PickResult = { ok: true; uri: string } | { ok: false; reason: 'cancel' | 'denied' | 'error' };
 
@@ -28,6 +29,10 @@ export async function pickImage(kind: keyof typeof IMAGE_SPECS, source: 'library
 
     const a = res.assets[0];
     const [rw, rh] = spec.aspect;
+    if (Platform.OS === 'web') {
+      const uri = await cropOnCanvas(a.uri, rw / rh, spec.width, kind === 'avatar' ? 0.82 : 0.78);
+      return { ok: true, uri };
+    }
     const ctx = ImageManipulator.manipulate(a.uri);
     // Vebda qirqish oynasi yo'q — markazdan kerakli nisbatda olamiz
     if (a.width && a.height && Math.abs(a.width / a.height - rw / rh) > 0.01) {
@@ -43,6 +48,33 @@ export async function pickImage(kind: keyof typeof IMAGE_SPECS, source: 'library
   } catch {
     return { ok: false, reason: 'error' };
   }
+}
+
+/**
+ * Veb: rasmni brauzerning o'zida (canvas) qirqib, kichraytirib, JPEG data: URI ga aylantiramiz.
+ * Tarmoq so'rovi yo'q — cheklangan muhitlarda ham ishlaydi.
+ */
+function cropOnCanvas(src: string, ratio: number, maxW: number, quality: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const sw = Math.min(img.naturalWidth, img.naturalHeight * ratio);
+      const sh = sw / ratio;
+      const w = Math.round(Math.min(maxW, sw)), h = Math.round(w / ratio);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { reject(new Error('canvas')); return; }
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, w, h);
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2, sw, sh, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => reject(new Error('image'));
+    img.src = src;
+  });
 }
 
 export const pickAvatar = (source: 'library' | 'camera') => pickImage('avatar', source);

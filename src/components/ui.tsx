@@ -175,9 +175,9 @@ export function IconTile({ name, color, size = 44, glass, style }: { name: IconN
   );
 }
 
-const LOGO_MARK = require('@/assets/images/logo-mark.png');
-const LOGO_FULL = require('@/assets/images/logo.png');
-export const LOGO_EMBLEM = require('@/assets/images/logo-emblem.png');
+const LOGO_MARK = require('@/assets/images/logo-mark.webp');
+const LOGO_FULL = require('@/assets/images/logo.webp');
+export const LOGO_EMBLEM = require('@/assets/images/logo-emblem.webp');
 
 /** YUMS emblemasi (o'rgimchak) — qora yumaloq fonda */
 export function BrandMark({ size = 40, style }: { size?: number; style?: StyleProp<ViewStyle> }) {
