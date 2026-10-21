@@ -2,7 +2,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { BrandLogo, Card, IconTile, Row, Screen, SectionHeader, Txt } from '@/components/ui';
+import { SectionArt } from '@/components/platform-ui';
+import { BrandLogo, Card, Row, Screen, SectionHeader, Txt } from '@/components/ui';
 import { SECTIONS, SECTORS } from '@/lib/platform-data';
 import { haptic, useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
@@ -54,7 +55,7 @@ export default function About() {
       <SectionHeader title="Bo'limlar" />
       {SECTIONS.map(s => (
         <Pressable key={s.id} onPress={() => { haptic.tap(); router.push(s.route as never); }} style={({ pressed }) => [styles.section, { backgroundColor: c.surface, opacity: pressed ? 0.85 : 1 }]}>
-          <IconTile name={s.icon} color={s.color} size={42} />
+          <SectionArt id={s.id} icon={s.icon} color={s.color} size={42} />
           <View style={{ flex: 1 }}>
             <Txt v="h3">YUMS {s.name}</Txt>
             <SectionDesc id={s.id} />

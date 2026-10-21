@@ -6,7 +6,7 @@ import { Fragment } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AdBanner, CompanyCard, ProjectCard, ProjectTile, SpecialistMini } from '@/components/platform-ui';
+import { AdBanner, CompanyCard, SectionArt, ProjectCard, ProjectTile, SpecialistMini } from '@/components/platform-ui';
 import { Avatar, BrandMark, Button, IconButton, IconTile, LOGO_EMBLEM, Row, SearchBar, SectionHeader, Txt } from '@/components/ui';
 import { TAXI_CARD } from '@/lib/covers';
 import { SECTIONS, SECTORS } from '@/lib/platform-data';
@@ -75,14 +75,14 @@ export default function Home() {
               key={s.id}
               onPress={() => { haptic.tap(); router.push(s.route as never); }}
               style={({ pressed }) => [styles.section, { opacity: pressed ? 0.6 : 1 }]}>
-              <IconTile name={s.icon} color={s.color} size={54} />
+              <SectionArt id={s.id} icon={s.icon} color={s.color} size={54} />
               <Text style={[styles.sectionName, { color: c.text }]} numberOfLines={1}>{s.name}</Text>
             </Pressable>
           ))}
           <Pressable
             onPress={() => { haptic.tap(); router.push('/taxi'); }}
             style={({ pressed }) => [styles.section, { opacity: pressed ? 0.6 : 1 }]}>
-            <IconTile name="car-sport-outline" color={c.brandDeep} size={54} />
+            <SectionArt id="taxi" icon="car-sport-outline" color={c.brandDeep} size={54} />
             <Text style={[styles.sectionName, { color: c.text }]}>TAXI</Text>
           </Pressable>
         </View>
