@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Share, StyleSheet, Text, View } from 'react-native';
 
-import { FavButton, KeyValue, Logo, ReportSheet, StatusBadge } from '@/components/platform-ui';
+import { FavButton, KeyValue, Logo, Place, ReportSheet, StatusBadge } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
 import { Badge, Button, Card, EmptyState, IconButton, Row, Screen, Txt, Verified } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
@@ -68,7 +68,7 @@ export default function MarketItemScreen() {
           <Logo name={m.sellerName} color={sec.color} size={46} />
           <View style={{ flex: 1 }}>
             <Row gap={4}><Txt v="h3" numberOfLines={1} style={{ flexShrink: 1 }}>{m.sellerName}</Txt>{m.sellerVerified && <Verified />}</Row>
-            <Txt v="small" muted>{k.flag} {k.name} · {ago(m.createdAt)}</Txt>
+            <Place code={k.code} after={` · ${ago(m.createdAt)}`} />
           </View>
         </Row>
       </Card>
@@ -81,7 +81,7 @@ export default function MarketItemScreen() {
       <KeyValue items={[
         ...(m.minOrder ? [{ label: 'Minimal buyurtma', value: m.minOrder, icon: 'layers-outline' as const }] : []),
         ...(m.delivery ? [{ label: 'Yetkazib berish', value: m.delivery, icon: 'airplane-outline' as const }] : []),
-        { label: 'Mamlakat', value: `${k.flag} ${k.name}`, icon: 'location-outline' },
+        { label: 'Mamlakat', value: k.name, icon: 'location-outline', flag: k.code },
         { label: 'Turi', value: kind.name, icon: kind.icon },
       ]} />
 

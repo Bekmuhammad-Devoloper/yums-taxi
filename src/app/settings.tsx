@@ -1,9 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Switch, View } from 'react-native';
 
-import { Card, ListItem, Row, Screen, SectionTitle, Txt } from '@/components/ui';
+import { Card, Flag, ListItem, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { LANGS } from '@/lib/i18n';
 import { haptic, useStore, type ThemePref } from '@/lib/store';
 import { F } from '@/lib/theme';
@@ -42,7 +42,7 @@ export default function Settings() {
       <Card style={{ padding: 6 }}>
         {LANGS.map(l => (
           <Pressable key={l.id} onPress={() => { haptic.tap(); setLang(l.id); }} style={({ pressed }) => [styles.lang, { backgroundColor: pressed ? c.surface2 : 'transparent' }]}>
-            <Text style={{ fontSize: 22 }}>{l.flag}</Text>
+            <Flag code={l.id === 'uz' ? 'UZ' : l.id === 'ru' ? 'RU' : 'GB'} size={28} />
             <Txt v="h3" style={{ flex: 1 }}>{l.label}</Txt>
             {lang === l.id && <Ionicons name="checkmark-circle" size={22} color={c.brandDeep} />}
           </Pressable>

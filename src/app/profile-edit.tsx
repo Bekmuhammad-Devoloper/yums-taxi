@@ -39,12 +39,12 @@ export default function ProfileEdit() {
         <Field label={kind === 'company' ? 'Mas\'ul shaxs' : 'Ism familiya'} value={name} onChangeText={setName} autoCapitalize="words" />
         <Field label="Email" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" placeholder="name@example.com" error={emailOk ? undefined : "Email noto'g'ri"} />
         <Field label="Telefon" value={user?.phone} editable={false} hint="Telefon raqami kirish uchun ishlatiladi" />
-        <SelectField label="Mamlakat" value={k.name} left={<Flag code={k.code} emoji={k.flag} size={22} />} placeholder="Mamlakat" onPress={() => setPicker(true)} />
+        <SelectField label="Mamlakat" value={k.name} left={<Flag code={k.code} size={22} />} placeholder="Mamlakat" onPress={() => setPicker(true)} />
         <Field label={kind === 'company' ? 'Kompaniya haqida' : "O'zingiz haqingizda"} value={bio} onChangeText={setBio} multiline maxLength={300} placeholder="Faoliyat, tajriba, nimalarni taklif qilasiz…" hint={`${bio.length}/300`} />
       </Card>
       <Txt v="tiny" faint style={{ paddingHorizontal: 4 }}>Profil turini o'zgartirsangiz, «Tasdiqlangan» belgisi uchun hujjatlarni qayta yuborish kerak bo'lishi mumkin.</Txt>
       <PickerSheet visible={picker} onClose={() => setPicker(false)} title="Mamlakat" selected={[country]} onChange={ids => setCountry(ids[0])}
-        options={COUNTRIES.map(x => ({ id: x.code, label: x.name, emoji: x.flag, sub: x.region }))} />
+        options={COUNTRIES.map(x => ({ id: x.code, label: x.name, flag: x.code, sub: x.region }))} />
     </Screen>
   );
 }

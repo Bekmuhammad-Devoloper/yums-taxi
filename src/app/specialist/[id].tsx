@@ -3,7 +3,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { FavButton, KeyValue, ReportSheet } from '@/components/platform-ui';
+import { FavButton, KeyValue, Place, ReportSheet } from '@/components/platform-ui';
 import { Avatar, Badge, Button, Card, EmptyState, IconButton, Row, Screen, SectionHeader, Txt, Verified } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
 import { LANGUAGES } from '@/lib/platform-data';
@@ -46,7 +46,7 @@ export default function SpecialistScreen() {
         </View>
         <Row gap={5}><Txt v="h1">{sp.name}</Txt>{sp.verified && <Verified size={20} />}</Row>
         <Txt muted>{sp.title}</Txt>
-        <Txt v="small" muted>{k.flag} {sp.city}, {k.name}</Txt>
+        <Place code={k.code} city={sp.city} />
         <Row gap={6} style={{ marginTop: 4 }}>
           <Badge label={sp.available ? 'Buyurtma qabul qiladi' : 'Hozir band'} tone={sp.available ? 'ok' : 'muted'} />
           {sp.remote && <Badge label="Masofaviy" icon="globe-outline" tone="accent" />}

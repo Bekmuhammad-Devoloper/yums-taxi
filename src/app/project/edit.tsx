@@ -129,7 +129,7 @@ export default function EditProject() {
 
       <SectionTitle>Hudud va til</SectionTitle>
       <Card style={{ gap: 14 }}>
-        <SelectField label="Mamlakat" value={k.name} left={<Flag code={k.code} emoji={k.flag} size={22} />} placeholder="Mamlakat" onPress={() => setPicker('country')} />
+        <SelectField label="Mamlakat" value={k.name} left={<Flag code={k.code} size={22} />} placeholder="Mamlakat" onPress={() => setPicker('country')} />
         <Field label="Shahar / hudud" value={city} onChangeText={setCity} placeholder="Masalan: Toshkent" error={err('city')} />
         <SelectField label="Loyiha tillari" value={languages.map(l => LANGUAGES.find(x => x.id === l)?.name).join(', ')} placeholder="Tillarni tanlang" icon="language-outline" onPress={() => setPicker('lang')} />
       </Card>
@@ -206,7 +206,7 @@ export default function EditProject() {
       <PickerSheet visible={picker === 'sector'} onClose={() => setPicker(null)} title="Soha" selected={sector ? [sector] : []} onChange={ids => setSector(ids[0])}
         options={SECTORS.map(s => ({ id: s.id, label: s.name, icon: s.icon, sub: s.examples }))} />
       <PickerSheet visible={picker === 'country'} onClose={() => setPicker(null)} title="Mamlakat" selected={[country]} onChange={ids => setCountry(ids[0])}
-        options={COUNTRIES.map(x => ({ id: x.code, label: x.name, emoji: x.flag, sub: x.region }))} />
+        options={COUNTRIES.map(x => ({ id: x.code, label: x.name, flag: x.code, sub: x.region }))} />
       <PickerSheet visible={picker === 'lang'} onClose={() => setPicker(null)} title="Loyiha tillari" multi selected={languages} onChange={ids => setLanguages(ids.length ? ids : languages)}
         options={LANGUAGES.map(l => ({ id: l.id, label: l.name }))} />
     </Screen>

@@ -10,7 +10,7 @@ import { haptic, useStore } from '@/lib/store';
 import { F, radius, shadow } from '@/lib/theme';
 
 import { toast } from './toast';
-import { Avatar, Badge, Button, Card, IconTile, Row, Sheet, Txt, Verified, shade, type IconName } from './ui';
+import { Avatar, Badge, Button, Card, Flag, IconTile, Row, Sheet, Txt, Verified, shade, type IconName } from './ui';
 
 /* ---------- Kichik bo'laklar ---------- */
 
@@ -48,9 +48,16 @@ export function FavButton({ k, style, size = 22 }: { k: string; style?: StylePro
   );
 }
 
-export function Place({ code, city }: { code: string; city?: string }) {
+/** Bayroq + joy nomi: «[🇺🇿] Toshkent, O'zbekiston». before/after — qo'shimcha matn */
+export function Place({ code, city, before, after, faint }: { code: string; city?: string; before?: string; after?: string; faint?: boolean }) {
   const k = countryOf(code);
-  return <Txt v="small" muted numberOfLines={1}>{k.flag} {city ? `${city}, ` : ''}{k.name}</Txt>;
+  return (
+    <Row gap={6} style={{ flexShrink: 1 }}>
+      {before ? <Txt v="small" muted={!faint} faint={faint} numberOfLines={1}>{before}</Txt> : null}
+      <Flag code={k.code} size={18} />
+      <Txt v="small" muted={!faint} faint={faint} numberOfLines={1} style={{ flexShrink: 1 }}>{city ? `${city}, ` : ''}{k.name}{after ?? ''}</Txt>
+    </Row>
+  );
 }
 
 const stageName = (id: string) => STAGES.find(s => s.id === id)?.name ?? id;
@@ -115,7 +122,8 @@ export function ProjectTile({ p }: { p: Project }) {
       <View style={{ padding: 14, gap: 6, flex: 1 }}>
         <Txt v="h3" numberOfLines={2} style={{ minHeight: 42 }}>{p.title}</Txt>
         <Row gap={4}>
-          <Txt v="small" muted numberOfLines={1} style={{ flexShrink: 1 }}>{countryOf(p.country).flag} {p.ownerName}</Txt>
+          <Flag code={p.country} size={16} />
+          <Txt v="small" muted numberOfLines={1} style={{ flexShrink: 1 }}>{p.ownerName}</Txt>
           {p.ownerVerified && <Verified size={13} />}
         </Row>
         <Row style={{ justifyContent: 'space-between', marginTop: 'auto' }}>
@@ -211,7 +219,7 @@ export function InvestorCard({ inv, onContact }: { inv: Investor; onContact: () 
         <Logo name={inv.name} color={c.violet} size={46} />
         <View style={{ flex: 1 }}>
           <Row gap={4}><Txt v="h3" numberOfLines={1} style={{ flexShrink: 1 }}>{inv.name}</Txt>{inv.verified && <Verified />}</Row>
-          <Txt v="small" muted>{INVESTOR_KINDS[inv.kind]} · {countryOf(inv.country).flag} {countryOf(inv.country).name}</Txt>
+          <Place code={inv.country} before={`${INVESTOR_KINDS[inv.kind]} ·`} />
         </View>
         <FavButton k={'investor:' + inv.id} />
       </Row>
@@ -249,7 +257,8 @@ export function MarketCard({ m, style }: { m: MarketItem; style?: StyleProp<View
         <Txt v="small" style={{ fontFamily: F.bold, minHeight: 36 }} numberOfLines={2}>{m.title}</Txt>
         <Txt v="h3">{usd(m.price)}{m.unit ? <Txt v="tiny" faint> / {m.unit}</Txt> : null}</Txt>
         <Row gap={3}>
-          <Txt v="tiny" faint numberOfLines={1} style={{ flexShrink: 1 }}>{countryOf(m.country).flag} {m.sellerName}</Txt>
+          <Flag code={m.country} size={15} />
+          <Txt v="tiny" faint numberOfLines={1} style={{ flexShrink: 1 }}>{m.sellerName}</Txt>
           {m.sellerVerified && <Verified size={12} />}
         </Row>
       </View>
@@ -330,7 +339,7 @@ export function ReportSheet({ visible, onClose, kind, id, title }: { visible: bo
 
 /* ---------- Tanlash oynasi (mamlakat, soha, til) ---------- */
 
-export type PickOption = { id: string; label: string; icon?: IconName; emoji?: string; sub?: string };
+export type PickOption = { id: string; label: string; icon?: IconName; emoji?: string; flag?: string; sub?: string };
 
 export function PickerSheet({ visible, onClose, title, options, selected, onChange, multi }: {
   visible: boolean; onClose: () => void; title: string; options: PickOption[]; selected: string[]; onChange: (ids: string[]) => void; multi?: boolean;
@@ -359,7 +368,7 @@ export function PickerSheet({ visible, onClose, title, options, selected, onChan
           const on = selected.includes(o.id);
           return (
             <Pressable key={o.id} onPress={() => pick(o.id)} style={[styles.option, { backgroundColor: on ? c.brandSoft : 'transparent' }]}>
-              {o.emoji ? <Text style={{ fontSize: 22 }}>{o.emoji}</Text> : o.icon ? <Ionicons name={o.icon} size={20} color={c.text} /> : null}
+              {o.flag ? <Flag code={o.flag} size={28} /> : o.emoji ? <Text style={{ fontSize: 22 }}>{o.emoji}</Text> : o.icon ? <Ionicons name={o.icon} size={20} color={c.text} /> : null}
               <View style={{ flex: 1 }}>
                 <Txt style={{ fontFamily: on ? F.heavy : F.semi }}>{o.label}</Txt>
                 {o.sub ? <Txt v="tiny" faint numberOfLines={1}>{o.sub}</Txt> : null}
@@ -388,7 +397,7 @@ export function SelectField({ label, value, placeholder, onPress, icon, left }: 
   );
 }
 
-export function KeyValue({ items }: { items: { label: string; value: string; icon?: IconName }[] }) {
+export function KeyValue({ items }: { items: { label: string; value: string; icon?: IconName; flag?: string }[] }) {
   const { colors: c } = useStore();
   return (
     <View style={styles.kvGrid}>
@@ -398,7 +407,10 @@ export function KeyValue({ items }: { items: { label: string; value: string; ico
             {it.icon && <Ionicons name={it.icon} size={14} color={c.muted} />}
             <Txt v="tiny" faint>{it.label}</Txt>
           </Row>
-          <Txt v="h3" style={{ fontSize: 14.5 }} numberOfLines={2}>{it.value}</Txt>
+          <Row gap={6}>
+            {it.flag ? <Flag code={it.flag} size={18} /> : null}
+            <Txt v="h3" style={{ fontSize: 14.5, flexShrink: 1 }} numberOfLines={2}>{it.value}</Txt>
+          </Row>
         </View>
       ))}
     </View>

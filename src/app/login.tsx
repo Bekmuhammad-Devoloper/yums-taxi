@@ -14,13 +14,13 @@ import { haptic, useStore, type AccountKind } from '@/lib/store';
 import { F } from '@/lib/theme';
 
 const CODES = [
-  { code: '+998', flag: '🇺🇿', country: 'UZ', len: 9 },
-  { code: '+7', flag: '🇰🇿', country: 'KZ', len: 10 },
-  { code: '+90', flag: '🇹🇷', country: 'TR', len: 10 },
-  { code: '+971', flag: '🇦🇪', country: 'AE', len: 9 },
-  { code: '+49', flag: '🇩🇪', country: 'DE', len: 11 },
-  { code: '+44', flag: '🇬🇧', country: 'GB', len: 10 },
-  { code: '+1', flag: '🇺🇸', country: 'US', len: 10 },
+  { code: '+998', country: 'UZ', len: 9 },
+  { code: '+7', country: 'KZ', len: 10 },
+  { code: '+90', country: 'TR', len: 10 },
+  { code: '+971', country: 'AE', len: 9 },
+  { code: '+49', country: 'DE', len: 11 },
+  { code: '+44', country: 'GB', len: 10 },
+  { code: '+1', country: 'US', len: 10 },
 ];
 
 const formatPhone = (d: string, cc: string) => {
@@ -111,7 +111,7 @@ export default function Login() {
               {method === 'phone' ? (
                 <View style={[styles.phone, { backgroundColor: phoneFocus ? c.surface : c.surface2, borderColor: phoneFocus || phoneOk ? c.brand : c.line }]}>
                   <Pressable onPress={() => setPicker('cc')} style={styles.cc} hitSlop={6}>
-                    <Flag code={cc.country} emoji={cc.flag} />
+                    <Flag code={cc.country} size={26} />
                     <Text style={[styles.prefix, { color: c.text }]}>{cc.code}</Text>
                     <Ionicons name="chevron-down" size={14} color={c.faint} />
                   </Pressable>
@@ -181,7 +181,7 @@ export default function Login() {
               </View>
               {kind === 'company' && <Field label="Kompaniya nomi" value={company} onChangeText={setCompany} placeholder="Masalan: Silk Road Logistics" />}
               <Field label={kind === 'company' ? "Mas'ul shaxs" : 'Ismingiz'} value={name} onChangeText={setName} placeholder="Masalan: Aziz Karimov" autoCapitalize="words" />
-              <SelectField label="Mamlakat" value={k.name} left={<Flag code={k.code} emoji={k.flag} size={22} />} placeholder="Mamlakat" onPress={() => setPicker('country')} />
+              <SelectField label="Mamlakat" value={k.name} left={<Flag code={k.code} size={22} />} placeholder="Mamlakat" onPress={() => setPicker('country')} />
               <View style={[styles.bonus, { backgroundColor: c.brandSoft }]}>
                 <IconTile name="gift-outline" color={c.brandDeep} size={44} />
                 <View style={{ flex: 1 }}>
@@ -197,9 +197,9 @@ export default function Login() {
 
       <PickerSheet visible={picker === 'cc'} onClose={() => setPicker(null)} title="Mamlakat kodi" selected={[cc.code]}
         onChange={ids => { const n = CODES.find(x => x.code === ids[0]); if (n) { setCc(n); setCountry(n.country); setDigits(d => d.slice(0, n.len)); } }}
-        options={CODES.map(x => ({ id: x.code, label: `${countryOf(x.country).name} (${x.code})`, emoji: x.flag }))} />
+        options={CODES.map(x => ({ id: x.code, label: `${countryOf(x.country).name} (${x.code})`, flag: x.country }))} />
       <PickerSheet visible={picker === 'country'} onClose={() => setPicker(null)} title="Mamlakat" selected={[country]} onChange={ids => setCountry(ids[0])}
-        options={COUNTRIES.map(x => ({ id: x.code, label: x.name, emoji: x.flag, sub: x.region }))} />
+        options={COUNTRIES.map(x => ({ id: x.code, label: x.name, flag: x.code, sub: x.region }))} />
     </KeyboardAvoidingView>
   );
 }

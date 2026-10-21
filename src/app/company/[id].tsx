@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 
-import { FavButton, KeyValue, Logo, ProjectCard, ReportSheet } from '@/components/platform-ui';
+import { FavButton, KeyValue, Logo, Place, ProjectCard, ReportSheet } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
 import { Badge, Button, Card, EmptyState, IconButton, Row, Screen, SectionHeader, Txt, Verified } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
@@ -44,7 +44,7 @@ export default function CompanyScreen() {
           <Logo name={co.name} color={co.color} size={68} />
           <View style={{ flex: 1, gap: 3 }}>
             <Row gap={5}><Txt v="h2" numberOfLines={2} style={{ flexShrink: 1 }}>{co.name}</Txt>{co.verified && <Verified size={18} />}</Row>
-            <Txt v="small" muted>{k.flag} {co.city}, {k.name}</Txt>
+            <Place code={k.code} city={co.city} />
             <Row gap={6}>
               <Badge label={sec.name} />
               {co.plan === 'business' && <Badge label="Business" icon="diamond" tone="violet" />}

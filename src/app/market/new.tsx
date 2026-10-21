@@ -66,7 +66,7 @@ export default function NewMarketItem() {
         </Row>
         <Field label="Tavsif" value={desc} onChangeText={setDesc} multiline placeholder="Sifat, sertifikatlar, shartlar…" error={tried ? errors.desc : undefined} inputStyle={{ minHeight: 100 }} />
         <SelectField label="Soha" value={sec.name} placeholder="Soha" icon={sec.icon} onPress={() => setPicker('sector')} />
-        <SelectField label="Mamlakat" value={k.name} left={<Flag code={k.code} emoji={k.flag} size={22} />} placeholder="Mamlakat" onPress={() => setPicker('country')} />
+        <SelectField label="Mamlakat" value={k.name} left={<Flag code={k.code} size={22} />} placeholder="Mamlakat" onPress={() => setPicker('country')} />
         {kind === 'goods' && (
           <>
             <Field label="Yetkazib berish" value={delivery} onChangeText={setDelivery} placeholder="Masalan: DHL, 5–9 kun" />
@@ -96,7 +96,7 @@ export default function NewMarketItem() {
       <PickerSheet visible={picker === 'sector'} onClose={() => setPicker(null)} title="Soha" selected={[sector]} onChange={ids => setSector(ids[0])}
         options={SECTORS.map(s => ({ id: s.id, label: s.name, icon: s.icon }))} />
       <PickerSheet visible={picker === 'country'} onClose={() => setPicker(null)} title="Mamlakat" selected={[country]} onChange={ids => setCountry(ids[0])}
-        options={COUNTRIES.map(x => ({ id: x.code, label: x.name, emoji: x.flag }))} />
+        options={COUNTRIES.map(x => ({ id: x.code, label: x.name, flag: x.code }))} />
     </Screen>
   );
 }

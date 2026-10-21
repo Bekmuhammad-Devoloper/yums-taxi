@@ -137,7 +137,7 @@ export default function ProjectScreen() {
           <KeyValue items={[
             { label: 'Byudjet', value: budget(pr.budgetMin, pr.budgetMax), icon: 'cash-outline' },
             { label: 'Muddat', value: `${pr.durationMonths} oy`, icon: 'calendar-outline' },
-            { label: 'Hudud', value: `${k.flag} ${pr.city}, ${k.name}`, icon: 'location-outline' },
+            { label: 'Hudud', value: `${pr.city}, ${k.name}`, icon: 'location-outline', flag: k.code },
             { label: 'Bosqich', value: STAGES.find(s => s.id === pr.stage)?.name ?? '', icon: 'git-branch-outline' },
             { label: 'Jamoa', value: `${pr.team} kishi`, icon: 'people-outline' },
             { label: 'Tillar', value: pr.languages.map(l => LANGUAGES.find(x => x.id === l)?.name ?? l).join(', '), icon: 'language-outline' },

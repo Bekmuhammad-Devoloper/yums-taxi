@@ -16,10 +16,10 @@ import { StoreProvider, useStore } from '@/lib/store';
 
 SplashScreen.preventAutoHideAsync();
 
-// Vebda brauzerning to'rtburchak fokus ramkasi o'rniga maydonlarning o'z fokus holati ishlatiladi
+// Vebda brauzerning to'rtburchak fokus ramkasi o'chiriladi: maydonlar va tugmalar o'z holatini ko'rsatadi
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
   const css = document.createElement('style');
-  css.textContent = 'input,textarea{outline:none!important;caret-color:#E0A800}html{overflow:hidden;overscroll-behavior:none}';
+  css.textContent = 'input,textarea,[tabindex],[role=button]{outline:none!important}input,textarea{caret-color:#E0A800}html{overflow:hidden;overscroll-behavior:none}';
   document.head.appendChild(css);
 }
 

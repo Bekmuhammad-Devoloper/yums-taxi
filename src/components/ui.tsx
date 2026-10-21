@@ -6,6 +6,7 @@ import { useState, type ComponentProps, type ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { FLAGS } from '@/lib/flags';
 import { haptic, useColors } from '@/lib/store';
 import { F, radius, shadow } from '@/lib/theme';
 
@@ -187,28 +188,19 @@ export function BrandLogo({ width = 220, style }: { width?: number; style?: Styl
   return <Image source={LOGO_FULL} style={[{ width, height: width * 1.117 }, style as object]} contentFit="contain" accessibilityLabel="YUMS — O'rgimchak Taxi" />;
 }
 
-/**
- * O'zbekiston bayrog'i — emojisiz chizilgan (Windows bayroq emojilarini ko'rsatmaydi).
- * Boshqa mamlakatlar uchun emoji ishlatiladi.
- */
-export function Flag({ code, emoji, size = 26 }: { code: string; emoji?: string; size?: number }) {
-  if (code !== 'UZ') return <Text style={{ fontSize: size * 0.8 }}>{emoji}</Text>;
-  const w = size, h = Math.round(size * 0.66), band = h / 3, line = Math.max(1, h * 0.04);
-  const moon = band * 0.62;
+/** Mamlakat bayrog'i — haqiqiy rasm (barcha platformalarda bir xil ko'rinadi) */
+export function Flag({ code, size = 24 }: { code: string; size?: number }) {
+  const c = useColors();
+  const src = FLAGS[code];
+  const h = Math.round(size * (2 / 3));
+  if (!src) return <Ionicons name="globe-outline" size={h + 2} color={c.muted} />;
   return (
-    <View style={{ width: w, height: h, borderRadius: 3, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(0,0,0,0.25)' }} accessibilityLabel="O'zbekiston">
-      <View style={{ height: band - line / 2, backgroundColor: '#0099B5' }}>
-        <View style={{ position: 'absolute', left: w * 0.08, top: (band - moon) / 2, width: moon, height: moon, borderRadius: moon / 2, backgroundColor: '#fff' }} />
-        <View style={{ position: 'absolute', left: w * 0.08 + moon * 0.28, top: (band - moon) / 2 - moon * 0.04, width: moon, height: moon, borderRadius: moon / 2, backgroundColor: '#0099B5' }} />
-        <View style={{ position: 'absolute', left: w * 0.42, top: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: w * 0.06 }}>
-          {[0, 1, 2].map(i => <View key={i} style={{ width: Math.max(1.5, w * 0.05), height: Math.max(1.5, w * 0.05), borderRadius: w, backgroundColor: '#fff' }} />)}
-        </View>
-      </View>
-      <View style={{ height: line, backgroundColor: '#CE1126' }} />
-      <View style={{ height: band - line, backgroundColor: '#fff' }} />
-      <View style={{ height: line, backgroundColor: '#CE1126' }} />
-      <View style={{ flex: 1, backgroundColor: '#1EB53A' }} />
-    </View>
+    <Image
+      source={src}
+      style={{ width: size, height: h, borderRadius: Math.max(2, size / 9), borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(0,0,0,0.18)' }}
+      contentFit="cover"
+      accessibilityLabel={code}
+    />
   );
 }
 

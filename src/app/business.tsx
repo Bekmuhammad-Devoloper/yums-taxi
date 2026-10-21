@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { CompanyCard, Logo } from '@/components/platform-ui';
-import { Button, Card, Chip, Row, Screen, Segmented, Txt, Verified } from '@/components/ui';
+import { Button, Card, Chip, Flag, Row, Screen, Segmented, Txt, Verified } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
 import { SECTORS } from '@/lib/platform-data';
-import { countryOf, usePlatform } from '@/lib/platform';
+import { usePlatform } from '@/lib/platform';
 import { useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
 
@@ -56,7 +56,7 @@ export default function Business() {
               <Logo name={co.name} color={co.color} size={40} />
               <View style={{ flex: 1 }}>
                 <Row gap={4}><Txt v="small" style={{ fontFamily: F.heavy, flexShrink: 1 }} numberOfLines={1}>{co.name}</Txt>{co.verified && <Verified size={13} />}</Row>
-                <Txt v="tiny" faint>{countryOf(co.country).flag} {co.city} · B2B taklif</Txt>
+                <Row gap={5}><Flag code={co.country} size={15} /><Txt v="tiny" faint>{co.city} · B2B taklif</Txt></Row>
               </View>
             </Row>
           </Pressable>

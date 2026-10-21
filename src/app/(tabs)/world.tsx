@@ -114,7 +114,7 @@ export default function World() {
         </ScrollView>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.chips, { paddingTop: 0 }]}>
           <Filter label={label(t('world.sector'), sector, id => sectorOf(id).name)} on={!!sector.length} onPress={() => setPicker('sector')} />
-          <Filter label={label(t('world.country'), country, id => `${countryOf(id).flag} ${countryOf(id).name}`)} on={!!country.length} onPress={() => setPicker('country')} />
+          <Filter label={label(t('world.country'), country, id => countryOf(id).name)} on={!!country.length} onPress={() => setPicker('country')} />
           {showLang && <Filter label={label(t('world.language'), language, id => LANGUAGES.find(l => l.id === id)?.name ?? id)} on={!!language.length} onPress={() => setPicker('language')} />}
           {showStage && <Filter label={label(t('world.stage'), stage, id => STAGES.find(s => s.id === id)?.name ?? id)} on={!!stage.length} onPress={() => setPicker('stage')} />}
           <Filter label={t('common.verified')} icon="checkmark-circle" on={verifiedOnly} onPress={() => setVerifiedOnly(v => !v)} toggle />
@@ -155,7 +155,7 @@ export default function World() {
       <PickerSheet visible={picker === 'sector'} onClose={() => setPicker(null)} title={t('world.sector')} multi selected={sector} onChange={setSector}
         options={SECTORS.map(s => ({ id: s.id, label: s.name, icon: s.icon, sub: s.examples }))} />
       <PickerSheet visible={picker === 'country'} onClose={() => setPicker(null)} title={t('world.country')} multi selected={country} onChange={setCountry}
-        options={COUNTRIES.map(k => ({ id: k.code, label: k.name, emoji: k.flag, sub: k.region }))} />
+        options={COUNTRIES.map(k => ({ id: k.code, label: k.name, flag: k.code, sub: k.region }))} />
       <PickerSheet visible={picker === 'language'} onClose={() => setPicker(null)} title={t('world.language')} multi selected={language} onChange={setLanguage}
         options={LANGUAGES.map(l => ({ id: l.id, label: l.name }))} />
       <PickerSheet visible={picker === 'stage'} onClose={() => setPicker(null)} title={t('world.stage')} multi selected={stage} onChange={setStage}

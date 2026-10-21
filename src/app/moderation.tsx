@@ -5,7 +5,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { toast } from '@/components/toast';
 import { Badge, Button, Card, EmptyState, Row, Screen, Segmented, Sheet, Stat, Txt } from '@/components/ui';
-import { countryOf, ago, flagged, usePlatform } from '@/lib/platform';
+import { Place } from '@/components/platform-ui';
+import { ago, flagged, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
 
@@ -123,7 +124,7 @@ export default function Moderation() {
                 <Txt v="h3" style={{ flex: 1 }}>{v.name}{v.isMe ? ' (siz)' : ''}</Txt>
                 <Badge label={v.kind === 'company' ? 'Kompaniya' : 'Jismoniy shaxs'} />
               </Row>
-              <Txt v="small" muted>{countryOf(v.country).flag} {countryOf(v.country).name} · {ago(v.createdAt)}</Txt>
+              <Place code={v.country} after={` · ${ago(v.createdAt)}`} />
               {v.docs.map(d => (
                 <Row key={d} gap={8}><Ionicons name="document-attach-outline" size={16} color={c.muted} /><Txt v="small">{d}</Txt></Row>
               ))}
