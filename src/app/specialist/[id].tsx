@@ -3,11 +3,11 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { FavButton, KeyValue, Place, ReportSheet } from '@/components/platform-ui';
-import { Avatar, Badge, Button, Card, EmptyState, IconButton, Row, Screen, SectionHeader, Txt, Verified } from '@/components/ui';
+import { FavButton, KeyValue, Place, ReportSheet, SpecialistAvatar } from '@/components/platform-ui';
+import { Badge, Button, Card, EmptyState, IconButton, Row, Screen, SectionHeader, Txt, Verified } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
 import { LANGUAGES } from '@/lib/platform-data';
-import { countryOf, sectorOf, usePlatform } from '@/lib/platform';
+import { countryOf, usePlatform } from '@/lib/platform';
 import { useStore } from '@/lib/store';
 
 const REVIEWS = [
@@ -41,7 +41,7 @@ export default function SpecialistScreen() {
       }>
       <Card style={{ alignItems: 'center', gap: 8, paddingVertical: 22 }}>
         <View>
-          <Avatar name={sp.name} size={84} bg={sectorOf(sp.sector).color} />
+          <SpecialistAvatar sp={sp} size={84} />
           <View style={[styles.dot, { backgroundColor: sp.available ? c.ok : c.faint, borderColor: c.surface }]} />
         </View>
         <Row gap={5}><Txt v="h1">{sp.name}</Txt>{sp.verified && <Verified size={20} />}</Row>

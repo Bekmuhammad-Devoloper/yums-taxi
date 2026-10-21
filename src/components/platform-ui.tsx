@@ -5,10 +5,11 @@ import { router } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { REPORT_REASONS, type Conversation, SEEKS, STAGES, STATUS_META, INVESTOR_KINDS, type Company, type Investor, type ListingStatus, type MarketItem, type Project, type ReportTarget, type Specialist } from '@/lib/platform-data';
+import { REPORT_REASONS, type Conversation, SEED_SPECIALISTS, SEEKS, STAGES, STATUS_META, INVESTOR_KINDS, type Company, type Investor, type ListingStatus, type MarketItem, type Project, type ReportTarget, type Specialist } from '@/lib/platform-data';
 import { coverOf, AD_BANNER } from '@/lib/covers';
 import { budget, countryOf, sectorOf, short, usd, usePlatform } from '@/lib/platform';
 import { SECTION_ART, SECTION_ART_SCALE } from '@/lib/section-art';
+import { PEOPLE_ART } from '@/lib/people-art';
 import { SECTOR_ART } from '@/lib/sector-art';
 import { haptic, useStore } from '@/lib/store';
 import { F, radius, shadow } from '@/lib/theme';
@@ -33,6 +34,20 @@ function ArtTile({ art, color, size, scale = 0.8 }: { art: number; color: string
     <View style={{ width: size, height: size, borderRadius: size * 0.32, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: alpha(color, 0.22) }}>
       <LinearGradient colors={[alpha(color, 0.16), alpha(color, 0.05)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
         <Image source={art} style={{ width: size * scale, height: size * scale }} contentFit="contain" />
+      </LinearGradient>
+    </View>
+  );
+}
+
+/** Mutaxassis portreti: soha rangidagi yumshoq fonda 3D portret, bo'lmasa bosh harflar */
+export function SpecialistAvatar({ sp, size = 52 }: { sp: Pick<Specialist, 'id' | 'name' | 'sector'>; size?: number }) {
+  const color = sectorOf(sp.sector).color;
+  const art = PEOPLE_ART[sp.id];
+  if (!art) return <Avatar name={sp.name} size={size} bg={color} />;
+  return (
+    <View style={{ width: size, height: size, borderRadius: size / 2.6, overflow: 'hidden' }}>
+      <LinearGradient colors={[alpha(color, 0.32), alpha(color, 0.12)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end' }}>
+        <Image source={art} style={{ width: size * 0.9, height: size * 0.9 }} contentFit="contain" accessibilityLabel={sp.name} />
       </LinearGradient>
     </View>
   );
@@ -213,7 +228,7 @@ export function SpecialistCard({ sp }: { sp: Specialist }) {
     <Card onPress={() => router.push({ pathname: '/specialist/[id]', params: { id: sp.id } })} style={{ gap: 10 }}>
       <Row>
         <View>
-          <Avatar name={sp.name} size={52} bg={sectorOf(sp.sector).color} />
+          <SpecialistAvatar sp={sp} size={52} />
           <View style={[styles.dot, { backgroundColor: sp.available ? c.ok : c.faint, borderColor: c.surface }]} />
         </View>
         <View style={{ flex: 1 }}>
@@ -243,7 +258,7 @@ export function SpecialistMini({ sp }: { sp: Specialist }) {
     <Pressable
       onPress={() => { haptic.tap(); router.push({ pathname: '/specialist/[id]', params: { id: sp.id } }); }}
       style={({ pressed }) => [styles.mini, { backgroundColor: c.surface, opacity: pressed ? 0.85 : 1 }, shadow(c, 0.5)]}>
-      <Avatar name={sp.name} size={56} bg={sectorOf(sp.sector).color} />
+      <SpecialistAvatar sp={sp} size={56} />
       <Row gap={3}><Txt v="h3" numberOfLines={1} style={{ flexShrink: 1, fontSize: 14.5 }}>{sp.name.split(' ')[0]}</Txt>{sp.verified && <Verified size={13} />}</Row>
       <Txt v="tiny" faint numberOfLines={2} style={{ textAlign: 'center', minHeight: 28 }}>{sp.title}</Txt>
       <Row gap={3}><Ionicons name="star" size={12} color="#F5A524" /><Txt v="tiny">{sp.rating.toFixed(1)} · ${sp.rate}/s</Txt></Row>
@@ -329,6 +344,8 @@ export function PeerAvatar({ conv, size = 50 }: { conv: Conversation; size?: num
     return <View style={{ width: size, height: size, borderRadius: size / 3, backgroundColor: c.brand, alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontFamily: F.heavy, fontSize: size * 0.42, color: c.brandText }}>Y</Text></View>;
   }
   if (conv.peerKind === 'company' || conv.peerKind === 'investor') return <Logo name={conv.peerName} color={conv.peerKind === 'investor' ? c.violet : c.ok} size={size} />;
+  const sp = conv.peerKind === 'specialist' ? SEED_SPECIALISTS.find(x => x.id === conv.peerId) : undefined;
+  if (sp) return <SpecialistAvatar sp={sp} size={size} />;
   return <Avatar name={conv.peerName} size={size} bg={c.accent} />;
 }
 
