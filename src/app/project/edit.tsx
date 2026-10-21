@@ -216,7 +216,7 @@ export default function EditProject() {
       <PickerSheet visible={picker === 'country'} onClose={() => setPicker(null)} title="Mamlakat" selected={[country]} onChange={ids => setCountry(ids[0])}
         options={COUNTRIES.map(x => ({ id: x.code, label: x.name, flag: x.code, sub: x.region }))} />
       <PickerSheet visible={picker === 'lang'} onClose={() => setPicker(null)} title="Loyiha tillari" multi selected={languages} onChange={ids => setLanguages(ids.length ? ids : languages)}
-        options={LANGUAGES.map(l => ({ id: l.id, label: l.name }))} />
+        options={LANGUAGES.map(l => ({ id: l.id, label: l.name, flag: l.flag }))} />
     </Screen>
   );
 }

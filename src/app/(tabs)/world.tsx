@@ -158,7 +158,7 @@ export default function World() {
       <PickerSheet visible={picker === 'country'} onClose={() => setPicker(null)} title={t('world.country')} multi selected={country} onChange={setCountry}
         options={COUNTRIES.map(k => ({ id: k.code, label: k.name, flag: k.code, sub: k.region }))} />
       <PickerSheet visible={picker === 'language'} onClose={() => setPicker(null)} title={t('world.language')} multi selected={language} onChange={setLanguage}
-        options={LANGUAGES.map(l => ({ id: l.id, label: l.name }))} />
+        options={LANGUAGES.map(l => ({ id: l.id, label: l.name, flag: l.flag }))} />
       <PickerSheet visible={picker === 'stage'} onClose={() => setPicker(null)} title={t('world.stage')} multi selected={stage} onChange={setStage}
         options={STAGES.map(s => ({ id: s.id, label: s.name, icon: s.icon }))} />
       <PickerSheet visible={picker === 'sort'} onClose={() => setPicker(null)} title={t('world.sort')} selected={[sort]} onChange={ids => setSort(ids[0] as Sort)}

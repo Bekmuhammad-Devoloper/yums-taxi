@@ -263,18 +263,19 @@ export const COUNTRIES: Country[] = [
   { code: 'AU', name: 'Avstraliya', flag: '🇦🇺', region: 'Okeaniya' },
 ];
 
-export const LANGUAGES: { id: string; name: string }[] = [
-  { id: 'uz', name: "O'zbek" },
-  { id: 'ru', name: 'Rus' },
-  { id: 'en', name: 'Ingliz' },
-  { id: 'tr', name: 'Turk' },
-  { id: 'kk', name: 'Qozoq' },
-  { id: 'de', name: 'Nemis' },
-  { id: 'fr', name: 'Fransuz' },
-  { id: 'ar', name: 'Arab' },
-  { id: 'zh', name: 'Xitoy' },
-  { id: 'ko', name: 'Koreys' },
-  { id: 'es', name: 'Ispan' },
+/** Til va uni ko'rsatadigan bayroq (mamlakat kodi) */
+export const LANGUAGES: { id: string; name: string; flag: string }[] = [
+  { id: 'uz', name: "O'zbek", flag: 'UZ' },
+  { id: 'ru', name: 'Rus', flag: 'RU' },
+  { id: 'en', name: 'Ingliz', flag: 'GB' },
+  { id: 'tr', name: 'Turk', flag: 'TR' },
+  { id: 'kk', name: 'Qozoq', flag: 'KZ' },
+  { id: 'de', name: 'Nemis', flag: 'DE' },
+  { id: 'fr', name: 'Fransuz', flag: 'FR' },
+  { id: 'ar', name: 'Arab', flag: 'SA' },
+  { id: 'zh', name: 'Xitoy', flag: 'CN' },
+  { id: 'ko', name: 'Koreys', flag: 'KR' },
+  { id: 'es', name: 'Ispan', flag: 'ES' },
 ];
 
 export const STAGES: { id: Stage; name: string; icon: IconName }[] = [

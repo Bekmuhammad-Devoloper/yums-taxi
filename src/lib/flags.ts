@@ -17,6 +17,7 @@ export const FLAGS: Record<string, number> = {
   RU: require('@/assets/flags/ru.png'),
   DE: require('@/assets/flags/de.png'),
   GB: require('@/assets/flags/gb.png'),
+  ES: require('@/assets/flags/es.png'),
   FR: require('@/assets/flags/fr.png'),
   PL: require('@/assets/flags/pl.png'),
   NL: require('@/assets/flags/nl.png'),
