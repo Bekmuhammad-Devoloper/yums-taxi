@@ -16,7 +16,7 @@ const ROLES: { id: Role; label: string; short: string; can: string }[] = [
 ];
 
 export default function Security() {
-  const { colors: c, user, updateUser, logout } = useStore();
+  const { colors: c, user, updateUser, deleteAccount } = useStore();
   const p = usePlatform();
   const role = user?.role ?? 'user';
 
@@ -90,7 +90,7 @@ export default function Security() {
         <ListItem icon="server-outline" title="Avtomatik zaxira nusxa" sub="Har kuni · 35 kun saqlanadi" right={<Badge label="Yoqilgan" tone="ok" />} />
         <ListItem icon="document-lock-outline" title="Saqlash qoidalari" onPress={() => router.push({ pathname: '/legal', params: { doc: 'retention' } })} />
         <ListItem icon="trash-outline" title="Hisobni o'chirish" danger onPress={() => confirm("Hisobni o'chirasizmi?", "Barcha loyihalar, e'lonlar va xabarlar o'chiriladi. Bu amalni qaytarib bo'lmaydi.", () => {
-          p.resetPlatform(); logout(); router.replace('/login'); toast("Hisob o'chirildi", 'trash');
+          p.resetPlatform(); deleteAccount(); router.replace('/login'); toast("Hisob o'chirildi", 'trash');
         }, "O'chirish")} />
       </Card>
     </Screen>

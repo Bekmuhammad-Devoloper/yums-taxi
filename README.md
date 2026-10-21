@@ -39,7 +39,11 @@ npx expo start
 ```
 
 Telefonda **Expo Go** ilovasi bilan QR-kodni skanerlang.
-Demo kirish: istalgan raqam yoki email, kod — istalgan 5 ta raqam.
+Kirish va ro'yxatdan o'tish alohida:
+- **Ro'yxatdan o'tish** — istalgan raqam yoki email, kod (istalgan 5 ta raqam), so'ng profil.
+- **Kirish** — ro'yxatdan o'tgan raqam bilan; demo hisob: `+998 90 000 00 00` (kod — istalgan 5 ta raqam).
+
+Hisoblar hozircha qurilmada saqlanadi.
 
 Demo ssenariylar:
 - Loyiha yaratib «Yuborish»ni bosing — bir necha soniyada avtomatik moderatsiyadan o'tadi. Matnda «kafolatlangan daromad» kabi iboralar bo'lsa, moderator navbatida qoladi.

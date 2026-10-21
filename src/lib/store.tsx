@@ -73,9 +73,16 @@ type Ctx = {
   theme: ThemePref;
   setTheme: (t: ThemePref) => void;
   user: User | null;
+  /** Yangi hisob yaratib kirish (ro'yxatdan o'tish) */
   login: (u: Omit<User, 'rating'>) => void;
+  /** Mavjud hisob bilan kirish */
+  signIn: (u: User) => void;
+  /** Telefon yoki email bo'yicha ro'yxatdan o'tgan hisobni topish */
+  findAccount: (q: { phone?: string; email?: string }) => User | undefined;
   updateUser: (patch: Partial<User>) => void;
   logout: () => void;
+  /** Hisobni butunlay o'chirish (ro'yxatdan ham olib tashlanadi) */
+  deleteAccount: () => void;
   lang: Lang;
   setLang: (l: Lang) => void;
   t: (k: TKey) => string;
@@ -117,7 +124,16 @@ export const useStore = () => {
 export const useColors = () => useStore().colors;
 export const useT = () => useStore().t;
 
-const K = { user: 'yt:user', rides: 'yt:rides', saved: 'yt:saved', cards: 'yt:cards', theme: 'yt:theme', payment: 'yt:payment', recent: 'yt:recent', balance: 'yt:balance', lang: 'yt:lang' };
+const K = { user: 'yt:user', rides: 'yt:rides', saved: 'yt:saved', cards: 'yt:cards', theme: 'yt:theme', payment: 'yt:payment', recent: 'yt:recent', balance: 'yt:balance', lang: 'yt:lang', accounts: 'yt:accounts' };
+
+/** Demo: oldindan ro'yxatdan o'tgan hisob — «Kirish»ni sinab ko'rish uchun */
+export const DEMO_ACCOUNT: User = {
+  id: 'demo', name: 'Demo Foydalanuvchi', phone: '+998 90 000 00 00', rating: 4.9,
+  kind: 'person', country: 'UZ', role: 'user', joinedAt: '2026-01-15T10:00:00.000Z',
+};
+
+const digitsOf = (s?: string) => (s ?? '').replace(/\D/g, '');
+const upsert = (list: User[], u: User) => [u, ...list.filter(x => x.id !== u.id)];
 const persist = (k: string, v: unknown) => { AsyncStorage.setItem(k, JSON.stringify(v)).catch(() => {}); };
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -126,6 +142,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<ThemePref>('system');
   const [lang, setLangState] = useState<Lang>('uz');
   const [user, setUser] = useState<User | null>(null);
+  const [accounts, setAccounts] = useState<User[]>([DEMO_ACCOUNT]);
   const [rides, setRides] = useState<Ride[]>(SEED_RIDES);
   const [saved, setSaved] = useState<Saved>({});
   const [cards, setCards] = useState<Card[]>([{ id: 'c1', brand: 'Uzcard', last4: '4417' }]);
@@ -146,6 +163,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const entries = await AsyncStorage.multiGet(Object.values(K));
         const m = Object.fromEntries(entries.map(([k, v]) => [k, v ? JSON.parse(v) : undefined]));
         if (m[K.user]) setUser(m[K.user]);
+        // Avvalgi versiyada saqlangan foydalanuvchi ham hisoblar ro'yxatiga kiradi
+        const saved: User[] = m[K.accounts] ?? [DEMO_ACCOUNT];
+        setAccounts(m[K.user] && !saved.some(a => a.id === m[K.user].id) ? upsert(saved, m[K.user]) : saved);
         if (m[K.rides]) setRides(m[K.rides]);
         if (m[K.saved]) setSaved(m[K.saved]);
         if (m[K.cards]) setCards(m[K.cards]);
@@ -290,11 +310,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setTheme: t => { setThemeState(t); persist(K.theme, t); },
     user,
     login: u => {
-      const nu: User = { role: 'user', kind: 'person', country: 'UZ', joinedAt: new Date().toISOString(), ...u, id: u.id ?? 'me', rating: 4.9 };
+      const nu: User = { role: 'user', kind: 'person', country: 'UZ', joinedAt: new Date().toISOString(), ...u, id: u.id ?? 'u' + Date.now().toString(36), rating: 4.9 };
       setUser(nu); persist(K.user, nu);
+      setAccounts(as => { const n = upsert(as, nu); persist(K.accounts, n); return n; });
     },
-    updateUser: patch => setUser(cur => { if (!cur) return cur; const nu = { ...cur, ...patch }; persist(K.user, nu); return nu; }),
+    signIn: u => { setUser(u); persist(K.user, u); },
+    findAccount: ({ phone, email }) => accounts.find(a =>
+      (phone && digitsOf(a.phone) && digitsOf(a.phone) === digitsOf(phone)) ||
+      (email && a.email && a.email.trim().toLowerCase() === email.trim().toLowerCase())),
+    updateUser: patch => setUser(cur => {
+      if (!cur) return cur;
+      const nu = { ...cur, ...patch };
+      persist(K.user, nu);
+      setAccounts(as => { const n = upsert(as, nu); persist(K.accounts, n); return n; });
+      return nu;
+    }),
     logout: () => { setUser(null); AsyncStorage.removeItem(K.user).catch(() => {}); },
+    deleteAccount: () => {
+      const id = user?.id;
+      setAccounts(as => { const n = as.filter(a => a.id !== id); persist(K.accounts, n); return n; });
+      setUser(null); AsyncStorage.removeItem(K.user).catch(() => {});
+    },
     lang,
     setLang: l => { setLangState(l); persist(K.lang, l); },
     t: k => DICTS[lang][k] ?? DICTS.uz[k] ?? k,

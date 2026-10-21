@@ -39,9 +39,11 @@ const formatPhone = (d: string, cc: string) => {
 };
 
 export default function Login() {
-  const { colors: c, login } = useStore();
+  const { colors: c, login, signIn, findAccount } = useStore();
   const { logEvent } = usePlatform();
   const insets = useSafeAreaInsets();
+  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [notice, setNotice] = useState<'notfound' | 'exists' | null>(null);
   const [step, setStep] = useState<'contact' | 'code' | 'profile'>('contact');
   const [method, setMethod] = useState<'phone' | 'email'>('phone');
   const [cc, setCc] = useState(CODES[0]);
@@ -79,10 +81,17 @@ export default function Login() {
 
   const phoneOk = digits.length >= Math.min(cc.len, 9) && digits.length <= cc.len;
   const emailOk = /^\S+@\S+\.\S{2,}$/.test(email.trim());
-  const contactOk = (method === 'phone' ? phoneOk : emailOk) && agree;
+  const contactOk = (method === 'phone' ? phoneOk : emailOk) && (mode === 'login' || agree);
   const target = method === 'phone' ? `${cc.code} ${formatPhone(digits, cc.code)}` : email.trim();
+  const account = findAccount(method === 'phone' ? { phone: target } : { email: target });
+
+  const switchMode = (m: 'login' | 'register') => { haptic.tap(); setMode(m); setNotice(null); };
 
   const sendCode = () => {
+    // Kirishda hisob mavjud bo'lishi, ro'yxatdan o'tishda esa band bo'lmasligi kerak
+    if (mode === 'login' && !account) { setNotice('notfound'); return; }
+    if (mode === 'register' && account) { setNotice('exists'); return; }
+    setNotice(null);
     setStep('code'); setCode(''); setTimer(59);
     toast(`Demo: istalgan ${CODE_LEN} ta raqamni kiriting`, method === 'phone' ? 'chatbox-ellipses' : 'mail');
     setTimeout(() => codeRef.current?.focus(), 300);
@@ -91,7 +100,17 @@ export default function Login() {
   const onCode = (v: string) => {
     const d = v.replace(/\D/g, '').slice(0, CODE_LEN);
     setCode(d);
-    if (d.length === CODE_LEN) { haptic.success(); setTimeout(() => setStep('profile'), 300); }
+    if (d.length === CODE_LEN) { haptic.success(); setTimeout(verified, 300); }
+  };
+
+  // Kod tasdiqlangach: kirishda — to'g'ridan-to'g'ri ilovaga, ro'yxatdan o'tishda — profilga
+  const verified = () => {
+    if (mode === 'register') { setStep('profile'); return; }
+    if (!account) { setStep('contact'); setNotice('notfound'); return; }
+    signIn(account);
+    logEvent(`Tizimga kirish (${method === 'phone' ? 'SMS kod' : 'email kod'})`);
+    toast(`Xush kelibsiz, ${account.name.split(' ')[0]}!`, 'hand-right');
+    router.replace('/');
   };
 
   const profileOk = name.trim().length > 1 && (kind === 'person' || company.trim().length > 1);
@@ -100,7 +119,7 @@ export default function Login() {
       name: name.trim(), kind, company: kind === 'company' ? company.trim() : undefined, country,
       phone: method === 'phone' ? target : '', email: method === 'email' ? target : undefined,
     });
-    logEvent(`Ro'yxatdan o'tish / kirish (${method === 'phone' ? 'SMS kod' : 'email kod'})`);
+    logEvent(`Ro'yxatdan o'tish (${method === 'phone' ? 'SMS kod' : 'email kod'})`);
     router.replace('/');
   };
 
@@ -135,9 +154,20 @@ export default function Login() {
         <View style={[styles.card, { backgroundColor: c.surface, paddingBottom: insets.bottom + 24 }]}>
           {step === 'contact' && (
             <>
-              <Txt v="h1">Kirish yoki ro'yxatdan o'tish</Txt>
-              <Txt muted>Tasdiqlash kodi {method === 'phone' ? 'SMS' : 'email'} orqali yuboriladi</Txt>
-              <Segmented value={method} onChange={m => { setMethod(m); }} items={[{ id: 'phone', label: 'Telefon' }, { id: 'email', label: 'Email' }]} />
+              <View style={[styles.modeTabs, { borderBottomColor: c.line }]}>
+                {(['login', 'register'] as const).map(m => (
+                  <Pressable key={m} onPress={() => switchMode(m)} style={styles.modeTab} accessibilityRole="tab" accessibilityState={{ selected: mode === m }}>
+                    <Text style={[styles.modeText, { color: mode === m ? c.text : c.faint }]}>{m === 'login' ? 'Kirish' : "Ro'yxatdan o'tish"}</Text>
+                    <View style={[styles.modeLine, { backgroundColor: mode === m ? c.brand : 'transparent' }]} />
+                  </Pressable>
+                ))}
+              </View>
+              <Txt muted>
+                {mode === 'login'
+                  ? `Hisobingizga kirish uchun ${method === 'phone' ? 'telefon raqamingizni' : 'emailingizni'} kiriting`
+                  : `Yangi hisob yarating — tasdiqlash kodi ${method === 'phone' ? 'SMS' : 'email'} orqali yuboriladi`}
+              </Txt>
+              <Segmented value={method} onChange={m => { setMethod(m); setNotice(null); }} items={[{ id: 'phone', label: 'Telefon' }, { id: 'email', label: 'Email' }]} />
               {method === 'phone' ? (
                 <View style={[styles.phone, { backgroundColor: phoneFocus ? c.surface : c.surface2, borderColor: phoneFocus || phoneOk ? c.brand : c.line }]}>
                   <Pressable onPress={() => setPicker('cc')} style={styles.cc} hitSlop={6}>
@@ -147,7 +177,7 @@ export default function Login() {
                   </Pressable>
                   <TextInput
                     value={formatPhone(digits, cc.code)}
-                    onChangeText={v => setDigits(v.replace(/\D/g, '').slice(0, cc.len))}
+                    onChangeText={v => { setDigits(v.replace(/\D/g, '').slice(0, cc.len)); setNotice(null); }}
                     keyboardType="phone-pad"
                     onFocus={() => setPhoneFocus(true)}
                     onBlur={() => setPhoneFocus(false)}
@@ -158,19 +188,45 @@ export default function Login() {
                   />
                 </View>
               ) : (
-                <Field value={email} onChangeText={setEmail} placeholder="name@company.com" keyboardType="email-address" autoCapitalize="none" autoComplete="email" autoFocus inputStyle={{ fontSize: 18, minHeight: 58 }} />
+                <Field value={email} onChangeText={v => { setEmail(v); setNotice(null); }} placeholder="name@company.com" keyboardType="email-address" autoCapitalize="none" autoComplete="email" autoFocus inputStyle={{ fontSize: 18, minHeight: 58 }} />
               )}
-              <Pressable onPress={() => { haptic.tap(); setAgree(!agree); }} style={styles.agree} accessibilityRole="checkbox" accessibilityState={{ checked: agree }}>
-                <View style={[styles.check, agree ? { backgroundColor: c.brand, borderColor: c.brand } : { borderColor: c.faint }]}>
-                  {agree && <Ionicons name="checkmark" size={15} color={c.brandText} />}
+              {notice && (
+                <View style={[styles.notice, { backgroundColor: c.warnSoft }]}>
+                  <Ionicons name="information-circle" size={20} color={c.warn} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Txt v="small" color={c.warn} style={{ fontFamily: F.bold }}>
+                      {notice === 'notfound' ? 'Bu raqam bilan hisob topilmadi' : "Bu raqam allaqachon ro'yxatdan o'tgan"}
+                    </Txt>
+                    <Pressable onPress={() => switchMode(notice === 'notfound' ? 'register' : 'login')} hitSlop={6}>
+                      <Txt v="small" color={c.accent} style={{ fontFamily: F.bold }}>
+                        {notice === 'notfound' ? "Ro'yxatdan o'tish →" : 'Kirish →'}
+                      </Txt>
+                    </Pressable>
+                  </View>
                 </View>
-                <Txt v="small" muted style={{ flex: 1, lineHeight: 19 }}>
-                  <Txt v="small" color={c.accent} onPress={() => router.push({ pathname: '/legal', params: { doc: 'terms' } })}>Foydalanish shartlari</Txt>,{' '}
-                  <Txt v="small" color={c.accent} onPress={() => router.push({ pathname: '/legal', params: { doc: 'privacy' } })}>maxfiylik siyosati</Txt> va{' '}
-                  <Txt v="small" color={c.accent} onPress={() => router.push({ pathname: '/legal', params: { doc: 'cookies' } })}>cookie</Txt> qoidalariga roziman
-                </Txt>
-              </Pressable>
+              )}
+              {mode === 'register' && (
+                <Pressable onPress={() => { haptic.tap(); setAgree(!agree); }} style={styles.agree} accessibilityRole="checkbox" accessibilityState={{ checked: agree }}>
+                  <View style={[styles.check, agree ? { backgroundColor: c.brand, borderColor: c.brand } : { borderColor: c.faint }]}>
+                    {agree && <Ionicons name="checkmark" size={15} color={c.brandText} />}
+                  </View>
+                  <Txt v="small" muted style={{ flex: 1, lineHeight: 19 }}>
+                    <Txt v="small" color={c.accent} onPress={() => router.push({ pathname: '/legal', params: { doc: 'terms' } })}>Foydalanish shartlari</Txt>,{' '}
+                    <Txt v="small" color={c.accent} onPress={() => router.push({ pathname: '/legal', params: { doc: 'privacy' } })}>maxfiylik siyosati</Txt> va{' '}
+                    <Txt v="small" color={c.accent} onPress={() => router.push({ pathname: '/legal', params: { doc: 'cookies' } })}>cookie</Txt> qoidalariga roziman
+                  </Txt>
+                </Pressable>
+              )}
               <Button title="Kod olish" disabled={!contactOk} onPress={sendCode} />
+              {mode === 'login' && (
+                <Pressable
+                  onPress={() => { haptic.tap(); setMethod('phone'); setCc(CODES[0]); setDigits('900000000'); setNotice(null); }}
+                  style={[styles.demo, { borderColor: c.line }]}>
+                  <Ionicons name="flask-outline" size={16} color={c.muted} />
+                  <Txt v="small" muted style={{ flex: 1 }}>Demo hisob: <Txt v="small" style={{ fontFamily: F.bold }}>+998 90 000 00 00</Txt></Txt>
+                  <Txt v="small" color={c.accent} style={{ fontFamily: F.bold }}>To'ldirish</Txt>
+                </Pressable>
+              )}
             </>
           )}
 
@@ -235,7 +291,7 @@ export default function Login() {
                 )}
               </View>
 
-              <Button title="Tasdiqlash" disabled={code.length < CODE_LEN} onPress={() => setStep('profile')} />
+              <Button title={mode === 'login' ? 'Kirish' : 'Tasdiqlash'} disabled={code.length < CODE_LEN} onPress={verified} />
 
               <View style={[styles.secure, { backgroundColor: c.surface2, borderColor: c.line }]}>
                 <IconTile name="shield-checkmark-outline" color={c.ok} size={38} />
@@ -301,6 +357,12 @@ const styles = StyleSheet.create({
   prefix: { fontSize: 19, fontFamily: F.heavy },
   phoneInput: { flex: 1, minWidth: 0, fontSize: 20, fontFamily: F.bold, letterSpacing: 0.5, height: '100%' },
   agree: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  modeTabs: { flexDirection: 'row', gap: 22, borderBottomWidth: StyleSheet.hairlineWidth, marginBottom: 2 },
+  modeTab: { paddingTop: 2, gap: 10 },
+  modeText: { fontSize: 20, fontFamily: F.display, letterSpacing: -0.5 },
+  modeLine: { height: 3, borderRadius: 2, marginBottom: -StyleSheet.hairlineWidth },
+  notice: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 12, borderRadius: 14 },
+  demo: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, borderStyle: 'dashed' },
   change: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 9 },
   otpRow: { flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 8 },
   otp: { flex: 1, maxWidth: 64, height: 64, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
