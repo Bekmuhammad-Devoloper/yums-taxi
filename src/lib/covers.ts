@@ -10,6 +10,7 @@ const SEED_COVERS: Record<string, number> = {
 };
 
 export const AD_BANNER = require('@/assets/banners/silk-road.webp');
+export const TAXI_CARD = require('@/assets/banners/taxi-card.webp');
 
 /** Loyiha muqovasi: foydalanuvchi yuklagan rasm, bo'lmasa namuna banner */
 export function coverOf(p: Pick<Project, 'id' | 'cover'>): ImageSource | number | undefined {

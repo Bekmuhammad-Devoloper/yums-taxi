@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AdBanner, CompanyCard, ProjectCard, ProjectTile, SpecialistMini } from '@/components/platform-ui';
 import { Avatar, BrandMark, Button, IconButton, IconTile, LOGO_EMBLEM, Row, SearchBar, SectionHeader, Txt } from '@/components/ui';
+import { TAXI_CARD } from '@/lib/covers';
 import { SECTIONS, SECTORS } from '@/lib/platform-data';
 import { usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
@@ -91,16 +92,16 @@ export default function Home() {
       <View style={styles.pad}>
         <Pressable onPress={() => { haptic.tap(); router.push('/taxi'); }} style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
           <LinearGradient colors={['#FFD84D', '#FFC800', '#F2B100']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.taxi}>
-            <Ionicons name="car-sport-outline" size={132} color="rgba(14,21,37,0.08)" style={styles.taxiDeco} />
-            <View style={{ flex: 1, gap: 4 }}>
+            <Image source={TAXI_CARD} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="right" />
+            <View style={styles.taxiText}>
               <Text style={styles.taxiKicker}>YUMS TAXI</Text>
               <Text style={styles.taxiTitle}>{t('home.taxiTitle')}</Text>
-              <Row gap={6}>
-                <View style={styles.taxiDot} />
+              <Row gap={6} style={{ alignItems: 'flex-start', maxWidth: '86%' }}>
+                <View style={[styles.taxiDot, { marginTop: 5 }]} />
                 <Text style={styles.taxiSub}>{t('sec.taxi')} · {t('home.taxiEta')}</Text>
               </Row>
             </View>
-            <View style={styles.taxiArrow}><Ionicons name="arrow-forward" size={20} color="#FFC800" /></View>
+            <View style={styles.taxiArrow}><Ionicons name="arrow-forward" size={20} color="#0E1525" /></View>
           </LinearGradient>
         </Pressable>
       </View>
@@ -195,13 +196,13 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 18 },
   section: { width: '25%', alignItems: 'center', gap: 8 },
   sectionName: { fontSize: 10.5, fontFamily: F.bold, letterSpacing: 0.6 },
-  taxi: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20, borderRadius: radius.l, overflow: 'hidden' },
-  taxiDeco: { position: 'absolute', right: 52, bottom: -34 },
+  taxi: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: radius.l, overflow: 'hidden', aspectRatio: 3, minHeight: 112 },
+  taxiText: { flex: 1, maxWidth: '64%', gap: 4 },
   taxiKicker: { color: '#0E1525', opacity: 0.55, fontSize: 9.5, fontFamily: F.heavy, letterSpacing: 1.6 },
   taxiTitle: { color: '#0E1525', fontSize: 22, fontFamily: F.display, letterSpacing: -0.7 },
   taxiDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#12A66A' },
-  taxiSub: { color: '#0E1525', opacity: 0.72, fontSize: 12.5, fontFamily: F.semi },
-  taxiArrow: { width: 46, height: 46, borderRadius: 16, backgroundColor: '#0E1525', alignItems: 'center', justifyContent: 'center' },
+  taxiSub: { flexShrink: 1, color: '#0E1525', opacity: 0.72, fontSize: 12, lineHeight: 16, fontFamily: F.semi },
+  taxiArrow: { position: 'absolute', right: 14, bottom: 14, width: 40, height: 40, borderRadius: 14, backgroundColor: '#FFC800', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
   verify: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.l, borderWidth: StyleSheet.hairlineWidth },
   sector: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 40, paddingHorizontal: 14, borderRadius: 13, borderWidth: StyleSheet.hairlineWidth },
   cta: { alignItems: 'center', gap: 6, padding: 24, borderRadius: radius.xl, borderWidth: StyleSheet.hairlineWidth },
