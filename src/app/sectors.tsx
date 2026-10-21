@@ -1,7 +1,8 @@
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { IconTile, Row, Screen, Txt } from '@/components/ui';
+import { SectorIcon } from '@/components/platform-ui';
+import { Row, Screen, Txt } from '@/components/ui';
 import { SECTORS } from '@/lib/platform-data';
 import { usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
@@ -21,7 +22,7 @@ export default function Sectors() {
               onPress={() => { haptic.tap(); router.push({ pathname: '/world', params: { sector: s.id } }); }}
               style={({ pressed }) => [styles.card, { backgroundColor: c.surface, transform: [{ scale: pressed ? 0.97 : 1 }] }, shadow(c, 0.4)]}>
               <Row style={{ justifyContent: 'space-between' }}>
-                <IconTile name={s.icon} color={s.color} size={42} />
+                <SectorIcon id={s.id} size={46} />
                 {n > 0 && <Txt v="tiny" faint>{n} loyiha</Txt>}
               </Row>
               <Txt v="h3" numberOfLines={2} style={{ fontSize: 14.5 }}>{lang === 'ru' ? s.ru : lang === 'en' ? s.en : s.name}</Txt>

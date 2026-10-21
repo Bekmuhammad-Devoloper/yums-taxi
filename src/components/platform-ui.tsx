@@ -9,6 +9,7 @@ import { REPORT_REASONS, type Conversation, SEEKS, STAGES, STATUS_META, INVESTOR
 import { coverOf, AD_BANNER } from '@/lib/covers';
 import { budget, countryOf, sectorOf, short, usd, usePlatform } from '@/lib/platform';
 import { SECTION_ART, SECTION_ART_SCALE } from '@/lib/section-art';
+import { SECTOR_ART } from '@/lib/sector-art';
 import { haptic, useStore } from '@/lib/store';
 import { F, radius, shadow } from '@/lib/theme';
 
@@ -26,22 +27,35 @@ export function Logo({ name, color, size = 48 }: { name: string; color: string; 
   );
 }
 
+/** Rangli shisha katak ichida 3D rasm */
+function ArtTile({ art, color, size, scale = 0.8 }: { art: number; color: string; size: number; scale?: number }) {
+  return (
+    <View style={{ width: size, height: size, borderRadius: size * 0.32, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: alpha(color, 0.22) }}>
+      <LinearGradient colors={[alpha(color, 0.16), alpha(color, 0.05)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <Image source={art} style={{ width: size * scale, height: size * scale }} contentFit="contain" />
+      </LinearGradient>
+    </View>
+  );
+}
+
 export function SectorIcon({ id, size = 44 }: { id: string; size?: number }) {
   const s = sectorOf(id);
-  return <IconTile name={s.icon} color={s.color} size={size} />;
+  const art = SECTOR_ART[s.id];
+  return art ? <ArtTile art={art} color={s.color} size={size} scale={0.84} /> : <IconTile name={s.icon} color={s.color} size={size} />;
+}
+
+/** Soha belgisi katak'siz — chiplar, ro'yxatlar va tanlash maydonlari uchun */
+export function SectorGlyph({ id, size = 22 }: { id: string; size?: number }) {
+  const s = sectorOf(id);
+  const art = SECTOR_ART[s.id];
+  return art ? <Image source={art} style={{ width: size, height: size }} contentFit="contain" /> : <Ionicons name={s.icon} size={size * 0.8} color={s.color} />;
 }
 
 /** Bo'lim belgisi: 3D rasm bo'lsa — rangli shisha katakda, aks holda chiziqli ikonka */
 export function SectionArt({ id, icon, color, size = 54 }: { id: string; icon: IconName; color: string; size?: number }) {
   const art = SECTION_ART[id];
   if (!art) return <IconTile name={icon} color={color} size={size} />;
-  return (
-    <View style={{ width: size, height: size, borderRadius: size * 0.32, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: alpha(color, 0.22) }}>
-      <LinearGradient colors={[alpha(color, 0.16), alpha(color, 0.05)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Image source={art} style={{ width: size * (SECTION_ART_SCALE[id] ?? 0.8), height: size * (SECTION_ART_SCALE[id] ?? 0.8) }} contentFit="contain" />
-      </LinearGradient>
-    </View>
-  );
+  return <ArtTile art={art} color={color} size={size} scale={SECTION_ART_SCALE[id]} />;
 }
 
 export function StatusBadge({ status }: { status: ListingStatus }) {
@@ -275,7 +289,7 @@ export function MarketVisual({ m, icon = 40 }: { m: Pick<MarketItem, 'image' | '
   if (m.image) return <Image source={{ uri: m.image }} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel={m.title} />;
   return (
     <LinearGradient colors={[alpha(s.color, 0.2), alpha(s.color, 0.06)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
-      <Ionicons name={s.icon} size={icon} color={s.color} />
+      {SECTOR_ART[s.id] ? <Image source={SECTOR_ART[s.id]} style={{ width: icon * 1.6, height: icon * 1.6 }} contentFit="contain" /> : <Ionicons name={s.icon} size={icon} color={s.color} />}
     </LinearGradient>
   );
 }
@@ -397,7 +411,7 @@ export function ReportSheet({ visible, onClose, kind, id, title }: { visible: bo
 
 /* ---------- Tanlash oynasi (mamlakat, soha, til) ---------- */
 
-export type PickOption = { id: string; label: string; icon?: IconName; emoji?: string; flag?: string; sub?: string };
+export type PickOption = { id: string; label: string; icon?: IconName; emoji?: string; flag?: string; art?: number; sub?: string };
 
 export function PickerSheet({ visible, onClose, title, options, selected, onChange, multi }: {
   visible: boolean; onClose: () => void; title: string; options: PickOption[]; selected: string[]; onChange: (ids: string[]) => void; multi?: boolean;
@@ -426,7 +440,7 @@ export function PickerSheet({ visible, onClose, title, options, selected, onChan
           const on = selected.includes(o.id);
           return (
             <Pressable key={o.id} onPress={() => pick(o.id)} style={[styles.option, { backgroundColor: on ? c.brandSoft : 'transparent' }]}>
-              {o.flag ? <Flag code={o.flag} size={28} /> : o.emoji ? <Text style={{ fontSize: 22 }}>{o.emoji}</Text> : o.icon ? <Ionicons name={o.icon} size={20} color={c.text} /> : null}
+              {o.flag ? <Flag code={o.flag} size={28} /> : o.art ? <Image source={o.art} style={{ width: 30, height: 30 }} contentFit="contain" /> : o.emoji ? <Text style={{ fontSize: 22 }}>{o.emoji}</Text> : o.icon ? <Ionicons name={o.icon} size={20} color={c.text} /> : null}
               <View style={{ flex: 1 }}>
                 <Txt style={{ fontFamily: on ? F.heavy : F.semi }}>{o.label}</Txt>
                 {o.sub ? <Txt v="tiny" faint numberOfLines={1}>{o.sub}</Txt> : null}

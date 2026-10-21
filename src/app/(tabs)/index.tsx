@@ -6,7 +6,7 @@ import { Fragment } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AdBanner, CompanyCard, SectionArt, ProjectCard, ProjectTile, SpecialistMini } from '@/components/platform-ui';
+import { AdBanner, CompanyCard, SectionArt, SectorGlyph, ProjectCard, ProjectTile, SpecialistMini } from '@/components/platform-ui';
 import { Avatar, BrandMark, Button, IconButton, IconTile, LOGO_EMBLEM, Row, SearchBar, SectionHeader, Txt } from '@/components/ui';
 import { TAXI_CARD } from '@/lib/covers';
 import { SECTIONS, SECTORS } from '@/lib/platform-data';
@@ -138,7 +138,7 @@ export default function Home() {
               key={s.id}
               onPress={() => { haptic.tap(); router.push({ pathname: '/world', params: { sector: s.id } }); }}
               style={({ pressed }) => [styles.sector, { backgroundColor: c.surface, borderColor: c.line, opacity: pressed ? 0.7 : 1 }]}>
-              <Ionicons name={s.icon} size={17} color={s.color} />
+              <SectorGlyph id={s.id} size={22} />
               <Txt v="small" style={{ fontFamily: F.bold }}>{sectorName(s)}</Txt>
             </Pressable>
           ))}

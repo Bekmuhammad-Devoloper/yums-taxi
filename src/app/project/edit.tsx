@@ -5,11 +5,12 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { ImageSlot } from '@/components/image-slot';
-import { PickerSheet, SectorIcon, SelectField } from '@/components/platform-ui';
+import { PickerSheet, SectorGlyph, SectorIcon, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
 import { Button, Card, Chip, Field, Flag, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { COUNTRIES, LANGUAGES, SECTORS, SEEKS, STAGES, type Attachment, type ContactMethod, type Seek, type Stage } from '@/lib/platform-data';
 import { countryOf, fileSize, flagged, sectorOf, usePlatform, type ProjectInput } from '@/lib/platform';
+import { SECTOR_ART } from '@/lib/sector-art';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
 
@@ -120,7 +121,7 @@ export default function EditProject() {
       <Card style={{ gap: 14 }}>
         <Field label="Sarlavha" value={title} onChangeText={setTitle} maxLength={80} placeholder="Masalan: Aqlli issiqxona tizimi" error={err('title')} hint={`${title.length}/80`} />
         <Field label="Qisqa tavsif" value={summary} onChangeText={setSummary} maxLength={160} multiline placeholder="Loyiha bir-ikki jumlada" error={err('summary')} hint={`${summary.length}/160 — katalogda ko'rinadi`} inputStyle={{ minHeight: 60 }} />
-        <SelectField label="Soha" value={sec?.name} placeholder="Sohani tanlang" icon={sec?.icon ?? 'grid-outline'} onPress={() => setPicker('sector')} />
+        <SelectField label="Soha" value={sec?.name} placeholder="Sohani tanlang" icon={sec ? undefined : 'grid-outline'} left={sec ? <SectorGlyph id={sec.id} size={24} /> : undefined} onPress={() => setPicker('sector')} />
         {err('sector') ? <Txt v="tiny" color={c.danger}>{err('sector')}</Txt> : null}
         <View style={{ gap: 6 }}>
           <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>Bosqich</Txt>
@@ -211,7 +212,7 @@ export default function EditProject() {
       )}
 
       <PickerSheet visible={picker === 'sector'} onClose={() => setPicker(null)} title="Soha" selected={sector ? [sector] : []} onChange={ids => setSector(ids[0])}
-        options={SECTORS.map(s => ({ id: s.id, label: s.name, icon: s.icon, sub: s.examples }))} />
+        options={SECTORS.map(s => ({ id: s.id, label: s.name, icon: s.icon, art: SECTOR_ART[s.id], sub: s.examples }))} />
       <PickerSheet visible={picker === 'country'} onClose={() => setPicker(null)} title="Mamlakat" selected={[country]} onChange={ids => setCountry(ids[0])}
         options={COUNTRIES.map(x => ({ id: x.code, label: x.name, flag: x.code, sub: x.region }))} />
       <PickerSheet visible={picker === 'lang'} onClose={() => setPicker(null)} title="Loyiha tillari" multi selected={languages} onChange={ids => setLanguages(ids.length ? ids : languages)}

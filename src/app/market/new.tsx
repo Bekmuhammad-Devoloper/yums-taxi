@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ImageSlot } from '@/components/image-slot';
-import { PickerSheet, SelectField } from '@/components/platform-ui';
+import { PickerSheet, SectorGlyph, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
 import { Button, Card, Chip, Field, Flag, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { COUNTRIES, MARKET_KINDS, SECTORS, type MarketKind } from '@/lib/platform-data';
 import { countryOf, flagged, sectorOf, usePlatform } from '@/lib/platform';
+import { SECTOR_ART } from '@/lib/sector-art';
 import { haptic, useStore } from '@/lib/store';
 
 export default function NewMarketItem() {
@@ -64,7 +65,7 @@ export default function NewMarketItem() {
           <Field label="Birlik" value={unit} onChangeText={setUnit} placeholder={kind === 'service' ? 'soat' : 'dona'} style={{ flex: 1 }} />
         </Row>
         <Field label="Tavsif" value={desc} onChangeText={setDesc} multiline placeholder="Sifat, sertifikatlar, shartlar…" error={tried ? errors.desc : undefined} inputStyle={{ minHeight: 100 }} />
-        <SelectField label="Soha" value={sec.name} placeholder="Soha" icon={sec.icon} onPress={() => setPicker('sector')} />
+        <SelectField label="Soha" value={sec.name} placeholder="Soha" left={<SectorGlyph id={sec.id} size={24} />} onPress={() => setPicker('sector')} />
         <SelectField label="Mamlakat" value={k.name} left={<Flag code={k.code} size={22} />} placeholder="Mamlakat" onPress={() => setPicker('country')} />
         {kind === 'goods' && (
           <>
@@ -89,7 +90,7 @@ export default function NewMarketItem() {
       </View>
 
       <PickerSheet visible={picker === 'sector'} onClose={() => setPicker(null)} title="Soha" selected={[sector]} onChange={ids => setSector(ids[0])}
-        options={SECTORS.map(s => ({ id: s.id, label: s.name, icon: s.icon }))} />
+        options={SECTORS.map(s => ({ id: s.id, label: s.name, icon: s.icon, art: SECTOR_ART[s.id] }))} />
       <PickerSheet visible={picker === 'country'} onClose={() => setPicker(null)} title="Mamlakat" selected={[country]} onChange={ids => setCountry(ids[0])}
         options={COUNTRIES.map(x => ({ id: x.code, label: x.name, flag: x.code }))} />
     </Screen>

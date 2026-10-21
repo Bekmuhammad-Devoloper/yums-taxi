@@ -9,6 +9,7 @@ import { Chip, EmptyState, Row, SearchBar, Txt } from '@/components/ui';
 import { useContactInvestor } from '@/lib/actions';
 import { COUNTRIES, LANGUAGES, SECTORS, STAGES, type Country } from '@/lib/platform-data';
 import { countryOf, sectorOf, usePlatform } from '@/lib/platform';
+import { SECTOR_ART } from '@/lib/sector-art';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
 
@@ -153,7 +154,7 @@ export default function World() {
       />
 
       <PickerSheet visible={picker === 'sector'} onClose={() => setPicker(null)} title={t('world.sector')} multi selected={sector} onChange={setSector}
-        options={SECTORS.map(s => ({ id: s.id, label: s.name, icon: s.icon, sub: s.examples }))} />
+        options={SECTORS.map(s => ({ id: s.id, label: s.name, icon: s.icon, art: SECTOR_ART[s.id], sub: s.examples }))} />
       <PickerSheet visible={picker === 'country'} onClose={() => setPicker(null)} title={t('world.country')} multi selected={country} onChange={setCountry}
         options={COUNTRIES.map(k => ({ id: k.code, label: k.name, flag: k.code, sub: k.region }))} />
       <PickerSheet visible={picker === 'language'} onClose={() => setPicker(null)} title={t('world.language')} multi selected={language} onChange={setLanguage}
