@@ -23,6 +23,8 @@ export type User = {
   bio?: string;
   role?: Role;
   joinedAt?: string;
+  /** Shu qurilmada oxirgi marta kirgan vaqti — «Hisobni tanlang» ro'yxati uchun */
+  lastLoginAt?: string;
 };
 export type ThemePref = 'system' | 'light' | 'dark';
 export type Saved = { home?: Place; work?: Place };
@@ -64,6 +66,7 @@ export const surgeNow = () => {
 export const haptic = {
   tap: () => { if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {}); },
   success: () => { if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {}); },
+  error: () => { if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {}); },
 };
 
 type Ctx = {
@@ -79,6 +82,10 @@ type Ctx = {
   signIn: (u: User) => void;
   /** Telefon yoki email bo'yicha ro'yxatdan o'tgan hisobni topish */
   findAccount: (q: { phone?: string; email?: string }) => User | undefined;
+  /** Shu qurilmada avval kirgan hisoblar (oxirgisi birinchi) */
+  savedAccounts: User[];
+  /** Hisobni «Hisobni tanlang» ro'yxatidan olib tashlash (hisob o'chmaydi) */
+  forgetAccount: (id: string) => void;
   updateUser: (patch: Partial<User>) => void;
   logout: () => void;
   /** Hisobni butunlay o'chirish (ro'yxatdan ham olib tashlanadi) */
@@ -310,11 +317,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setTheme: t => { setThemeState(t); persist(K.theme, t); },
     user,
     login: u => {
-      const nu: User = { role: 'user', kind: 'person', country: 'UZ', joinedAt: new Date().toISOString(), ...u, id: u.id ?? 'u' + Date.now().toString(36), rating: 4.9 };
+      const now = new Date().toISOString();
+      const nu: User = { role: 'user', kind: 'person', country: 'UZ', joinedAt: now, ...u, id: u.id ?? 'u' + Date.now().toString(36), rating: 4.9, lastLoginAt: now };
       setUser(nu); persist(K.user, nu);
       setAccounts(as => { const n = upsert(as, nu); persist(K.accounts, n); return n; });
     },
-    signIn: u => { setUser(u); persist(K.user, u); },
+    signIn: u => {
+      const nu = { ...u, lastLoginAt: new Date().toISOString() };
+      setUser(nu); persist(K.user, nu);
+      setAccounts(as => { const n = upsert(as, nu); persist(K.accounts, n); return n; });
+    },
+    savedAccounts: accounts.filter(a => a.lastLoginAt).sort((a, b) => (b.lastLoginAt ?? '').localeCompare(a.lastLoginAt ?? '')),
+    forgetAccount: id => setAccounts(as => { const n = as.map(a => (a.id === id ? { ...a, lastLoginAt: undefined } : a)); persist(K.accounts, n); return n; }),
     findAccount: ({ phone, email }) => accounts.find(a =>
       (phone && digitsOf(a.phone) && digitsOf(a.phone) === digitsOf(phone)) ||
       (email && a.email && a.email.trim().toLowerCase() === email.trim().toLowerCase())),

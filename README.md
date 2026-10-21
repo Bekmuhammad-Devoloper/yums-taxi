@@ -39,9 +39,11 @@ npx expo start
 ```
 
 Telefonda **Expo Go** ilovasi bilan QR-kodni skanerlang.
-Kirish va ro'yxatdan o'tish alohida:
-- **Ro'yxatdan o'tish** — istalgan raqam yoki email, kod (istalgan 5 ta raqam), so'ng profil.
-- **Kirish** — ro'yxatdan o'tgan raqam bilan; demo hisob: `+998 90 000 00 00` (kod — istalgan 5 ta raqam).
+Kirish Yandex Go uslubida — yagona oqim:
+- Telefon raqami (yoki email) → SMS kod → raqam ro'yxatda bo'lsa darhol ichkariga, yangi bo'lsa «Keling, tanishamiz» (profil) va hisob yaratiladi.
+- Qayta kirishda «Hisobni tanlang» — shu qurilmada avval kirgan hisoblar.
+- Noto'g'ri kodda xato ko'rsatiladi; 3 ta noto'g'ri urinishdan keyin yangi kod kerak.
+- Demo rejimda SMS o'rniga kod ekranda ko'rsatiladi; demo hisob: `+998 90 000 00 00`.
 
 Hisoblar hozircha qurilmada saqlanadi.
 
