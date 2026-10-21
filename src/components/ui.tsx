@@ -7,7 +7,7 @@ import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, Sc
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FLAGS } from '@/lib/flags';
-import { haptic, useColors } from '@/lib/store';
+import { haptic, useColors, useStore } from '@/lib/store';
 import { F, radius, shadow } from '@/lib/theme';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -47,8 +47,10 @@ type BtnProps = {
 
 export function Button({ title, onPress, kind = 'brand', icon, disabled, loading, style, sub, small }: BtnProps) {
   const c = useColors();
-  const bg = { brand: c.brand, dark: c.ink, ghost: c.surface2, danger: c.dangerSoft, outline: 'transparent' }[kind];
-  const fg = { brand: c.brandText, dark: c.bg, ghost: c.text, danger: c.danger, outline: c.text }[kind];
+  const solid = kind === 'brand' || kind === 'dark';
+  const off = disabled && solid;
+  const bg = off ? c.surface3 : { brand: c.brand, dark: c.ink, ghost: c.surface2, danger: c.dangerSoft, outline: 'transparent' }[kind];
+  const fg = off ? c.faint : { brand: c.brandText, dark: c.bg, ghost: c.text, danger: c.danger, outline: c.text }[kind];
   return (
     <Pressable
       onPress={() => { haptic.tap(); onPress?.(); }}
@@ -56,7 +58,7 @@ export function Button({ title, onPress, kind = 'brand', icon, disabled, loading
       style={({ pressed }) => [
         styles.btn,
         small && { height: 42, paddingHorizontal: 14, borderRadius: 13 },
-        { backgroundColor: bg, opacity: disabled ? 0.45 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] },
+        { backgroundColor: bg, opacity: disabled && !solid ? 0.5 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] },
         kind === 'outline' && { borderWidth: 1.5, borderColor: c.line },
         style,
       ]}>
@@ -185,7 +187,7 @@ export function BrandMark({ size = 40, style }: { size?: number; style?: StylePr
 
 /** To'liq logo: emblema + YUMS yozuvi */
 export function BrandLogo({ width = 220, style }: { width?: number; style?: StyleProp<ViewStyle> }) {
-  return <Image source={LOGO_FULL} style={[{ width, height: width * 1.117 }, style as object]} contentFit="contain" accessibilityLabel="YUMS — O'rgimchak Taxi" />;
+  return <Image source={LOGO_FULL} style={[{ width, height: width * 1.003 }, style as object]} contentFit="contain" accessibilityLabel="YUMS — O'rgimchak Taxi" />;
 }
 
 /** Mamlakat bayrog'i — haqiqiy rasm (barcha platformalarda bir xil ko'rinadi) */
@@ -339,14 +341,14 @@ export function SearchBar({ value, onChangeText, placeholder, onPress, right, au
 }
 
 export function Segmented<T extends string>({ items, value, onChange, style }: { items: { id: T; label: string; badge?: number }[]; value: T; onChange: (v: T) => void; style?: StyleProp<ViewStyle> }) {
-  const c = useColors();
+  const { colors: c, dark } = useStore();
   return (
     <View style={[styles.seg, { backgroundColor: c.surface2 }, style]}>
       {items.map(it => {
         const on = it.id === value;
         return (
-          <Pressable key={it.id} onPress={() => { haptic.tap(); onChange(it.id); }} style={[styles.segItem, on && [{ backgroundColor: c.surface }, shadow(c, 0.4)]]}>
-            <Text style={{ color: on ? c.text : c.muted, fontFamily: F.heavy, fontSize: 13.5 }} numberOfLines={1}>{it.label}</Text>
+          <Pressable key={it.id} onPress={() => { haptic.tap(); onChange(it.id); }} style={[styles.segItem, on && [{ backgroundColor: dark ? c.surface3 : c.surface }, shadow(c, dark ? 0 : 0.4)]]}>
+            <Text style={{ color: on ? c.text : c.muted, fontFamily: on ? F.bold : F.semi, fontSize: 13.5 }} numberOfLines={1}>{it.label}</Text>
             {it.badge ? <View style={[styles.segBadge, { backgroundColor: c.danger }]}><Text style={styles.segBadgeText}>{it.badge}</Text></View> : null}
           </Pressable>
         );

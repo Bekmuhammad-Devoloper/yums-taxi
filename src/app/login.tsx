@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
@@ -8,10 +9,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PickerSheet, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
 import { BrandLogo, Button, Field, Flag, IconTile, Segmented, Txt } from '@/components/ui';
-import { COUNTRIES, SECTIONS } from '@/lib/platform-data';
+import { COUNTRIES } from '@/lib/platform-data';
 import { countryOf, usePlatform } from '@/lib/platform';
 import { haptic, useStore, type AccountKind } from '@/lib/store';
 import { F } from '@/lib/theme';
+
+const GLOW = require('@/assets/images/glow.png');
+
+const PILLS: { icon: 'rocket-outline' | 'trending-up-outline' | 'car-sport-outline'; label: string }[] = [
+  { icon: 'rocket-outline', label: 'Loyihalar' },
+  { icon: 'trending-up-outline', label: 'Investorlar' },
+  { icon: 'car-sport-outline', label: 'Taksi' },
+];
 
 const CODES = [
   { code: '+998', country: 'UZ', len: 9 },
@@ -88,18 +97,25 @@ export default function Login() {
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" bounces={false}>
         <LinearGradient colors={['#000000', '#0B0904', '#16120A']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={[styles.hero, { paddingTop: insets.top + 12 }]}>
-          <View pointerEvents="none" style={[styles.glow, { top: insets.top + 10 }]} />
+          <Image source={GLOW} pointerEvents="none" style={[styles.glow, { top: insets.top - (step === 'contact' ? 70 : 100) }]} contentFit="contain" />
           {step !== 'contact' && (
             <Pressable onPress={back} style={[styles.back, { top: insets.top + 12 }]} hitSlop={10}>
               <Ionicons name="chevron-back" size={24} color="#fff" />
             </Pressable>
           )}
-          <BrandLogo width={step === 'contact' ? 170 : 130} style={{ alignSelf: 'center', marginTop: 8, marginBottom: 14 }} />
-          <Text style={styles.tagline}>Xalqaro raqamli loyihalar platformasi{'\n'}Loyihalar, hamkorlar va investorlar — bir joyda</Text>
-          <View style={styles.sections}>
-            {SECTIONS.map(s => <IconTile key={s.id} name={s.icon} color="#F5C542" size={34} glass />)}
-            <IconTile name="car-sport-outline" color="#F5C542" size={34} glass />
-          </View>
+          <BrandLogo width={step === 'contact' ? 168 : 120} style={{ alignSelf: 'center', marginTop: step === 'contact' ? 20 : 8 }} />
+          <Text style={styles.tagTitle}>Xalqaro raqamli loyihalar platformasi</Text>
+          <Text style={styles.tagSub}>Loyihalar, hamkorlar va investorlar — bir joyda</Text>
+          {step === 'contact' && (
+            <View style={styles.pills}>
+              {PILLS.map(x => (
+                <View key={x.label} style={styles.pill}>
+                  <Ionicons name={x.icon} size={14} color="#F5C542" />
+                  <Text style={styles.pillText}>{x.label}</Text>
+                </View>
+              ))}
+            </View>
+          )}
         </LinearGradient>
 
         <View style={[styles.card, { backgroundColor: c.surface, paddingBottom: insets.bottom + 24 }]}>
@@ -130,8 +146,10 @@ export default function Login() {
               ) : (
                 <Field value={email} onChangeText={setEmail} placeholder="name@company.com" keyboardType="email-address" autoCapitalize="none" autoComplete="email" autoFocus inputStyle={{ fontSize: 18, minHeight: 58 }} />
               )}
-              <Pressable onPress={() => setAgree(!agree)} style={styles.agree}>
-                <Ionicons name={agree ? 'checkbox' : 'square-outline'} size={22} color={agree ? c.brandDeep : c.faint} />
+              <Pressable onPress={() => { haptic.tap(); setAgree(!agree); }} style={styles.agree} accessibilityRole="checkbox" accessibilityState={{ checked: agree }}>
+                <View style={[styles.check, agree ? { backgroundColor: c.brand, borderColor: c.brand } : { borderColor: c.faint }]}>
+                  {agree && <Ionicons name="checkmark" size={15} color={c.brandText} />}
+                </View>
                 <Txt v="small" muted style={{ flex: 1, lineHeight: 19 }}>
                   <Txt v="small" color={c.accent} onPress={() => router.push({ pathname: '/legal', params: { doc: 'terms' } })}>Foydalanish shartlari</Txt>,{' '}
                   <Txt v="small" color={c.accent} onPress={() => router.push({ pathname: '/legal', params: { doc: 'privacy' } })}>maxfiylik siyosati</Txt> va{' '}
@@ -206,10 +224,14 @@ export default function Login() {
 
 const styles = StyleSheet.create({
   hero: { paddingHorizontal: 24, paddingBottom: 52, overflow: 'hidden' },
-  glow: { position: 'absolute', alignSelf: 'center', width: 300, height: 300, borderRadius: 150, backgroundColor: 'rgba(255,200,0,0.07)' },
+  glow: { position: 'absolute', alignSelf: 'center', width: 420, height: 420 },
   back: { position: 'absolute', left: 16, width: 40, height: 40, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
-  tagline: { fontSize: 14.5, fontFamily: F.medium, color: 'rgba(255,255,255,0.68)', lineHeight: 21, textAlign: 'center', letterSpacing: 0.2 },
-  sections: { flexDirection: 'row', gap: 6, marginTop: 18, flexWrap: 'wrap', justifyContent: 'center' },
+  tagTitle: { fontSize: 17, fontFamily: F.semi, color: '#fff', textAlign: 'center', letterSpacing: -0.3, marginTop: 14 },
+  tagSub: { fontSize: 13.5, fontFamily: F.medium, color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginTop: 4 },
+  pills: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 20 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,255,255,0.12)' },
+  pillText: { color: 'rgba(255,255,255,0.88)', fontSize: 12.5, fontFamily: F.semi },
+  check: { width: 22, height: 22, borderRadius: 7, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   card: { flex: 1, marginTop: -28, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, gap: 14 },
   phone: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 60, borderRadius: 18, borderWidth: 1.5, paddingHorizontal: 14 },
   cc: { flexDirection: 'row', alignItems: 'center', gap: 6 },
