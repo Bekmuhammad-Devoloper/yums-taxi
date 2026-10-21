@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PickerSheet, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { Button, Field, Segmented, Txt } from '@/components/ui';
+import { BrandLogo, Button, Field, IconTile, Segmented, Txt } from '@/components/ui';
 import { COUNTRIES, SECTIONS } from '@/lib/platform-data';
 import { countryOf, usePlatform } from '@/lib/platform';
 import { haptic, useStore, type AccountKind } from '@/lib/store';
@@ -85,21 +85,18 @@ export default function Login() {
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" bounces={false}>
-        <LinearGradient colors={['#0F1E3D', '#1E3A8A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.hero, { paddingTop: insets.top + 24 }]}>
-          <Ionicons name="earth" size={220} color="rgba(255,255,255,0.06)" style={{ position: 'absolute', right: -60, top: insets.top }} />
+        <LinearGradient colors={['#000000', '#0B0904', '#16120A']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={[styles.hero, { paddingTop: insets.top + 12 }]}>
+          <View pointerEvents="none" style={[styles.glow, { top: insets.top + 10 }]} />
           {step !== 'contact' && (
             <Pressable onPress={back} style={[styles.back, { top: insets.top + 12 }]} hitSlop={10}>
               <Ionicons name="chevron-back" size={24} color="#fff" />
             </Pressable>
           )}
-          <View style={styles.logo}><Text style={styles.logoY}>Y</Text></View>
-          <Text style={styles.title}>YUMS</Text>
-          <Text style={styles.tagline}>Xalqaro raqamli loyihalar platformasi.{'\n'}Loyihalar, hamkorlar va investorlar — bir joyda.</Text>
+          <BrandLogo width={step === 'contact' ? 170 : 130} style={{ alignSelf: 'center', marginTop: 8, marginBottom: 14 }} />
+          <Text style={styles.tagline}>Xalqaro raqamli loyihalar platformasi{'\n'}Loyihalar, hamkorlar va investorlar — bir joyda</Text>
           <View style={styles.sections}>
-            {SECTIONS.map(s => (
-              <View key={s.id} style={[styles.secIco, { backgroundColor: s.color === '#0F1E3D' ? '#334155' : s.color }]}><Ionicons name={s.icon} size={16} color="#fff" /></View>
-            ))}
-            <View style={[styles.secIco, { backgroundColor: '#FFC800' }]}><Ionicons name="car-sport" size={16} color="#0E1525" /></View>
+            {SECTIONS.map(s => <IconTile key={s.id} name={s.icon} color={s.color} size={32} glass />)}
+            <IconTile name="car-sport-outline" color="#FFC800" size={32} glass />
           </View>
         </LinearGradient>
 
@@ -204,19 +201,16 @@ export default function Login() {
 }
 
 const styles = StyleSheet.create({
-  hero: { paddingHorizontal: 24, paddingBottom: 56, overflow: 'hidden' },
+  hero: { paddingHorizontal: 24, paddingBottom: 52, overflow: 'hidden' },
+  glow: { position: 'absolute', alignSelf: 'center', width: 300, height: 300, borderRadius: 150, backgroundColor: 'rgba(255,200,0,0.07)' },
   back: { position: 'absolute', left: 16, width: 40, height: 40, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
-  logo: { width: 64, height: 64, borderRadius: 22, backgroundColor: '#FFC800', alignItems: 'center', justifyContent: 'center', marginTop: 36 },
-  logoY: { color: '#0E1525', fontSize: 34, fontWeight: '900' },
-  title: { fontSize: 40, fontWeight: '900', color: '#fff', marginTop: 18, letterSpacing: -1 },
-  tagline: { fontSize: 16, fontWeight: '600', color: 'rgba(255,255,255,0.78)', marginTop: 6, lineHeight: 23 },
-  sections: { flexDirection: 'row', gap: 8, marginTop: 20, flexWrap: 'wrap' },
-  secIco: { width: 32, height: 32, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  tagline: { fontSize: 14.5, fontWeight: '500', color: 'rgba(255,255,255,0.68)', lineHeight: 21, textAlign: 'center', letterSpacing: 0.2 },
+  sections: { flexDirection: 'row', gap: 7, marginTop: 18, flexWrap: 'wrap', justifyContent: 'center' },
   card: { flex: 1, marginTop: -28, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, gap: 14 },
   phone: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 62, borderRadius: 18, borderWidth: 2, paddingHorizontal: 14 },
   cc: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   prefix: { fontSize: 19, fontWeight: '800' },
-  phoneInput: { flex: 1, minWidth: 0, fontSize: 20, fontWeight: '700', letterSpacing: 0.5, height: '100%' },
+  phoneInput: { flex: 1, minWidth: 0, outlineWidth: 0, fontSize: 20, fontWeight: '700', letterSpacing: 0.5, height: '100%' },
   agree: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   otpRow: { flexDirection: 'row', gap: 12, justifyContent: 'center', marginVertical: 10 },
   otp: { width: 62, height: 70, borderRadius: 18, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },

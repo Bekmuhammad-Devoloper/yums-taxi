@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Card, Row, Screen, SectionHeader, Txt } from '@/components/ui';
+import { BrandLogo, Card, IconTile, Row, Screen, SectionHeader, Txt } from '@/components/ui';
 import { SECTIONS, SECTORS } from '@/lib/platform-data';
 import { haptic, useStore } from '@/lib/store';
 import { radius } from '@/lib/theme';
@@ -36,9 +36,8 @@ export default function About() {
   const { colors: c } = useStore();
   return (
     <Screen title="Platforma haqida">
-      <View style={[styles.hero, { backgroundColor: '#0F1E3D' }]}>
-        <View style={[styles.logo, { backgroundColor: c.brand }]}><Text style={styles.logoY}>Y</Text></View>
-        <Text style={styles.title}>YUMS</Text>
+      <View style={[styles.hero, { backgroundColor: '#000' }]}>
+        <BrandLogo width={170} style={{ alignSelf: 'center', marginBottom: 6 }} />
         <Text style={styles.sub}>Xalqaro raqamli loyihalar platformasi — Yevropa, Osiyo, Amerika va Afrikadagi loyiha egalari, tadbirkorlar, kompaniyalar, investorlar va mutaxassislarni yagona elektron muhitda bog'laydi.</Text>
       </View>
 
@@ -55,7 +54,7 @@ export default function About() {
       <SectionHeader title="Bo'limlar" />
       {SECTIONS.map(s => (
         <Pressable key={s.id} onPress={() => { haptic.tap(); router.push(s.route as never); }} style={({ pressed }) => [styles.section, { backgroundColor: c.surface, opacity: pressed ? 0.85 : 1 }]}>
-          <View style={[styles.ico, { backgroundColor: s.color }]}><Ionicons name={s.icon} size={20} color="#fff" /></View>
+          <IconTile name={s.icon} color={s.color} size={42} />
           <View style={{ flex: 1 }}>
             <Txt v="h3">YUMS {s.name}</Txt>
             <SectionDesc id={s.id} />
@@ -113,13 +112,9 @@ function SectionDesc({ id }: { id: string }) {
 
 const styles = StyleSheet.create({
   hero: { padding: 20, borderRadius: radius.xl, gap: 8 },
-  logo: { width: 52, height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  logoY: { color: '#0E1525', fontWeight: '900', fontSize: 28 },
-  title: { color: '#fff', fontSize: 30, fontWeight: '900', letterSpacing: -0.8, marginTop: 6 },
   sub: { color: 'rgba(255,255,255,0.72)', fontSize: 14, fontWeight: '600', lineHeight: 21 },
   num: { width: 26, height: 26, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   section: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: radius.l },
-  ico: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   step: { width: 22, height: 22, borderRadius: 11, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   line: { width: 2, flex: 1, minHeight: 22, marginVertical: 2 },
 });

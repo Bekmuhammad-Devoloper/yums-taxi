@@ -1,4 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import type { ComponentProps, ReactNode } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
@@ -138,6 +140,46 @@ export function Avatar({ name, size = 48, bg }: { name: string; size?: number; b
   );
 }
 
+/** Rangli hex'ga shaffoflik qo'shish: '#2457F5' + 0.12 → '#2457F51F' */
+export const alpha = (hex: string, a: number) => hex + Math.round(a * 255).toString(16).padStart(2, '0');
+
+/**
+ * Zamonaviy nozik ikonka: yengil shisha fon, ingichka chegara va outline belgi.
+ * `glass` — qorong'i fon (hero) ustida ishlatish uchun.
+ */
+export function IconTile({ name, color, size = 44, glass, style }: { name: IconName; color: string; size?: number; glass?: boolean; style?: StyleProp<ViewStyle> }) {
+  const r = size * 0.32;
+  return (
+    <View style={[{ width: size, height: size, borderRadius: r, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: glass ? 'rgba(255,255,255,0.14)' : alpha(color, 0.22) }, style]}>
+      <LinearGradient
+        colors={glass ? ['rgba(255,255,255,0.12)', 'rgba(255,255,255,0.03)'] : [alpha(color, 0.16), alpha(color, 0.05)]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name={name} size={size * 0.46} color={color} />
+      </LinearGradient>
+    </View>
+  );
+}
+
+const LOGO_MARK = require('@/assets/images/logo-mark.png');
+const LOGO_FULL = require('@/assets/images/logo.png');
+export const LOGO_EMBLEM = require('@/assets/images/logo-emblem.png');
+
+/** YUMS emblemasi (o'rgimchak) — qora yumaloq fonda */
+export function BrandMark({ size = 40, style }: { size?: number; style?: StyleProp<ViewStyle> }) {
+  return (
+    <View style={[{ width: size, height: size, borderRadius: size * 0.3, backgroundColor: '#000', overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,200,0,0.35)' }, style]}>
+      <Image source={LOGO_MARK} style={{ width: '100%', height: '100%' }} contentFit="cover" accessibilityLabel="YUMS" />
+    </View>
+  );
+}
+
+/** To'liq logo: emblema + YUMS yozuvi */
+export function BrandLogo({ width = 220, style }: { width?: number; style?: StyleProp<ViewStyle> }) {
+  return <Image source={LOGO_FULL} style={[{ width, height: width * 1.117 }, style as object]} contentFit="contain" accessibilityLabel="YUMS — O'rgimchak Taxi" />;
+}
+
 /** Ichki sahifalar uchun karkas: sarlavha + aylantiriladigan kontent */
 export function Screen({ title, subtitle, children, right, scroll = true, footer, back = true }: {
   title: string; subtitle?: string; children: ReactNode; right?: ReactNode; scroll?: boolean; footer?: ReactNode; back?: boolean;
@@ -225,7 +267,7 @@ export function Field({ label, hint, error, style, inputStyle, prefix, ...rest }
         <TextInput
           placeholderTextColor={c.faint}
           {...rest}
-          style={[{ flex: 1, minWidth: 0, color: c.text, fontSize: 15.5, fontWeight: '600', minHeight: rest.multiline ? 84 : 48, textAlignVertical: rest.multiline ? 'top' : 'center' }, inputStyle]}
+          style={[{ flex: 1, minWidth: 0, outlineWidth: 0, color: c.text, fontSize: 15.5, fontWeight: '600', minHeight: rest.multiline ? 84 : 48, textAlignVertical: rest.multiline ? 'top' : 'center' }, inputStyle]}
         />
       </View>
       {error ? <Txt v="tiny" color={c.danger} style={{ marginLeft: 2 }}>{error}</Txt> : hint ? <Txt v="tiny" faint style={{ marginLeft: 2 }}>{hint}</Txt> : null}
@@ -250,7 +292,7 @@ export function SearchBar({ value, onChangeText, placeholder, onPress, right, au
           placeholderTextColor={c.faint}
           autoFocus={autoFocus}
           returnKeyType="search"
-          style={{ flex: 1, minWidth: 0, color: c.text, fontSize: 15.5, fontWeight: '600', height: '100%' }}
+          style={{ flex: 1, minWidth: 0, outlineWidth: 0, color: c.text, fontSize: 15.5, fontWeight: '600', height: '100%' }}
         />
       )}
       {value && onChangeText ? (

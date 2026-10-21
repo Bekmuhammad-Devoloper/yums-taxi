@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChoosingSheet, DriverSheet, IdleSheet, OptionsModal, RatingModal, RideSheet, SearchingSheet } from '@/components/order-sheets';
 import TaxiMap, { type MapHandle } from '@/components/taxi-map';
-import { IconButton } from '@/components/ui';
+import { BrandMark, IconButton } from '@/components/ui';
 import { DEFAULT_CENTER, type LatLng, type Place } from '@/lib/data';
 import { addressOf } from '@/lib/geo';
 import { useStore } from '@/lib/store';
@@ -151,7 +151,7 @@ export default function Taxi() {
           <IconButton name="grid-outline" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         )}
         <View style={[styles.brand, { backgroundColor: c.surface }, shadow(c)]}>
-          <Text style={[styles.brandY, { backgroundColor: c.brand, color: c.brandText }]}>Y</Text>
+          <BrandMark size={34} style={{ borderRadius: 17 }} />
           <Text style={[styles.brandText, { color: c.text }]}>YUMS <Text style={{ color: '#E0A800' }}>Taxi</Text></Text>
         </View>
         {inTrip ? (
@@ -193,7 +193,6 @@ export default function Taxi() {
 const styles = StyleSheet.create({
   top: { position: 'absolute', left: 0, right: 0, top: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, paddingLeft: 6, paddingRight: 16, borderRadius: 23 },
-  brandY: { width: 34, height: 34, borderRadius: 17, textAlign: 'center', lineHeight: 34, fontWeight: '900', fontSize: 17, overflow: 'hidden' },
   brandText: { fontWeight: '900', fontSize: 17, letterSpacing: -0.3 },
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 16, paddingTop: 8 },
   grab: { width: 42, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 12 },

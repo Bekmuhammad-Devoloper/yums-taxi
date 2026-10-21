@@ -188,13 +188,13 @@ export type SecurityEvent = { id: string; at: string; event: string; device: str
 export type Section = { id: string; name: string; icon: IconName; color: string; soft: string; route: string; desc: TKey };
 
 export const SECTIONS: Section[] = [
-  { id: 'project', name: 'PROJECT', icon: 'rocket', color: '#2457F5', soft: '#E8EEFF', route: '/projects', desc: 'sec.project' },
-  { id: 'business', name: 'BUSINESS', icon: 'business', color: '#0E9F6E', soft: '#E3F6EE', route: '/business', desc: 'sec.business' },
-  { id: 'invest', name: 'INVEST', icon: 'trending-up', color: '#7A4DF0', soft: '#F0EAFF', route: '/invest', desc: 'sec.invest' },
-  { id: 'market', name: 'MARKET', icon: 'storefront', color: '#E5484D', soft: '#FDECEC', route: '/market', desc: 'sec.market' },
-  { id: 'technology', name: 'TECHNOLOGY', icon: 'code-slash', color: '#0891B2', soft: '#E0F5FA', route: '/tech', desc: 'sec.technology' },
-  { id: 'connect', name: 'CONNECT', icon: 'chatbubbles', color: '#D97706', soft: '#FEF3E2', route: '/connect', desc: 'sec.connect' },
-  { id: 'world', name: 'WORLD', icon: 'earth', color: '#0F1E3D', soft: '#E6E9F0', route: '/world', desc: 'sec.world' },
+  { id: 'project', name: 'PROJECT', icon: 'rocket-outline', color: '#2457F5', soft: '#E8EEFF', route: '/projects', desc: 'sec.project' },
+  { id: 'business', name: 'BUSINESS', icon: 'business-outline', color: '#0E9F6E', soft: '#E3F6EE', route: '/business', desc: 'sec.business' },
+  { id: 'invest', name: 'INVEST', icon: 'trending-up-outline', color: '#7A4DF0', soft: '#F0EAFF', route: '/invest', desc: 'sec.invest' },
+  { id: 'market', name: 'MARKET', icon: 'storefront-outline', color: '#E5484D', soft: '#FDECEC', route: '/market', desc: 'sec.market' },
+  { id: 'technology', name: 'TECHNOLOGY', icon: 'code-slash-outline', color: '#0891B2', soft: '#E0F5FA', route: '/tech', desc: 'sec.technology' },
+  { id: 'connect', name: 'CONNECT', icon: 'chatbubbles-outline', color: '#D97706', soft: '#FEF3E2', route: '/connect', desc: 'sec.connect' },
+  { id: 'world', name: 'WORLD', icon: 'earth-outline', color: '#4F6BD8', soft: '#E6E9F0', route: '/world', desc: 'sec.world' },
 ];
 
 export type Sector = { id: string; name: string; ru: string; en: string; icon: IconName; color: string; examples: string };

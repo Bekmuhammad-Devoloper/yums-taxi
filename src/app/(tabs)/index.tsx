@@ -1,11 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AdBanner, CompanyCard, ProjectCard, ProjectTile, SpecialistMini } from '@/components/platform-ui';
-import { Avatar, Button, IconButton, Row, SearchBar, SectionHeader, Txt } from '@/components/ui';
+import { Avatar, BrandMark, Button, LOGO_EMBLEM, IconButton, IconTile, Row, SearchBar, SectionHeader, Txt } from '@/components/ui';
 import { SECTIONS, SECTORS } from '@/lib/platform-data';
 import { usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
@@ -30,8 +31,8 @@ export default function Home() {
         <View style={{ flex: 1 }}>
           <Txt v="small" muted>{t('home.hello')}, {firstName} 👋</Txt>
           <Row gap={6}>
-            <View style={[styles.logo, { backgroundColor: c.brand }]}><Text style={[styles.logoY, { color: c.brandText }]}>Y</Text></View>
-            <Txt v="h2">YUMS</Txt>
+            <BrandMark size={24} />
+            <Txt v="h2" style={{ letterSpacing: 0.5 }}>YUMS</Txt>
           </Row>
         </View>
         <IconButton name="notifications-outline" badge={p.unreadNotices > 0} onPress={() => router.push('/notifications')} />
@@ -43,8 +44,8 @@ export default function Home() {
 
       {/* Asosiy banner */}
       <View style={styles.pad}>
-        <LinearGradient colors={['#0F1E3D', '#1E3A8A']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
-          <Ionicons name="earth" size={150} color="rgba(255,255,255,0.07)" style={{ position: 'absolute', right: -30, top: -20 }} />
+        <LinearGradient colors={['#000000', '#120F07', '#2A2108']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.hero, { borderColor: 'rgba(255,200,0,0.22)' }]}>
+          <Image source={LOGO_EMBLEM} style={styles.heroMark} contentFit="contain" />
           <Text style={styles.heroKicker}>{t('home.kicker')}</Text>
           <Text style={styles.heroTitle}>{t('home.tagline')}</Text>
           <Row gap={18} style={{ marginTop: 14 }}>
@@ -66,15 +67,15 @@ export default function Home() {
             <Pressable
               key={s.id}
               onPress={() => { haptic.tap(); router.push(s.route as never); }}
-              style={({ pressed }) => [styles.section, { backgroundColor: c.surface, transform: [{ scale: pressed ? 0.96 : 1 }] }, shadow(c, 0.4)]}>
-              <View style={[styles.sectionIco, { backgroundColor: s.color }]}><Ionicons name={s.icon} size={22} color="#fff" /></View>
+              style={({ pressed }) => [styles.section, { backgroundColor: c.surface, borderColor: c.line, transform: [{ scale: pressed ? 0.96 : 1 }] }, shadow(c, 0.15)]}>
+              <IconTile name={s.icon} color={s.color} size={46} />
               <Text style={[styles.sectionName, { color: c.text }]} numberOfLines={1}>{s.name}</Text>
             </Pressable>
           ))}
           <Pressable
             onPress={() => { haptic.tap(); router.push('/taxi'); }}
-            style={({ pressed }) => [styles.section, { backgroundColor: c.surface, transform: [{ scale: pressed ? 0.96 : 1 }] }, shadow(c, 0.4)]}>
-            <View style={[styles.sectionIco, { backgroundColor: c.brand }]}><Ionicons name="car-sport" size={22} color={c.brandText} /></View>
+            style={({ pressed }) => [styles.section, { backgroundColor: c.surface, borderColor: c.line, transform: [{ scale: pressed ? 0.96 : 1 }] }, shadow(c, 0.15)]}>
+            <IconTile name="car-sport-outline" color={c.brandDeep} size={46} />
             <Text style={[styles.sectionName, { color: c.text }]}>TAXI</Text>
           </Pressable>
         </View>
@@ -171,17 +172,15 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   pad: { paddingHorizontal: 16 },
-  logo: { width: 22, height: 22, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
-  logoY: { fontWeight: '900', fontSize: 13 },
-  hero: { borderRadius: radius.xl, padding: 20, overflow: 'hidden' },
+  hero: { borderRadius: radius.xl, padding: 20, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth * 2 },
+  heroMark: { position: 'absolute', right: -36, bottom: -18, width: 200, height: 155, opacity: 0.32 },
   heroKicker: { color: '#FFC800', fontSize: 10.5, fontWeight: '900', letterSpacing: 1 },
-  heroTitle: { color: '#fff', fontSize: 23, fontWeight: '900', letterSpacing: -0.5, marginTop: 6, lineHeight: 28, maxWidth: 280 },
+  heroTitle: { color: '#fff', fontSize: 23, fontWeight: '900', letterSpacing: -0.5, marginTop: 6, lineHeight: 28, maxWidth: 250 },
   heroNum: { color: '#fff', fontSize: 20, fontWeight: '900' },
   heroLbl: { color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: '600' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  section: { width: '22.6%', flexGrow: 1, alignItems: 'center', gap: 8, paddingVertical: 14, borderRadius: radius.l },
-  sectionIco: { width: 44, height: 44, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
-  sectionName: { fontSize: 10.5, fontWeight: '900', letterSpacing: 0.3 },
+  section: { width: '22.6%', flexGrow: 1, alignItems: 'center', gap: 9, paddingVertical: 14, borderRadius: radius.l, borderWidth: StyleSheet.hairlineWidth },
+  sectionName: { fontSize: 10, fontWeight: '700', letterSpacing: 0.8 },
   taxi: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 18, borderRadius: radius.l, overflow: 'hidden' },
   taxiKicker: { color: '#0E1525', opacity: 0.6, fontSize: 10.5, fontWeight: '900', letterSpacing: 1 },
   taxiTitle: { color: '#0E1525', fontSize: 20, fontWeight: '900', letterSpacing: -0.3 },

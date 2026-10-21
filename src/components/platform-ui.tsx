@@ -9,7 +9,7 @@ import { haptic, useStore } from '@/lib/store';
 import { radius, shadow } from '@/lib/theme';
 
 import { toast } from './toast';
-import { Avatar, Badge, Button, Card, Row, Sheet, Txt, Verified, type IconName } from './ui';
+import { Avatar, Badge, Button, Card, IconTile, Row, Sheet, Txt, Verified, type IconName } from './ui';
 
 /* ---------- Kichik bo'laklar ---------- */
 
@@ -24,11 +24,7 @@ export function Logo({ name, color, size = 48 }: { name: string; color: string; 
 
 export function SectorIcon({ id, size = 44 }: { id: string; size?: number }) {
   const s = sectorOf(id);
-  return (
-    <View style={{ width: size, height: size, borderRadius: size / 3, backgroundColor: s.color + '1F', alignItems: 'center', justifyContent: 'center' }}>
-      <Ionicons name={s.icon} size={size * 0.5} color={s.color} />
-    </View>
-  );
+  return <IconTile name={s.icon} color={s.color} size={size} />;
 }
 
 export function StatusBadge({ status }: { status: ListingStatus }) {
