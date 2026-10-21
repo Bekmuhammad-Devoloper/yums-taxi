@@ -1,4 +1,5 @@
 import * as Location from 'expo-location';
+import { Platform } from 'react-native';
 
 import { PLACES, type LatLng, type Place, type Tariff } from './data';
 
@@ -88,20 +89,59 @@ export function nearestPlace(p: LatLng): Place {
   return PLACES.reduce((best, x) => (distanceKm(p, x) < distanceKm(p, best) ? x : best), PLACES[0]);
 }
 
-export async function addressOf(p: LatLng): Promise<Place> {
+/** OpenStreetMap (Nominatim) teskari geokoder: koordinata → ko'cha, uy, mahalla */
+const geoCache = new Map<string, Place>();
+async function osmAddress(p: LatLng): Promise<Place | null> {
+  const key = `${p.latitude.toFixed(4)},${p.longitude.toFixed(4)}`;
+  const hit = geoCache.get(key);
+  if (hit) return { ...hit, latitude: p.latitude, longitude: p.longitude };
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 6000);
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${p.latitude}&lon=${p.longitude}&zoom=18&addressdetails=1&accept-language=uz,ru,en`;
+    const res = await fetch(url, { signal: ctrl.signal, headers: Platform.OS === 'web' ? { Accept: 'application/json' } : { Accept: 'application/json', 'User-Agent': 'YUMS-Taxi/1.0' } });
+    if (!res.ok) return null;
+    const j = await res.json();
+    const a = j?.address ?? {};
+    const road = a.road ?? a.pedestrian ?? a.footway ?? a.residential ?? a.street;
+    const street = [road, a.house_number].filter(Boolean).join(', ');
+    const poi = typeof j?.name === 'string' && j.name && j.name !== road ? j.name : '';
+    const area = a.neighbourhood ?? a.quarter ?? a.suburb ?? a.city_district;
+    const title = poi || street || area || '';
+    if (!title) return null;
+    const subtitle = [poi ? street : area, a.city ?? a.town ?? a.village ?? a.state].filter(Boolean).join(', ');
+    const place: Place = { ...p, title, subtitle: subtitle || undefined };
+    geoCache.set(key, place);
+    return place;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function deviceAddress(p: LatLng): Promise<Place | null> {
   try {
     const [r] = await Location.reverseGeocodeAsync(p);
-    if (r) {
-      const street = [r.street, r.streetNumber].filter(Boolean).join(', ');
-      const title = street || r.name || r.district || '';
-      if (title) return { ...p, title, subtitle: [r.district, r.city].filter(Boolean).join(', ') || 'Toshkent' };
-    }
+    if (!r) return null;
+    const street = [r.street, r.streetNumber].filter(Boolean).join(', ');
+    const title = street || r.name || r.district || '';
+    return title ? { ...p, title, subtitle: [r.district, r.city].filter(Boolean).join(', ') || undefined } : null;
   } catch {
-    // geokoder mavjud emas — eng yaqin joyni ko'rsatamiz
+    return null;
   }
+}
+
+/** Manzil: qurilma geokoderi (iOS/Android) → OpenStreetMap → eng yaqin mashhur joy */
+export async function addressOf(p: LatLng): Promise<Place> {
+  const found = Platform.OS === 'web' ? await osmAddress(p) : (await deviceAddress(p)) ?? (await osmAddress(p));
+  if (found) return found;
+  // Manzil xizmati javob bermadi — eng yaqin mashhur joyga nisbatan ko'rsatamiz
   const n = nearestPlace(p);
-  const near = distanceKm(p, n) < 0.25;
-  return { ...p, title: near ? n.title : `${n.title} yaqinida`, subtitle: n.subtitle };
+  const km = distanceKm(p, n);
+  if (km < 0.25) return { ...p, title: n.title, subtitle: n.subtitle };
+  if (km < 1.2) return { ...p, title: `${n.title} yaqinida`, subtitle: `${Math.round(km * 1000)} m · ${n.subtitle ?? 'Toshkent'}` };
+  return { ...p, title: 'Xaritadagi nuqta', subtitle: `${n.title}dan ${km.toFixed(1)} km` };
 }
 
 export function priceFor(t: Tariff, km: number, min: number, surge = 1) {

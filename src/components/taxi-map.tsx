@@ -34,6 +34,8 @@ export type TaxiMapProps = {
   onCenterChange?: (p: LatLng) => void;
   onDragStart?: () => void;
   locationGranted: boolean;
+  /** Foydalanuvchining aniq joylashuvi (veb xaritada ko'k nuqta va aniqlik doirasi) */
+  userPos?: (LatLng & { accuracy?: number }) | null;
 };
 
 const DELTA = { latitudeDelta: 0.012, longitudeDelta: 0.012 };

@@ -9,7 +9,8 @@ import { ChoosingSheet, DriverSheet, IdleSheet, OptionsModal, RatingModal, RideS
 import TaxiMap, { type MapHandle } from '@/components/taxi-map';
 import { BrandMark, IconButton } from '@/components/ui';
 import { DEFAULT_CENTER, type LatLng, type Place } from '@/lib/data';
-import { addressOf } from '@/lib/geo';
+import { addressOf, distanceKm } from '@/lib/geo';
+import { trackPrecise, type Fix } from '@/lib/locate';
 import { useStore } from '@/lib/store';
 import { F, shadow } from '@/lib/theme';
 
@@ -20,13 +21,15 @@ export default function Taxi() {
   const map = useRef<MapHandle>(null);
   const [sheetH, setSheetH] = useState(320);
   const [granted, setGranted] = useState(false);
-  const [userPos, setUserPos] = useState<LatLng | null>(null);
+  const [userPos, setUserPos] = useState<Fix | null>(null);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [locating, setLocating] = useState(false);
   const [lift] = useState(() => new Animated.Value(0));
   const fromDrag = useRef<Place | null>(null);
   const skipRegion = useRef(false);
   const geoReq = useRef(0);
+  const tracker = useRef<(() => void) | null>(null);
+  const userMoved = useRef(false);
 
   const idle = order.phase === 'idle';
   const topPad = insets.top + 70;
@@ -40,17 +43,36 @@ export default function Taxi() {
       if (perm.status !== 'granted') throw new Error('denied');
       setLocating(true);
       setGranted(true);
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const p = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
-      setUserPos(p);
-      if (recenter) map.current?.center(p);
-      if (!order.pickup || recenter) s.setPickup(await addressOf(p));
+      userMoved.current = false;
+      tracker.current?.();
+      // GPS bir necha soniya kuzatiladi: birinchi nuqta tez ko'rsatiladi, keyin aniqlashib boradi
+      let shown: LatLng | null = null;
+      tracker.current = trackPrecise(
+        fix => {
+          setUserPos(fix);
+          setLocating(false);
+          if (!recenter || userMoved.current) return;
+          if (shown && distanceKm(shown, fix) < 0.015) return; // 15 m dan kam farq — qayta surmaymiz
+          shown = fix;
+          skipRegion.current = true;
+          map.current?.center(fix);
+          const req = ++geoReq.current;
+          addressOf(fix).then(place => {
+            if (req !== geoReq.current || userMoved.current) return;
+            fromDrag.current = place;
+            s.setPickup(place);
+          });
+        },
+        () => setLocating(false),
+      );
     } catch {
       // ruxsat berilmadi — standart nuqta yuqorida qo'yilgan
-    } finally {
       setLocating(false);
     }
   };
+
+  // Ekrandan chiqilganda GPS kuzatuvi to'xtatiladi
+  useEffect(() => () => tracker.current?.(), []);
 
   useEffect(() => {
     if (!user) return;
@@ -97,6 +119,7 @@ export default function Taxi() {
   };
 
   const onDragStart = () => {
+    userMoved.current = true;
     if (idle) Animated.spring(lift, { toValue: 1, useNativeDriver: true, friction: 6 }).start();
   };
 
@@ -131,6 +154,7 @@ export default function Taxi() {
         onCenterChange={onCenterChange}
         onDragStart={onDragStart}
         locationGranted={granted}
+        userPos={userPos}
       />
 
       {/* Markaziy pin — xaritani surib olish nuqtasini tanlash */}

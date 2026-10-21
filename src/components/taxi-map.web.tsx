@@ -187,6 +187,8 @@ const CSS = `
 .ym-dark .leaflet-control-attribution{background:rgba(20,24,31,.72);color:#8b95a7}
 .ym-map .leaflet-control-attribution a{color:inherit}
 .ym-icon{background:none;border:none}
+.ym-me{width:18px;height:18px;border-radius:50%;background:#2F7BFF;border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.35);box-sizing:border-box;position:relative}
+.ym-me:after{content:"";position:absolute;inset:-9px;border-radius:50%;background:rgba(47,123,255,.25);animation:ym-pulse 2s ease-out infinite}
 .ym-pick{width:22px;height:22px;border-radius:50%;background:#0F1E3D;border:4px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.3);box-sizing:border-box;position:relative}
 .ym-radar:before{content:"";position:absolute;left:50%;top:50%;width:220px;height:220px;margin:-110px 0 0 -110px;border-radius:50%;background:radial-gradient(circle,rgba(255,200,0,.0) 0,rgba(255,200,0,.28) 60%,rgba(255,200,0,0) 70%);animation:ym-radar 2.2s ease-out infinite;pointer-events:none}
 @keyframes ym-radar{from{transform:scale(.15);opacity:1}to{transform:scale(1);opacity:0}}
@@ -256,11 +258,11 @@ function drawIn(line: L.Polyline) {
 /* ---------- Xarita ---------- */
 
 export default function TaxiMap(props: TaxiMapProps) {
-  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching = false, bottomPad, topPad, overlayBottom = 0, onCenterChange, onDragStart } = props;
+  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching = false, bottomPad, topPad, overlayBottom = 0, onCenterChange, onDragStart, userPos } = props;
   const { dark } = useStore();
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
-  const layers = useRef<{ pickup?: L.Marker; dest?: L.Marker; driver?: L.Marker; route?: L.LayerGroup; approach?: L.Polyline; nearby: L.Marker[] }>({ nearby: [] });
+  const layers = useRef<{ pickup?: L.Marker; dest?: L.Marker; driver?: L.Marker; route?: L.LayerGroup; approach?: L.Polyline; nearby: L.Marker[]; me?: L.Marker; meAcc?: L.Circle }>({ nearby: [] });
   const cb = useRef({ onCenterChange, onDragStart });
   const pads = useRef({ topPad, bottomPad });
   const [offline, setOffline] = useState(false);
@@ -338,6 +340,22 @@ export default function TaxiMap(props: TaxiMapProps) {
     const c = map.current?.attributionControl?.getContainer()?.parentElement;
     if (c) c.style.bottom = `${overlayBottom}px`;
   }, [overlayBottom]);
+
+  // Foydalanuvchining joyi: ko'k nuqta + GPS aniqligi doirasi
+  useEffect(() => {
+    const m = map.current, l = layers.current;
+    if (!m) return;
+    if (!userPos) { l.me?.remove(); l.meAcc?.remove(); l.me = l.meAcc = undefined; return; }
+    const at = ll(userPos);
+    const radius = Math.min(userPos.accuracy ?? 0, 1500);
+    if (!l.me) {
+      l.meAcc = L.circle(at, { radius, color: '#2F7BFF', weight: 1, opacity: 0.35, fillColor: '#2F7BFF', fillOpacity: 0.1, interactive: false }).addTo(m);
+      l.me = L.marker(at, { icon: L.divIcon({ className: 'ym-icon', html: '<div class="ym-me"></div>', iconSize: [18, 18], iconAnchor: [9, 9] }), interactive: false, keyboard: false, zIndexOffset: 400 }).addTo(m);
+    } else {
+      l.me.setLatLng(at);
+      l.meAcc?.setLatLng(at).setRadius(radius);
+    }
+  }, [userPos]);
 
   // Olish nuqtasi
   useEffect(() => {
