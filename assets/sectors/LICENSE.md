@@ -1,6 +1,9 @@
-Sector icons are from Microsoft Fluent Emoji (3D style), distributed via
-@lobehub/fluent-emoji-3d. Licensed under the MIT License.
-https://github.com/microsoft/fluentui-emoji
+Sector icons are from Microsoft Fluent UI System Icons (Color style), distributed via
+@fluentui/svg-icons. Licensed under the MIT License.
+https://github.com/microsoft/fluentui-system-icons
+
+transport, agro, health, energy and logistics icons are original artwork drawn for
+YUMS in the same style.
 
 Copyright (c) Microsoft Corporation.
 
