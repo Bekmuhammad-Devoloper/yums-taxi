@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { Text, View } from 'react-native';
 
 import { toast } from '@/components/toast';
-import { Avatar, Card, Divider, ListItem, Row, Screen, Txt } from '@/components/ui';
+import { Avatar, Card, DEFAULT_AVATAR, Divider, ListItem, Row, Screen, Txt } from '@/components/ui';
 import { som } from '@/lib/geo';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
@@ -14,7 +14,7 @@ export default function Menu() {
     <Screen title="YUMS Taxi" subtitle="Safarlar, to'lovlar va sozlamalar">
       <Card>
         <Row>
-          <Avatar name={user?.name ?? '?'} size={60} />
+          <Avatar name={user?.name ?? '?'} size={60} uri={user?.avatar} fallback={DEFAULT_AVATAR} />
           <View style={{ flex: 1 }}>
             <Txt v="h2">{user?.name}</Txt>
             <Txt v="small" muted>{user?.phone}</Txt>

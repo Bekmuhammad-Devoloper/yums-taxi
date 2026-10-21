@@ -7,7 +7,7 @@ import { haptic, useStore } from '@/lib/store';
 
 import { Logo } from './platform-ui';
 import { toast } from './toast';
-import { Avatar, ListItem, Sheet } from './ui';
+import { Avatar, DEFAULT_AVATAR, ListItem, Sheet } from './ui';
 
 /** Profil rasmi: bosilganda galereya / kamera / o'chirish tanlovi */
 export function AvatarEditor({ size = 64 }: { size?: number }) {
@@ -30,7 +30,7 @@ export function AvatarEditor({ size = 64 }: { size?: number }) {
   return (
     <>
       <Pressable onPress={() => { haptic.tap(); setOpen(true); }} accessibilityRole="button" accessibilityLabel="Profil rasmini o'zgartirish" style={{ width: size, height: size }}>
-        {user.avatar || !company ? <Avatar name={user.name} size={size} uri={user.avatar} /> : <Logo name={company} color={c.ok} size={size} />}
+        {user.avatar || !company ? <Avatar name={user.name} size={size} uri={user.avatar} fallback={DEFAULT_AVATAR} /> : <Logo name={company} color={c.ok} size={size} />}
         {busy && (
           <View style={[StyleSheet.absoluteFill, styles.busy, { borderRadius: size / 2.6 }]}>
             <ActivityIndicator color="#fff" />

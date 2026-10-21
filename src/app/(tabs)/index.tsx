@@ -7,7 +7,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AdBanner, CompanyCard, SectionArt, SectorGlyph, ProjectCard, ProjectTile, SpecialistMini } from '@/components/platform-ui';
-import { Avatar, BrandMark, Button, IconButton, IconTile, LOGO_EMBLEM, Row, SearchBar, SectionHeader, Txt } from '@/components/ui';
+import { Avatar, BrandMark, DEFAULT_AVATAR, Button, IconButton, IconTile, LOGO_EMBLEM, Row, SearchBar, SectionHeader, Txt } from '@/components/ui';
 import { TAXI_CARD } from '@/lib/covers';
 import { SECTIONS, SECTORS } from '@/lib/platform-data';
 import { usePlatform } from '@/lib/platform';
@@ -40,7 +40,7 @@ export default function Home() {
           </View>
           <IconButton name="notifications-outline" badge={p.unreadNotices > 0} size={44} onPress={() => router.push('/notifications')} />
           <Pressable onPress={() => router.push('/profile')} hitSlop={6} accessibilityLabel={t('tab.profile')}>
-            <Avatar name={user?.name ?? '?'} size={44} uri={user?.avatar} />
+            <Avatar name={user?.name ?? '?'} size={44} uri={user?.avatar} fallback={DEFAULT_AVATAR} />
           </Pressable>
         </Row>
         <SearchBar placeholder={t('home.search')} onPress={() => router.push('/world')} right={<Ionicons name="options-outline" size={20} color={c.muted} />} />
