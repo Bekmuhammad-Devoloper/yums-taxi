@@ -3,14 +3,15 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Logo, PickerSheet, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { Avatar, BrandLogo, Button, Field, Flag, IconTile, Row, Txt } from '@/components/ui';
+import { Avatar, BrandLogo, BrandMark, Button, Field, Flag, IconTile, Row, Txt } from '@/components/ui';
 import { COUNTRIES } from '@/lib/platform-data';
 import { countryOf, usePlatform } from '@/lib/platform';
+import { checkPinfl, checkStir, companyMatches, DEMO_REGISTRY, directorMatches, lookupCompany, type LookupResult } from '@/lib/registry';
 import { haptic, useStore, type AccountKind, type User } from '@/lib/store';
 import { F } from '@/lib/theme';
 
@@ -84,6 +85,10 @@ export default function Login() {
   const [name, setName] = useState('');
   const [company, setCompany] = useState('');
   const [country, setCountry] = useState('UZ');
+  const [pinfl, setPinfl] = useState('');
+  const [stir, setStir] = useState('');
+  const [lookup, setLookup] = useState<{ state: 'idle' | 'loading' } | { state: 'done'; result: LookupResult }>({ state: 'idle' });
+  const lookupReq = useRef(0);
   const [timer, setTimer] = useState(0);
   const [phoneFocus, setPhoneFocus] = useState(false);
   const [picker, setPicker] = useState<'cc' | 'country' | null>(null);
@@ -161,11 +166,33 @@ export default function Login() {
     router.replace('/');
   };
 
-  const profileOk = name.trim().length > 1 && (kind === 'person' || company.trim().length > 1);
+  // STIR / JShShIR: O'zbekiston uchun majburiy; kompaniya reyestr bilan solishtiriladi
+  const local = country === 'UZ';
+  const pin = checkPinfl(pinfl);
+  const pinOk = !local || !pin.error;
+  const stirErr = stir.length === 9 ? checkStir(stir) : null;
+  const rec = lookup.state === 'done' && lookup.result.ok ? lookup.result.record : null;
+  const active = !!rec && rec.status === 'active';
+  const nameOk = !!rec && companyMatches(company, rec);
+  const dirOk = !!rec && directorMatches(name, rec);
+  const companyOk = kind === 'person' || (local ? active && nameOk && dirOk : company.trim().length > 1);
+  const profileOk = name.trim().length > 1 && pinOk && companyOk;
+
+  const onStir = (v: string) => {
+    const d = v.replace(/\D/g, '').slice(0, 9);
+    setStir(d);
+    const req = ++lookupReq.current;
+    if (d.length < 9 || checkStir(d)) { setLookup({ state: 'idle' }); return; }
+    setLookup({ state: 'loading' });
+    lookupCompany(d).then(result => { if (req === lookupReq.current) setLookup({ state: 'done', result }); });
+  };
+
   const finish = () => {
     login({
       name: name.trim(), kind, company: kind === 'company' ? company.trim() : undefined, country,
       phone: method === 'phone' ? target : '', email: method === 'email' ? target : undefined,
+      pinfl: local ? pinfl : undefined, stir: kind === 'company' && local ? stir : undefined,
+      registryVerified: kind === 'company' && local && active && nameOk && dirOk,
     });
     logEvent(`Ro'yxatdan o'tish (${method === 'phone' ? 'SMS kod' : 'email kod'})`);
     router.replace('/');
@@ -183,24 +210,31 @@ export default function Login() {
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" bounces={false}>
-        <LinearGradient colors={['#000000', '#0B0904', '#16120A']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={[styles.hero, { paddingTop: insets.top + 12 }]}>
-          <Image source={GLOW} pointerEvents="none" style={[styles.glow, { top: insets.top - (big ? 70 : 110) }]} contentFit="contain" />
+        <LinearGradient colors={['#000000', '#0B0904', '#16120A']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={[big ? styles.hero : styles.heroCompact, { paddingTop: insets.top + 12 }]}>
+          <Image source={GLOW} pointerEvents="none" style={[styles.glow, { top: insets.top - (big ? 70 : 250) }]} contentFit="contain" />
           {canBack && (
             <Pressable onPress={back} style={[styles.back, { top: insets.top + 12 }]} hitSlop={10} accessibilityLabel="Orqaga">
               <Ionicons name="chevron-back" size={21} color="#fff" />
             </Pressable>
           )}
-          <BrandLogo width={big ? 168 : 112} style={{ alignSelf: 'center', marginTop: big ? 20 : 6 }} />
-          <Text style={styles.tagTitle}>Xalqaro raqamli loyihalar platformasi</Text>
-          {big && <Text style={styles.tagSub}>Loyihalar, hamkorlar va investorlar — bir joyda</Text>}
-          {big && (
-            <View style={styles.pills}>
-              {PILLS.map(x => (
-                <View key={x.label} style={styles.pill}>
-                  <Ionicons name={x.icon} size={14} color="#F5C542" />
-                  <Text style={styles.pillText}>{x.label}</Text>
-                </View>
-              ))}
+          {big ? (
+            <>
+              <BrandLogo width={168} style={{ alignSelf: 'center', marginTop: 20 }} />
+              <Text style={styles.tagTitle}>Xalqaro raqamli loyihalar platformasi</Text>
+              <Text style={styles.tagSub}>Loyihalar, hamkorlar va investorlar — bir joyda</Text>
+              <View style={styles.pills}>
+                {PILLS.map(x => (
+                  <View key={x.label} style={styles.pill}>
+                    <Ionicons name={x.icon} size={14} color="#F5C542" />
+                    <Text style={styles.pillText}>{x.label}</Text>
+                  </View>
+                ))}
+              </View>
+            </>
+          ) : (
+            <View style={styles.compactBrand}>
+              <BrandMark size={30} style={{ borderRadius: 15 }} />
+              <Text style={styles.compactName}>YUMS</Text>
             </View>
           )}
         </LinearGradient>
@@ -318,16 +352,16 @@ export default function Login() {
           {/* ---------- SMS kod ---------- */}
           {step === 'code' && (
             <>
-              <View style={{ gap: 6 }}>
-                <Txt v="h1">{method === 'phone' ? 'SMS kodni kiriting' : 'Emaildagi kodni kiriting'}</Txt>
-                <Txt muted>{CODE_LEN} xonali kodni yubordik:</Txt>
-                <Row gap={8} style={{ flexWrap: 'wrap' }}>
-                  <Txt style={{ fontFamily: F.bold }}>{target}</Txt>
-                  <Pressable onPress={() => setStep('contact')} hitSlop={8} style={[styles.change, { backgroundColor: c.surface2 }]}>
-                    <Ionicons name="create-outline" size={13} color={c.text} />
-                    <Txt v="tiny">O'zgartirish</Txt>
-                  </Pressable>
-                </Row>
+              <View style={styles.codeHead}>
+                <View style={[styles.codeIcon, { backgroundColor: c.brandSoft }]}>
+                  <Ionicons name={method === 'phone' ? 'chatbubble-ellipses-outline' : 'mail-outline'} size={28} color={c.brandDeep} />
+                </View>
+                <Txt v="h1" style={{ textAlign: 'center' }}>{method === 'phone' ? 'SMS kodni kiriting' : 'Emaildagi kodni kiriting'}</Txt>
+                <Txt muted style={{ textAlign: 'center' }}>{CODE_LEN} xonali kod yuborildi</Txt>
+                <Txt v="h3" style={{ textAlign: 'center', fontVariant: ['tabular-nums'] }}>{target}</Txt>
+                <Pressable onPress={() => setStep('contact')} hitSlop={8}>
+                  <Txt v="small" color={c.accent} style={{ fontFamily: F.semi }}>{method === 'phone' ? "Raqamni o'zgartirish" : "Emailni o'zgartirish"}</Txt>
+                </Pressable>
               </View>
 
               <Animated.View style={{ transform: [{ translateX: shake }] }}>
@@ -338,7 +372,7 @@ export default function Login() {
                     return (
                       <View key={i} style={[styles.otp, {
                         backgroundColor: active ? c.surface : c.surface2,
-                        borderColor: codeError ? c.danger : active ? c.brand : filled ? c.surface3 : c.line,
+                        borderColor: codeError ? c.danger : active ? c.brand : filled ? c.surface3 : 'transparent',
                         opacity: locked ? 0.5 : 1,
                       }]}>
                         {filled
@@ -366,22 +400,19 @@ export default function Login() {
                 autoFocus
               />
 
-              {codeError ? (
-                <Row gap={6} style={{ justifyContent: 'center' }}>
-                  <Ionicons name="alert-circle" size={16} color={c.danger} />
-                  <Txt v="small" color={c.danger} style={{ fontFamily: F.semi }}>
-                    {locked ? "Urinishlar tugadi — yangi kod oling" : `Kod noto'g'ri. Yana ${MAX_ATTEMPTS - attempts} ta urinish qoldi`}
-                  </Txt>
-                </Row>
-              ) : null}
-
-              <View style={styles.resend}>
+              <View style={styles.status}>
+                {codeError ? (
+                  <Row gap={6} style={{ justifyContent: 'center' }}>
+                    <Ionicons name="alert-circle" size={16} color={c.danger} />
+                    <Txt v="small" color={c.danger} style={{ fontFamily: F.semi }}>
+                      {locked ? 'Urinishlar tugadi — yangi kod oling' : `Kod noto'g'ri. Yana ${MAX_ATTEMPTS - attempts} ta urinish qoldi`}
+                    </Txt>
+                  </Row>
+                ) : null}
                 {timer > 0 ? (
-                  <>
-                    <Ionicons name="time-outline" size={16} color={c.muted} />
-                    <Txt v="small" muted>Yangi kodni olish mumkin:</Txt>
-                    <Txt v="small" style={{ fontFamily: F.bold, fontVariant: ['tabular-nums'] }}>0:{String(timer).padStart(2, '0')}</Txt>
-                  </>
+                  <Txt v="small" muted style={{ textAlign: 'center' }}>
+                    Yangi kodni <Txt v="small" style={{ fontFamily: F.bold, fontVariant: ['tabular-nums'] }}>0:{String(timer).padStart(2, '0')}</Txt> dan keyin olish mumkin
+                  </Txt>
                 ) : (
                   <Pressable onPress={() => sendCode()} hitSlop={8} style={styles.resendBtn}>
                     <Ionicons name="refresh" size={16} color={c.accent} />
@@ -390,19 +421,21 @@ export default function Login() {
                 )}
               </View>
 
-              <View style={[styles.demoSms, { borderColor: c.line }]}>
-                <IconTile name="chatbox-ellipses-outline" color={c.accent} size={36} />
-                <View style={{ flex: 1 }}>
-                  <Txt v="tiny" faint numberOfLines={1}>Demo rejim · {method === 'phone' ? 'SMS' : 'email'} kodi</Txt>
-                  <Txt v="h3" style={{ letterSpacing: 2, fontVariant: ['tabular-nums'] }} testID="demo-code">{sent}</Txt>
-                </View>
+              <View style={[styles.demoPill, { backgroundColor: c.surface2 }]}>
+                <Ionicons name="flask-outline" size={15} color={c.muted} />
+                <Txt v="small" muted>Demo kod</Txt>
+                <Txt v="small" style={{ fontFamily: F.bold, letterSpacing: 1.5, fontVariant: ['tabular-nums'] }} testID="demo-code">{sent}</Txt>
                 {!locked && (
-                  <Pressable onPress={() => onCode(sent)} hitSlop={8} style={[styles.paste, { backgroundColor: c.surface2 }]}>
-                    <Txt v="small" style={{ fontFamily: F.bold }}>Qo'yish</Txt>
-                  </Pressable>
+                  <>
+                    <View style={[styles.demoDivider, { backgroundColor: c.line }]} />
+                    <Pressable onPress={() => onCode(sent)} hitSlop={8}>
+                      <Txt v="small" color={c.accent} style={{ fontFamily: F.bold }}>Qo'yish</Txt>
+                    </Pressable>
+                  </>
                 )}
               </View>
 
+              <View style={{ flex: 1 }} />
               <Row gap={8} style={{ justifyContent: 'center' }}>
                 <Ionicons name="shield-checkmark-outline" size={15} color={c.ok} />
                 <Txt v="tiny" faint>Kodni hech kimga aytmang — YUMS xodimlari uni so'ramaydi</Txt>
@@ -434,9 +467,100 @@ export default function Login() {
                   );
                 })}
               </View>
-              {kind === 'company' && <Field label="Kompaniya nomi" value={company} onChangeText={setCompany} placeholder="Masalan: Silk Road Logistics" />}
-              <Field label={kind === 'company' ? "Mas'ul shaxs" : 'Ismingiz'} value={name} onChangeText={setName} placeholder="Masalan: Aziz Karimov" autoCapitalize="words" textContentType="name" autoComplete="name" />
               <SelectField label="Mamlakat" value={k.name} left={<Flag code={k.code} size={22} />} placeholder="Mamlakat" onPress={() => setPicker('country')} />
+
+              {kind === 'company' && local && (
+                <>
+                  <Field
+                    label="Kompaniya STIRi"
+                    value={stir}
+                    onChangeText={onStir}
+                    placeholder="9 xonali raqam"
+                    keyboardType="number-pad"
+                    maxLength={9}
+                    error={stirErr ?? undefined}
+                    hint="Davlat reyestridan avtomatik tekshiriladi"
+                  />
+                  {lookup.state === 'loading' && (
+                    <Row gap={10} style={[styles.reg, { backgroundColor: c.surface2 }]}>
+                      <ActivityIndicator color={c.muted} />
+                      <Txt v="small" muted>Reyestrdan tekshirilmoqda…</Txt>
+                    </Row>
+                  )}
+                  {lookup.state === 'done' && (lookup.result.ok ? (
+                    <View style={[styles.reg, { backgroundColor: active ? c.okSoft : c.dangerSoft }]}>
+                      <Row gap={8}>
+                        <Ionicons name={active ? 'checkmark-circle' : 'close-circle'} size={18} color={active ? c.ok : c.danger} />
+                        <Txt v="small" color={active ? c.ok : c.danger} style={{ fontFamily: F.bold }}>
+                          {active ? 'Reyestrda topildi' : 'Kompaniya faoliyati tugatilgan'}
+                        </Txt>
+                      </Row>
+                      <Txt v="h3">{lookup.result.record.name}</Txt>
+                      <Txt v="small" muted>Rahbar: {lookup.result.record.director}</Txt>
+                    </View>
+                  ) : (
+                    <Row gap={8} style={[styles.reg, { backgroundColor: c.dangerSoft }]}>
+                      <Ionicons name={lookup.result.reason === 'network' ? 'cloud-offline-outline' : 'search-outline'} size={18} color={c.danger} />
+                      <Txt v="small" color={c.danger} style={{ flex: 1, fontFamily: F.semi }}>
+                        {lookup.result.reason === 'network' ? "Reyestr bilan bog'lanib bo'lmadi — keyinroq urinib ko'ring" : 'Bu STIR reyestrda topilmadi'}
+                      </Txt>
+                      {lookup.result.reason === 'network' && (
+                        <Pressable onPress={() => onStir(stir)} hitSlop={8}><Txt v="small" color={c.accent} style={{ fontFamily: F.bold }}>Qayta</Txt></Pressable>
+                      )}
+                    </Row>
+                  ))}
+                  {!process.env.EXPO_PUBLIC_REGISTRY_API && lookup.state !== 'done' && (
+                    <Pressable onPress={() => onStir(DEMO_REGISTRY[0].stir)} style={[styles.demoPill, { backgroundColor: c.surface2, alignSelf: 'flex-start' }]}>
+                      <Ionicons name="flask-outline" size={15} color={c.muted} />
+                      <Txt v="small" muted>Demo STIR</Txt>
+                      <Txt v="small" style={{ fontFamily: F.bold }}>{DEMO_REGISTRY[0].stir}</Txt>
+                      <View style={[styles.demoDivider, { backgroundColor: c.line }]} />
+                      <Txt v="small" color={c.accent} style={{ fontFamily: F.bold }}>Qo'yish</Txt>
+                    </Pressable>
+                  )}
+                </>
+              )}
+
+              {kind === 'company' && (
+                <View style={{ gap: 6 }}>
+                  <Field label="Kompaniya nomi" value={company} onChangeText={setCompany} placeholder="Masalan: YUMS Demo" />
+                  {rec && company.trim().length > 1 && (
+                    <Match ok={nameOk} yes="Reyestrdagi nom bilan mos" no={`Reyestrda: ${rec.name}`} />
+                  )}
+                </View>
+              )}
+              <View style={{ gap: 6 }}>
+                <Field
+                  label={kind === 'company' ? "Mas'ul shaxs (rahbar) F.I.Sh." : 'Ism familiya'}
+                  value={name}
+                  onChangeText={setName}
+                  placeholder="Masalan: Karimov Aziz"
+                  autoCapitalize="words"
+                  textContentType="name"
+                  autoComplete="name"
+                />
+                {kind === 'company' && rec && name.trim().split(/\s+/).length >= 2 && (
+                  <Match ok={dirOk} yes="Kompaniya rahbari bilan mos" no="Mas'ul shaxs reyestrdagi rahbar bilan mos kelmadi" />
+                )}
+              </View>
+              {local && (
+                <Field
+                  label={kind === 'company' ? "Mas'ul shaxsning JShShIRi" : 'JShShIR'}
+                  value={pinfl}
+                  onChangeText={v => setPinfl(v.replace(/\D/g, '').slice(0, 14))}
+                  placeholder="14 xonali shaxsiy raqam"
+                  keyboardType="number-pad"
+                  maxLength={14}
+                  error={pinfl.length === 14 ? pin.error ?? undefined : undefined}
+                  hint={pinfl.length === 14 && !pin.error && pin.birth ? `Tug'ilgan sana: ${String(pin.birth.getDate()).padStart(2, '0')}.${String(pin.birth.getMonth() + 1).padStart(2, '0')}.${pin.birth.getFullYear()}` : "Pasport yoki ID kartadagi 14 xonali raqam"}
+                />
+              )}
+              {!local && kind === 'company' && (
+                <Row gap={8} style={[styles.reg, { backgroundColor: c.surface2 }]}>
+                  <Ionicons name="document-text-outline" size={18} color={c.muted} />
+                  <Txt v="small" muted style={{ flex: 1 }}>Xorijiy kompaniyalar ro'yxatdan o'tgach hujjatlar orqali tasdiqlanadi (Kabinet → Profilni tasdiqlash)</Txt>
+                </Row>
+              )}
               <View style={[styles.bonus, { backgroundColor: c.brandSoft }]}>
                 <IconTile name="gift-outline" color={c.brandDeep} size={44} />
                 <View style={{ flex: 1 }}>
@@ -459,6 +583,17 @@ export default function Login() {
   );
 }
 
+/** Reyestr bilan moslik belgisi */
+function Match({ ok, yes, no }: { ok: boolean; yes: string; no: string }) {
+  const { colors: c } = useStore();
+  return (
+    <Row gap={6} style={{ paddingHorizontal: 2 }}>
+      <Ionicons name={ok ? 'checkmark-circle' : 'close-circle'} size={15} color={ok ? c.ok : c.danger} />
+      <Txt v="tiny" color={ok ? c.ok : c.danger} style={{ flex: 1 }}>{ok ? yes : no}</Txt>
+    </Row>
+  );
+}
+
 const styles = StyleSheet.create({
   hero: { paddingHorizontal: 24, paddingBottom: 52, overflow: 'hidden' },
   glow: { position: 'absolute', alignSelf: 'center', width: 420, height: 420 },
@@ -468,6 +603,14 @@ const styles = StyleSheet.create({
   pills: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 20 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,255,255,0.12)' },
   pillText: { color: 'rgba(255,255,255,0.88)', fontSize: 12.5, fontFamily: F.semi },
+  heroCompact: { paddingHorizontal: 24, paddingBottom: 40, overflow: 'hidden' },
+  compactBrand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 42 },
+  compactName: { color: '#fff', fontFamily: F.brand, fontSize: 16, letterSpacing: 1.5 },
+  codeHead: { alignItems: 'center', gap: 6, paddingTop: 4 },
+  codeIcon: { width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  status: { alignItems: 'center', gap: 8, minHeight: 24 },
+  demoPill: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center', height: 38, paddingHorizontal: 14, borderRadius: 19 },
+  demoDivider: { width: StyleSheet.hairlineWidth * 2, height: 16 },
   card: { flex: 1, marginTop: -28, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, gap: 16 },
   accList: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 18, overflow: 'hidden' },
   accRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
@@ -481,18 +624,15 @@ const styles = StyleSheet.create({
   alt: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, height: 52, borderRadius: 16, borderWidth: 1 },
   legal: { textAlign: 'center', lineHeight: 16, paddingHorizontal: 8 },
   demo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, alignSelf: 'center' },
-  change: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 9 },
   otpRow: { flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 4 },
   otp: { flex: 1, maxWidth: 64, height: 64, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   caret: { width: 2, height: 26, borderRadius: 1 },
   otpDot: { width: 6, height: 6, borderRadius: 3, opacity: 0.5 },
   otpText: { fontSize: 26, fontFamily: F.display },
   hidden: { position: 'absolute', opacity: 0, width: 1, height: 1 },
-  resend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 24 },
   resendBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  demoSms: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, borderWidth: 1, borderStyle: 'dashed' },
-  paste: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10 },
   kind: { flex: 1, padding: 14, borderRadius: 18, borderWidth: 1.5, gap: 6 },
   radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  reg: { padding: 12, borderRadius: 14, gap: 4 },
   bonus: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18 },
 });

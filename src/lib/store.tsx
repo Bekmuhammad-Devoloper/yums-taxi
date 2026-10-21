@@ -25,6 +25,12 @@ export type User = {
   joinedAt?: string;
   /** Shu qurilmada oxirgi marta kirgan vaqti — «Hisobni tanlang» ro'yxati uchun */
   lastLoginAt?: string;
+  /** STIR (INN) — kompaniya yoki YaTT */
+  stir?: string;
+  /** JShShIR (PINFL) — shaxsiy identifikatsiya raqami */
+  pinfl?: string;
+  /** STIR, kompaniya nomi va rahbar reyestr bilan mos kelgan */
+  registryVerified?: boolean;
 };
 export type ThemePref = 'system' | 'light' | 'dark';
 export type Saved = { home?: Place; work?: Place };
