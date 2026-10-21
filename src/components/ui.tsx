@@ -133,9 +133,12 @@ export function Divider({ style }: { style?: StyleProp<ViewStyle> }) {
   return <View style={[{ height: StyleSheet.hairlineWidth * 2, backgroundColor: c.line }, style]} />;
 }
 
-export function Avatar({ name, size = 48, bg }: { name: string; size?: number; bg?: string }) {
+export function Avatar({ name, size = 48, bg, uri }: { name: string; size?: number; bg?: string; uri?: string }) {
   const c = useColors();
   const init = name.trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || '?';
+  if (uri) {
+    return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2.6, backgroundColor: c.surface2 }} contentFit="cover" accessibilityLabel={name} />;
+  }
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2.6, backgroundColor: bg ?? c.brand, alignItems: 'center', justifyContent: 'center' }}>
       <Text style={{ color: c.brandText, fontFamily: F.heavy, fontSize: size * 0.36 }}>{init}</Text>

@@ -39,7 +39,7 @@ export default function Home() {
           </View>
           <IconButton name="notifications-outline" badge={p.unreadNotices > 0} size={44} onPress={() => router.push('/notifications')} />
           <Pressable onPress={() => router.push('/profile')} hitSlop={6} accessibilityLabel={t('tab.profile')}>
-            <Avatar name={user?.name ?? '?'} size={44} />
+            <Avatar name={user?.name ?? '?'} size={44} uri={user?.avatar} />
           </Pressable>
         </Row>
         <SearchBar placeholder={t('home.search')} onPress={() => router.push('/world')} right={<Ionicons name="options-outline" size={20} color={c.muted} />} />

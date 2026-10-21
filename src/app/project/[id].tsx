@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -76,9 +77,14 @@ export default function ProjectScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}>
-        <View style={[styles.hero, { backgroundColor: sec.color, paddingTop: insets.top + 8 }]}>
+        <View style={[styles.hero, { backgroundColor: sec.color, paddingTop: insets.top + 8 }, pr.cover ? { minHeight: insets.top + 280, justifyContent: 'space-between' } : null]}>
           <LinearGradient colors={[sec.color, shade(sec.color, 0.6)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-          <Ionicons name={sec.icon} size={190} color="rgba(255,255,255,0.1)" style={{ position: 'absolute', right: -30, bottom: -40 }} />
+          {pr.cover ? (
+            <>
+              <Image source={{ uri: pr.cover }} style={StyleSheet.absoluteFill} contentFit="cover" />
+              <LinearGradient colors={['rgba(0,0,0,0.45)', 'rgba(0,0,0,0.1)', 'rgba(0,0,0,0.75)']} style={StyleSheet.absoluteFill} />
+            </>
+          ) : <Ionicons name={sec.icon} size={190} color="rgba(255,255,255,0.1)" style={{ position: 'absolute', right: -30, bottom: -40 }} />}
           <Row style={{ justifyContent: 'space-between' }}>
             <IconButton name="chevron-back" size={42} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
             <Row gap={8}>

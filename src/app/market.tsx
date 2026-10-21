@@ -1,8 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { MarketCard, StatusBadge } from '@/components/platform-ui';
+import { MarketCard, MarketVisual, StatusBadge } from '@/components/platform-ui';
 import { Card, Chip, EmptyState, IconButton, Row, Screen, Segmented, Txt } from '@/components/ui';
 import { MARKET_KINDS, type MarketKind } from '@/lib/platform-data';
 import { usd, usePlatform } from '@/lib/platform';
@@ -44,7 +44,7 @@ export default function Market() {
         p.myMarket.map(m => (
           <Card key={m.id} onPress={() => router.push({ pathname: '/market/[id]', params: { id: m.id } })}>
             <Row>
-              <Txt style={{ fontSize: 34 }}>{m.emoji}</Txt>
+              <View style={styles.thumb}><MarketVisual m={m} icon={22} /></View>
               <View style={{ flex: 1, gap: 4 }}>
                 <Txt v="h3" numberOfLines={1}>{m.title}</Txt>
                 <Txt v="small" muted>{usd(m.price)}{m.unit ? ` / ${m.unit}` : ''}</Txt>
@@ -59,3 +59,7 @@ export default function Market() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  thumb: { width: 64, height: 48, borderRadius: 12, overflow: 'hidden' },
+});

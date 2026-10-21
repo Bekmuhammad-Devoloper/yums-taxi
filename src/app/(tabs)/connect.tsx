@@ -14,13 +14,13 @@ import { F } from '@/lib/theme';
 
 type Tab = 'chats' | 'requests' | 'meetings';
 
-const preview = (cv: Conversation) => {
+const preview = (cv: Conversation): { text: string; icon?: 'calendar-outline' | 'attach' } => {
   const m = cv.messages[cv.messages.length - 1];
-  if (!m) return cv.subject ?? 'Yangi suhbat';
+  if (!m) return { text: cv.subject ?? 'Yangi suhbat' };
   const who = m.from === 'me' ? 'Siz: ' : '';
-  if (m.meetingId) return `${who}📅 Onlayn uchrashuv`;
-  if (m.file) return `${who}📎 ${m.file.name}`;
-  return who + m.text;
+  if (m.meetingId) return { text: `${who}Onlayn uchrashuv`, icon: 'calendar-outline' };
+  if (m.file) return { text: who + m.file.name, icon: 'attach' };
+  return { text: who + m.text };
 };
 
 export default function Connect() {
@@ -66,7 +66,15 @@ export default function Connect() {
                 {cv.peerVerified && <Verified size={14} />}
                 {cv.blocked && <Ionicons name="ban" size={14} color={c.danger} />}
               </Row>
-              <Txt v="small" muted={!cv.unread} numberOfLines={1} style={cv.unread ? { fontFamily: F.bold } : undefined}>{preview(cv)}</Txt>
+              {(() => {
+                const pv = preview(cv);
+                return (
+                  <Row gap={4}>
+                    {pv.icon && <Ionicons name={pv.icon} size={14} color={cv.unread ? c.text : c.muted} />}
+                    <Txt v="small" muted={!cv.unread} numberOfLines={1} style={[{ flexShrink: 1 }, !!cv.unread && { fontFamily: F.bold }]}>{pv.text}</Txt>
+                  </Row>
+                );
+              })()}
             </View>
             <View style={{ alignItems: 'flex-end', gap: 6 }}>
               <Txt v="tiny" faint>{cv.messages.length ? ago(cv.messages[cv.messages.length - 1].at) : ''}</Txt>
@@ -119,7 +127,7 @@ export default function Connect() {
               </Row>
             </Card>
           );
-        }) : <EmptyState icon="calendar-outline" title="Uchrashuvlar rejalashtirilmagan" sub="Suhbat ichida 📅 tugmasi orqali onlayn uchrashuv belgilang" />)}
+        }) : <EmptyState icon="calendar-outline" title="Uchrashuvlar rejalashtirilmagan" sub="Suhbat ichidagi kalendar tugmasi orqali onlayn uchrashuv belgilang" />)}
       </ScrollView>
     </View>
   );

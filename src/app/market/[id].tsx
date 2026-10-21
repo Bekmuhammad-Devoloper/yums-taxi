@@ -1,9 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Share, StyleSheet, Text, View } from 'react-native';
+import { Share, StyleSheet, View } from 'react-native';
 
-import { FavButton, KeyValue, Logo, Place, ReportSheet, StatusBadge } from '@/components/platform-ui';
+import { FavButton, KeyValue, Logo, MarketVisual, Place, ReportSheet, StatusBadge } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
 import { Badge, Button, Card, EmptyState, IconButton, Row, Screen, Txt, Verified } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
@@ -48,8 +48,8 @@ export default function MarketItemScreen() {
           <Button title="Buyurtma berish" icon="cart" style={{ flex: 1.4 }} onPress={() => start(peer, { request: true, subject: `Buyurtma: ${m.title}` })} />
         </Row>
       )}>
-      <View style={[styles.img, { backgroundColor: sec.color + '1A' }]}>
-        <Text style={{ fontSize: 96 }}>{m.emoji}</Text>
+      <View style={styles.img}>
+        <MarketVisual m={m} icon={72} />
         {!mine && <View style={[styles.fav, { backgroundColor: c.surface }]}><FavButton k={'market:' + m.id} /></View>}
       </View>
 
@@ -97,7 +97,7 @@ export default function MarketItemScreen() {
 }
 
 const styles = StyleSheet.create({
-  img: { height: 220, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },
+  img: { aspectRatio: 4 / 3, borderRadius: 24, overflow: 'hidden' },
   fav: { position: 'absolute', top: 12, right: 12, width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   note: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16 },
 });

@@ -40,7 +40,7 @@ export default function Favorites() {
           {TABS.map(x => <Chip key={x.id} label={count(x.id) ? `${x.label} · ${count(x.id)}` : x.label} icon={x.icon} active={tab === x.id} onPress={() => setTab(x.id)} />)}
         </ScrollView>
       </View>
-      {empty && <EmptyState icon="bookmark-outline" title="Hali hech narsa saqlanmagan" sub="Kartadagi 🔖 belgisini bosib, keyinroq ko'rish uchun saqlang" action="Qidiruvga o'tish" onAction={() => router.push('/world')} />}
+      {empty && <EmptyState icon="bookmark-outline" title="Hali hech narsa saqlanmagan" sub="Kartadagi saqlash belgisini bosib, keyinroq ko'rish uchun saqlang" action="Qidiruvga o'tish" onAction={() => router.push('/world')} />}
       {tab === 'project' && projects.map(x => <ProjectCard key={x.id} p={x} />)}
       {tab === 'company' && companies.map(x => <CompanyCard key={x.id} co={x} />)}
       {tab === 'specialist' && specialists.map(x => <SpecialistCard key={x.id} sp={x} />)}

@@ -4,8 +4,9 @@ import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Logo, Place, ProjectCard } from '@/components/platform-ui';
-import { Avatar, Badge, Button, Card, Divider, IconTile, ListItem, Row, SectionHeader, Stat, Txt } from '@/components/ui';
+import { AvatarEditor } from '@/components/avatar-editor';
+import { Place, ProjectCard } from '@/components/platform-ui';
+import { Badge, Button, Card, Divider, IconTile, ListItem, Row, SectionHeader, Stat, Txt } from '@/components/ui';
 import { PLANS } from '@/lib/platform-data';
 import { countryOf, short, usePlatform } from '@/lib/platform';
 import { useStore } from '@/lib/store';
@@ -41,7 +42,7 @@ export default function Profile() {
 
       <Card style={{ gap: 14 }}>
         <Row>
-          {company ? <Logo name={displayName} color={c.ok} size={64} /> : <Avatar name={user.name} size={64} />}
+          <AvatarEditor size={64} />
           <View style={{ flex: 1, gap: 2 }}>
             <Txt v="h2" numberOfLines={1}>{displayName}</Txt>
             <Place code={k.code} before={company ? `Kompaniya · ${user.name} ·` : 'Jismoniy shaxs ·'} />

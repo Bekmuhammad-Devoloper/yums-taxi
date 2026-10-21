@@ -13,7 +13,7 @@ const FAQ = [
   ["Nega loyiham hali ko'rinmayapti?", "Barcha loyiha va e'lonlar moderatsiyadan o'tadi. Odatda bir necha daqiqa, shubhali e'lonlar uchun 24 soatgacha. Rad etilsa, sabab Kabinet → Mening loyihalarim bo'limida ko'rsatiladi."],
   ['«Tasdiqlangan» belgisini qanday olaman?', "Kabinet → Profilni tasdiqlash bo'limida hujjatlarni yuklang. Belgi faqat moderator tekshiruvidan keyin beriladi."],
   ['Investor bilan qanday bog\'lanaman?', "YUMS Invest bo'limida investorni tanlab «Taklif yuborish»ni bosing. Investor so'rovni qabul qilgach, yozishma va onlayn uchrashuv belgilash mumkin bo'ladi."],
-  ['Firibgarlikka duch keldim', "E'lon yoki profil sahifasidagi 🚩 tugmasi orqali shikoyat qiling. Oldindan to'lovni shaxsiy kartaga o'tkazmang — faqat rasmiy shartnoma va to'lov hamkorlari orqali."],
+  ['Firibgarlikka duch keldim', "E'lon yoki profil sahifasidagi bayroqcha tugmasi orqali shikoyat qiling. Oldindan to'lovni shaxsiy kartaga o'tkazmang — faqat rasmiy shartnoma va to'lov hamkorlari orqali."],
   ['Narx qanday hisoblanadi?', "Narx tarif, masofa va taxminiy vaqtga qarab buyurtmadan oldin ko'rsatiladi. Talab yuqori bo'lgan soatlarda koeffitsient qo'llanishi mumkin — u albatta oldindan ko'rsatiladi."],
   ['Buyurtmani qanday bekor qilaman?', "Haydovchi qidirilayotganda bepul bekor qilasiz. Haydovchi yo'lga chiqqandan keyin ham bekor qilish mumkin, lekin tez-tez bekor qilish reytingga ta'sir qiladi."],
   ['Bepul kutish necha daqiqa?', "Haydovchi yetib kelgach 3 daqiqa bepul kutadi. Keyin har daqiqa tarif bo'yicha hisoblanadi."],

@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { ImageSlot } from '@/components/image-slot';
 import { PickerSheet, SectorIcon, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
 import { Button, Card, Chip, Field, Flag, Row, Screen, SectionTitle, Txt } from '@/components/ui';
@@ -39,6 +40,7 @@ export default function EditProject() {
   const [contact, setContact] = useState<ContactMethod>(existing?.contact ?? 'chat');
   const [contactValue, setContactValue] = useState(existing?.contactValue ?? '');
   const [files, setFiles] = useState<Attachment[]>(existing?.attachments ?? []);
+  const [cover, setCover] = useState<string | undefined>(existing?.cover);
   const [picker, setPicker] = useState<'sector' | 'country' | 'lang' | null>(null);
   const [tried, setTried] = useState(false);
 
@@ -62,7 +64,7 @@ export default function EditProject() {
   const input = (): ProjectInput => ({
     title: title.trim(), summary: summary.trim(), description: description.trim(), goal: goal.trim(), sector, stage, country, city: city.trim(), languages,
     budgetMin: num(bMin), budgetMax: num(bMax), durationMonths: Math.max(1, num(months)), team: Math.max(1, num(team)), seeking, contact,
-    contactValue: contact === 'chat' ? undefined : contactValue.trim(), attachments: files,
+    contactValue: contact === 'chat' ? undefined : contactValue.trim(), attachments: files, cover,
   });
 
   const save = (submit: boolean) => {
@@ -108,6 +110,11 @@ export default function EditProject() {
           <Txt v="small" color={c.violet} style={{ flex: 1, fontFamily: F.bold }}>Free tarifda {FREE_LIMIT} tagacha faol loyiha. Qoralama saqlash mumkin, yuborish uchun Pro tarif kerak.</Txt>
         </Pressable>
       )}
+
+      <Card style={{ gap: 6 }}>
+        <ImageSlot kind="cover" label="Muqova rasmi (banner)" value={cover} onChange={setCover} />
+        <Txt v="tiny" faint style={{ marginLeft: 2 }}>Katalog, tavsiyalar va loyiha sahifasida ko'rinadi. Rasm bo'lmasa, soha rangidagi banner ishlatiladi.</Txt>
+      </Card>
 
       <SectionTitle>Asosiy ma'lumot</SectionTitle>
       <Card style={{ gap: 14 }}>

@@ -1,6 +1,9 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 
+import { View } from 'react-native';
+
+import { AvatarEditor } from '@/components/avatar-editor';
 import { PickerSheet, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
 import { Button, Card, Chip, Field, Flag, Row, Screen, SectionTitle, Txt } from '@/components/ui';
@@ -29,6 +32,10 @@ export default function ProfileEdit() {
 
   return (
     <Screen title="Profilni tahrirlash" footer={<Button title="Saqlash" disabled={!valid} onPress={save} />}>
+      <View style={{ alignItems: 'center', gap: 8, paddingVertical: 6 }}>
+        <AvatarEditor size={96} />
+        <Txt v="small" muted>Rasmni o'zgartirish uchun bosing</Txt>
+      </View>
       <SectionTitle>Profil turi</SectionTitle>
       <Row gap={8}>
         <Chip label="Jismoniy shaxs" icon="person-outline" active={kind === 'person'} onPress={() => setKind('person')} />

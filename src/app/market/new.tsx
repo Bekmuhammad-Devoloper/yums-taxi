@@ -1,16 +1,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { ImageSlot } from '@/components/image-slot';
 import { PickerSheet, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
 import { Button, Card, Chip, Field, Flag, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { COUNTRIES, MARKET_KINDS, SECTORS, type MarketKind } from '@/lib/platform-data';
 import { countryOf, flagged, sectorOf, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
-
-const EMOJIS = ['📦', '🛠️', '💻', '📊', '🎨', '🌐', '⚖️', '🍑', '🧵', '☀️', '🚚', '📚', '🩺', '🏗️', '🌾', '🎓'];
 
 export default function NewMarketItem() {
   const { colors: c, user } = useStore();
@@ -24,7 +23,7 @@ export default function NewMarketItem() {
   const [minOrder, setMinOrder] = useState('');
   const [sector, setSector] = useState('ecommerce');
   const [country, setCountry] = useState(user?.country ?? 'UZ');
-  const [emoji, setEmoji] = useState('📦');
+  const [image, setImage] = useState<string>();
   const [picker, setPicker] = useState<'sector' | 'country' | null>(null);
   const [tried, setTried] = useState(false);
 
@@ -41,7 +40,7 @@ export default function NewMarketItem() {
     if (Object.values(errors).some(Boolean)) { toast("Maydonlarni to'ldiring", 'alert-circle'); return; }
     const id = p.addMarketItem({
       title: title.trim(), kind, price: priceNum, unit: unit.trim() || undefined, desc: desc.trim(), delivery: delivery.trim() || undefined,
-      minOrder: minOrder.trim() || undefined, sector, country, emoji,
+      minOrder: minOrder.trim() || undefined, sector, country, image,
     });
     haptic.success();
     toast("E'lon moderatsiyaga yuborildi", 'hourglass');
@@ -75,14 +74,10 @@ export default function NewMarketItem() {
         )}
       </Card>
 
-      <SectionTitle>Rasm belgisi</SectionTitle>
-      <View style={styles.emojis}>
-        {EMOJIS.map(e => (
-          <Pressable key={e} onPress={() => { haptic.tap(); setEmoji(e); }} style={[styles.emoji, { backgroundColor: emoji === e ? c.brandSoft : c.surface, borderColor: emoji === e ? c.brand : c.line }]}>
-            <Text style={{ fontSize: 26 }}>{e}</Text>
-          </Pressable>
-        ))}
-      </View>
+      <Card>
+        <ImageSlot kind="product" label="Mahsulot rasmi" value={image} onChange={setImage} />
+        <Txt v="tiny" faint>Rasm bo'lmasa, e'lon soha belgisi bilan ko'rsatiladi.</Txt>
+      </Card>
 
       <View style={[styles.note, { backgroundColor: banned.length ? c.dangerSoft : c.surface2 }]}>
         <Ionicons name={banned.length ? 'warning' : 'information-circle-outline'} size={18} color={banned.length ? c.danger : c.muted} />
@@ -102,7 +97,5 @@ export default function NewMarketItem() {
 }
 
 const styles = StyleSheet.create({
-  emojis: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  emoji: { width: 54, height: 54, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   note: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14 },
 });

@@ -1,8 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { ImageSlot } from '@/components/image-slot';
 import { toast } from '@/components/toast';
 import { Badge, Button, Card, Chip, Field, ListItem, Row, Screen, SectionHeader, Segmented, Sheet, Txt } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
@@ -23,6 +25,7 @@ export default function Plans() {
   const [adOpen, setAdOpen] = useState(false);
   const [adTitle, setAdTitle] = useState('');
   const [adBudget, setAdBudget] = useState(50);
+  const [adImage, setAdImage] = useState<string>();
   const boostProject = boost ? p.projects.find(x => x.id === boost) : undefined;
 
   const plan = buying && buying !== 'boost' ? PLANS.find(x => x.id === buying) : undefined;
@@ -91,7 +94,13 @@ export default function Plans() {
       {p.ads.map(a => (
         <Card key={a.id}>
           <Row>
-            <Ionicons name="megaphone-outline" size={22} color={c.text} />
+            {a.image ? (
+              <Image source={{ uri: a.image }} style={styles.adThumb} contentFit="cover" />
+            ) : (
+              <View style={[styles.adThumb, { backgroundColor: c.surface2, alignItems: 'center', justifyContent: 'center' }]}>
+                <Ionicons name="megaphone-outline" size={20} color={c.muted} />
+              </View>
+            )}
             <View style={{ flex: 1 }}><Txt v="h3" numberOfLines={1}>{a.title}</Txt><Txt v="small" muted>${a.budget} byudjet</Txt></View>
             <Badge label={a.status === 'active' ? 'Faol' : "Ko'rib chiqilmoqda"} tone={a.status === 'active' ? 'ok' : 'warn'} />
           </Row>
@@ -123,18 +132,20 @@ export default function Plans() {
       </Sheet>
 
       <Sheet visible={adOpen} onClose={() => setAdOpen(false)} title="Reklama kampaniyasi" footer={
-        <Button title="Moderatsiyaga yuborish" icon="send" disabled={adTitle.trim().length < 4} onPress={() => { p.createAd(adTitle.trim(), adBudget); setAdOpen(false); setAdTitle(''); toast('Reklama tekshiruvga yuborildi', 'megaphone'); }} />
+        <Button title="Moderatsiyaga yuborish" icon="send" disabled={adTitle.trim().length < 4} onPress={() => { p.createAd(adTitle.trim(), adBudget, adImage); setAdOpen(false); setAdTitle(''); setAdImage(undefined); toast('Reklama tekshiruvga yuborildi', 'megaphone'); }} />
       }>
+        <ImageSlot kind="banner" label="Reklama banneri" value={adImage} onChange={setAdImage} />
         <Field label="Reklama sarlavhasi" value={adTitle} onChangeText={setAdTitle} placeholder="Masalan: Xalqaro yuk tashish — 12 kunda" maxLength={60} />
         <Txt v="small" muted style={{ fontFamily: F.bold }}>Byudjet</Txt>
         <Row gap={8}>{[50, 150, 500, 1000].map(b => <Chip key={b} label={`$${b}`} active={adBudget === b} onPress={() => setAdBudget(b)} />)}</Row>
-        <Txt v="tiny" faint>Taxminan {adBudget * 120} ko'rsatish. Reklama «Reklama» belgisi bilan ko'rsatiladi.</Txt>
+        <Txt v="tiny" faint>Taxminan {adBudget * 120} ko'rsatish. Banner bosh sahifada 2:1 o'lchamda, «Reklama» belgisi bilan ko'rsatiladi.</Txt>
       </Sheet>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  adThumb: { width: 64, height: 32, borderRadius: 8 },
   planIco: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   ad: { padding: 18, borderRadius: radius.l, gap: 6 },
   adKicker: { color: '#FFC800', fontSize: 10.5, fontFamily: F.heavy, letterSpacing: 1 },

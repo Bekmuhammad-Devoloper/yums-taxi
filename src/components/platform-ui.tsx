@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
@@ -10,7 +11,7 @@ import { haptic, useStore } from '@/lib/store';
 import { F, radius, shadow } from '@/lib/theme';
 
 import { toast } from './toast';
-import { Avatar, Badge, Button, Card, Flag, IconTile, Row, Sheet, Txt, Verified, shade, type IconName } from './ui';
+import { Avatar, Badge, Button, Card, Flag, IconTile, Row, Sheet, Txt, Verified, alpha, shade, type IconName } from './ui';
 
 /* ---------- Kichik bo'laklar ---------- */
 
@@ -33,7 +34,7 @@ export function StatusBadge({ status }: { status: ListingStatus }) {
   return <Badge label={m.name} icon={m.icon} tone={m.tone} />;
 }
 
-export function FavButton({ k, style, size = 22 }: { k: string; style?: StyleProp<ViewStyle>; size?: number }) {
+export function FavButton({ k, style, size = 22, round }: { k: string; style?: StyleProp<ViewStyle>; size?: number; round?: boolean }) {
   const { colors: c } = useStore();
   const { isFav, toggleFav } = usePlatform();
   const on = isFav(k);
@@ -42,8 +43,8 @@ export function FavButton({ k, style, size = 22 }: { k: string; style?: StylePro
       hitSlop={10}
       accessibilityLabel={on ? 'Saqlanganlardan olib tashlash' : 'Saqlash'}
       onPress={() => { haptic.tap(); const v = toggleFav(k); toast(v ? 'Saqlanganlarga qo\'shildi' : 'Saqlanganlardan olib tashlandi', v ? 'bookmark' : 'bookmark-outline'); }}
-      style={style}>
-      <Ionicons name={on ? 'bookmark' : 'bookmark-outline'} size={size} color={on ? c.brandDeep : c.muted} />
+      style={[round && [styles.favRound, { backgroundColor: on ? c.brandSoft : c.surface2 }], style]}>
+      <Ionicons name={on ? 'bookmark' : 'bookmark-outline'} size={round ? 17 : size} color={on ? c.brandDeep : c.muted} />
     </Pressable>
   );
 }
@@ -68,7 +69,8 @@ export function ProjectCard({ p, mine }: { p: Project; mine?: boolean }) {
   const { colors: c } = useStore();
   const sec = sectorOf(p.sector);
   return (
-    <Card onPress={() => router.push({ pathname: '/project/[id]', params: { id: p.id } })} style={{ gap: 10 }}>
+    <Card onPress={() => router.push({ pathname: '/project/[id]', params: { id: p.id } })} style={{ gap: 10, overflow: 'hidden' }}>
+      {p.cover ? <Image source={{ uri: p.cover }} style={styles.cardCover} contentFit="cover" accessibilityLabel={p.title} /> : null}
       <Row>
         <SectorIcon id={p.sector} />
         <View style={{ flex: 1 }}>
@@ -78,7 +80,7 @@ export function ProjectCard({ p, mine }: { p: Project; mine?: boolean }) {
             {p.ownerVerified && <Verified size={13} />}
           </Row>
         </View>
-        {mine ? <StatusBadge status={p.status} /> : <FavButton k={'project:' + p.id} />}
+        {mine ? <StatusBadge status={p.status} /> : <FavButton k={'project:' + p.id} round />}
       </Row>
       <View style={{ gap: 4 }}>
         <Txt v="h3" numberOfLines={2}>{p.title}</Txt>
@@ -112,7 +114,12 @@ export function ProjectTile({ p }: { p: Project }) {
       onPress={() => { haptic.tap(); router.push({ pathname: '/project/[id]', params: { id: p.id } }); }}
       style={({ pressed }) => [styles.tile, { backgroundColor: c.surface, borderColor: c.line, transform: [{ scale: pressed ? 0.98 : 1 }] }, shadow(c, 0.25)]}>
       <LinearGradient colors={[sec.color, shade(sec.color)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.tileTop}>
-        <Ionicons name={sec.icon} size={96} color="rgba(255,255,255,0.13)" style={{ position: 'absolute', right: -10, bottom: -18 }} />
+        {p.cover ? (
+          <>
+            <Image source={{ uri: p.cover }} style={StyleSheet.absoluteFill} contentFit="cover" />
+            <LinearGradient colors={['rgba(0,0,0,0.35)', 'rgba(0,0,0,0)', 'rgba(0,0,0,0.65)']} style={StyleSheet.absoluteFill} />
+          </>
+        ) : <Ionicons name={sec.icon} size={96} color="rgba(255,255,255,0.13)" style={{ position: 'absolute', right: -10, bottom: -18 }} />}
         <Row gap={6}>
           {p.boosted && <View style={styles.topBadge}><Ionicons name="flash" size={11} color="#0E1525" /><Text style={styles.topBadgeText}>TOP</Text></View>}
           <View style={[styles.topBadge, { backgroundColor: 'rgba(255,255,255,0.9)' }]}><Text style={styles.topBadgeText}>{stageName(p.stage)}</Text></View>
@@ -147,7 +154,7 @@ export function CompanyCard({ co }: { co: Company }) {
           <Row gap={4}><Txt v="h3" numberOfLines={1} style={{ flexShrink: 1 }}>{co.name}</Txt>{co.verified && <Verified />}</Row>
           <Place code={co.country} city={co.city} />
         </View>
-        <FavButton k={'company:' + co.id} />
+        <FavButton k={'company:' + co.id} round />
       </Row>
       <Txt v="small" muted numberOfLines={2} style={{ lineHeight: 19 }}>{co.about}</Txt>
       <Row style={{ justifyContent: 'space-between' }}>
@@ -221,7 +228,7 @@ export function InvestorCard({ inv, onContact }: { inv: Investor; onContact: () 
           <Row gap={4}><Txt v="h3" numberOfLines={1} style={{ flexShrink: 1 }}>{inv.name}</Txt>{inv.verified && <Verified />}</Row>
           <Place code={inv.country} before={`${INVESTOR_KINDS[inv.kind]} ·`} />
         </View>
-        <FavButton k={'investor:' + inv.id} />
+        <FavButton k={'investor:' + inv.id} round />
       </Row>
       <Txt v="small" muted style={{ lineHeight: 19 }}>{inv.about}</Txt>
       <Row gap={10}>
@@ -243,14 +250,25 @@ export function InvestorCard({ inv, onContact }: { inv: Investor; onContact: () 
   );
 }
 
+/** E'lon rasmi; rasm bo'lmasa soha rangidagi gradient va belgisi. Ota-ona o'lchamini to'ldiradi */
+export function MarketVisual({ m, icon = 40 }: { m: Pick<MarketItem, 'image' | 'sector' | 'title'>; icon?: number }) {
+  const s = sectorOf(m.sector);
+  if (m.image) return <Image source={{ uri: m.image }} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel={m.title} />;
+  return (
+    <LinearGradient colors={[alpha(s.color, 0.2), alpha(s.color, 0.06)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
+      <Ionicons name={s.icon} size={icon} color={s.color} />
+    </LinearGradient>
+  );
+}
+
 export function MarketCard({ m, style }: { m: MarketItem; style?: StyleProp<ViewStyle> }) {
   const { colors: c } = useStore();
   return (
     <Pressable
       onPress={() => { haptic.tap(); router.push({ pathname: '/market/[id]', params: { id: m.id } }); }}
       style={({ pressed }) => [styles.market, { backgroundColor: c.surface, opacity: pressed ? 0.88 : 1 }, shadow(c, 0.5), style]}>
-      <View style={[styles.marketImg, { backgroundColor: sectorOf(m.sector).color + '1A' }]}>
-        <Text style={{ fontSize: 46 }}>{m.emoji}</Text>
+      <View style={styles.marketImg}>
+        <MarketVisual m={m} icon={40} />
         <FavButton k={'market:' + m.id} size={20} style={[styles.marketFav, { backgroundColor: c.surface }]} />
       </View>
       <View style={{ padding: 12, gap: 4, flex: 1 }}>
@@ -283,17 +301,45 @@ export function PeerAvatar({ conv, size = 50 }: { conv: Conversation; size?: num
 
 /* ---------- Reklama ---------- */
 
+/** Reklama banneri — 2:1 nisbat; faol kampaniya rasmi bo'lsa o'sha ko'rsatiladi */
 export function AdBanner() {
-  const { t } = useStore();
+  const { colors: c, t } = useStore();
+  const { ads } = usePlatform();
+  const own = ads.find(a => a.status === 'active' && a.image);
   return (
-    <Pressable onPress={() => { haptic.tap(); router.push({ pathname: '/company/[id]', params: { id: 'c20' } }); }} style={({ pressed }) => [styles.ad, { opacity: pressed ? 0.9 : 1 }]}>
-      <View style={{ flex: 1, gap: 4 }}>
-        <Text style={styles.adLabel}>{t('home.ad').toUpperCase()} · Silk Road Logistics</Text>
-        <Text style={styles.adTitle}>Xitoydan Toshkentgacha{'\n'}yuk — 12 kunda</Text>
-        <Text style={styles.adSub}>Konsolidatsiya · bojxona · ombor</Text>
-      </View>
-      <IconTile name="cube-outline" color="#FFC800" size={58} glass />
-    </Pressable>
+    <View style={{ gap: 8 }}>
+      <Pressable
+        onPress={() => { haptic.tap(); if (own) router.push('/plans'); else router.push({ pathname: '/company/[id]', params: { id: 'c20' } }); }}
+        style={({ pressed }) => [styles.ad, { opacity: pressed ? 0.92 : 1 }]}
+        accessibilityLabel={`${t('home.ad')}: ${own ? own.title : 'Silk Road Logistics'}`}>
+        {own ? (
+          <>
+            <Image source={{ uri: own.image }} style={StyleSheet.absoluteFill} contentFit="cover" />
+            <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.7)']} style={StyleSheet.absoluteFill} />
+            <View style={styles.adChip}><Text style={styles.adChipText}>{t('home.ad').toUpperCase()}</Text></View>
+            <Text style={[styles.adTitle, styles.adBottom]} numberOfLines={2}>{own.title}</Text>
+          </>
+        ) : (
+          <>
+            <LinearGradient colors={['#0B1530', '#14306E', '#1E4BB8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+            <Ionicons name="cube-outline" size={170} color="rgba(255,255,255,0.08)" style={styles.adDeco} />
+            <View style={styles.adChip}><Text style={styles.adChipText}>{t('home.ad').toUpperCase()}</Text></View>
+            <View style={styles.adBody}>
+              <Text style={styles.adBrand}>Silk Road Logistics</Text>
+              <Text style={styles.adTitle}>Xitoydan Toshkentgacha{'\n'}yuk — 12 kunda</Text>
+              <Text style={styles.adSub}>Konsolidatsiya · bojxona · ombor</Text>
+            </View>
+            <View style={styles.adCta}><Text style={styles.adCtaText}>Batafsil</Text><Ionicons name="arrow-forward" size={14} color="#0E1525" /></View>
+          </>
+        )}
+      </Pressable>
+      <Pressable onPress={() => { haptic.tap(); router.push('/plans'); }} hitSlop={6} style={{ alignSelf: 'flex-end' }}>
+        <Row gap={4}>
+          <Ionicons name="megaphone-outline" size={13} color={c.faint} />
+          <Txt v="tiny" faint>Reklama joylashtirish</Txt>
+        </Row>
+      </Pressable>
+    </View>
   );
 }
 
@@ -421,7 +467,9 @@ const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   note: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10, borderRadius: 12 },
   tile: { width: 262, borderRadius: radius.l, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
-  tileTop: { height: 112, padding: 14, justifyContent: 'space-between', overflow: 'hidden' },
+  cardCover: { marginTop: -16, marginHorizontal: -16, marginBottom: 2, aspectRatio: 16 / 9 },
+  favRound: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  tileTop: { height: 130, padding: 14, justifyContent: 'space-between', overflow: 'hidden' },
   topBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#FFC800', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 7 },
   topBadgeText: { color: '#0E1525', fontSize: 11, fontFamily: F.heavy },
   tileSector: { color: '#fff', fontFamily: F.heavy, fontSize: 13, opacity: 0.95 },
@@ -429,12 +477,19 @@ const styles = StyleSheet.create({
   mini: { width: 128, padding: 12, borderRadius: radius.l, alignItems: 'center', gap: 4 },
   kv: { flex: 1, padding: 10, borderRadius: 14, gap: 2 },
   market: { borderRadius: radius.l, overflow: 'hidden' },
-  marketImg: { height: 112, alignItems: 'center', justifyContent: 'center' },
+  marketImg: { aspectRatio: 4 / 3, overflow: 'hidden' },
   marketFav: { position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
-  ad: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 18, borderRadius: radius.l, backgroundColor: '#0F1E3D' },
-  adLabel: { color: '#FFC800', fontSize: 10.5, fontFamily: F.heavy, letterSpacing: 0.8 },
-  adTitle: { color: '#fff', fontSize: 16, fontFamily: F.display, letterSpacing: -0.5, lineHeight: 22 },
-  adSub: { color: 'rgba(255,255,255,0.65)', fontSize: 12.5, fontFamily: F.semi },
+  ad: { width: '100%', aspectRatio: 2, borderRadius: radius.l, overflow: 'hidden', backgroundColor: '#0B1530' },
+  adChip: { position: 'absolute', top: 12, left: 12, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7, backgroundColor: 'rgba(0,0,0,0.45)' },
+  adChipText: { color: 'rgba(255,255,255,0.9)', fontSize: 9.5, fontFamily: F.heavy, letterSpacing: 1 },
+  adBody: { position: 'absolute', left: 18, right: 18, bottom: 18, gap: 4 },
+  adBottom: { position: 'absolute', left: 16, right: 16, bottom: 14 },
+  adBrand: { color: '#FFC800', fontSize: 11.5, fontFamily: F.bold },
+  adTitle: { color: '#fff', fontSize: 20, fontFamily: F.display, letterSpacing: -0.6, lineHeight: 25 },
+  adSub: { color: 'rgba(255,255,255,0.7)', fontSize: 12.5, fontFamily: F.semi },
+  adDeco: { position: 'absolute', right: -24, top: -18 },
+  adCta: { position: 'absolute', right: 16, top: 12, flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 11, height: 28, borderRadius: 14, backgroundColor: '#FFC800' },
+  adCtaText: { color: '#0E1525', fontSize: 12, fontFamily: F.bold },
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 14 },
   input: { minHeight: 80, borderRadius: 16, padding: 14, fontSize: 15, textAlignVertical: 'top' },
   pickSearch: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, borderRadius: 14, paddingHorizontal: 12 },

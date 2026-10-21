@@ -25,6 +25,8 @@ export type User = {
   joinedAt?: string;
   /** Shu qurilmada oxirgi marta kirgan vaqti — «Hisobni tanlang» ro'yxati uchun */
   lastLoginAt?: string;
+  /** Profil rasmi (data: URI, 400×400 JPEG) */
+  avatar?: string;
   /** STIR (INN) — kompaniya yoki YaTT */
   stir?: string;
   /** JShShIR (PINFL) — shaxsiy identifikatsiya raqami */

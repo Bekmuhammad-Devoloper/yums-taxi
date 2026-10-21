@@ -255,7 +255,7 @@ export default function Login() {
                       key={a.id}
                       onPress={() => chooseAccount(a)}
                       style={({ pressed }) => [styles.accRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }, { backgroundColor: pressed ? c.surface2 : 'transparent' }]}>
-                      {a.kind === 'company' && a.company ? <Logo name={a.company} color={c.ok} size={44} /> : <Avatar name={a.name} size={44} />}
+                      {a.avatar ? <Avatar name={a.name} size={44} uri={a.avatar} /> : a.kind === 'company' && a.company ? <Logo name={a.company} color={c.ok} size={44} /> : <Avatar name={a.name} size={44} />}
                       <View style={{ flex: 1 }}>
                         <Txt v="h3" numberOfLines={1}>{title}</Txt>
                         <Txt v="small" muted numberOfLines={1}>{a.phone ? maskPhone(a.phone) : maskEmail(a.email ?? '')}</Txt>

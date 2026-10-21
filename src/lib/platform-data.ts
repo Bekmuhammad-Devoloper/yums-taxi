@@ -37,6 +37,8 @@ export type Project = {
   contactValue?: string;
   seeking: Seek[];
   attachments: Attachment[];
+  /** Muqova rasmi (16:9, data: URI) */
+  cover?: string;
   status: ListingStatus;
   rejectReason?: string;
   views: number;
@@ -93,7 +95,8 @@ export type MarketItem = {
   country: string;
   sector: string;
   desc: string;
-  emoji: string;
+  /** Mahsulot rasmi (4:3, data: URI) — bo'lmasa soha belgisi ko'rsatiladi */
+  image?: string;
   delivery?: string;
   minOrder?: string;
   status: ListingStatus;
@@ -559,16 +562,16 @@ export const SEED_INVESTORS: Investor[] = [
 ];
 
 export const SEED_MARKET: MarketItem[] = [
-  { id: 'm1', title: 'Quyosh paneli 550 Vt (Tier-1)', kind: 'goods', price: 118, unit: 'dona', sellerId: 'c3', sellerName: 'SunPower Central Asia', sellerVerified: true, country: 'UZ', sector: 'energy', desc: "Monokristall panel, 25 yil kafolat. Ulgurji buyurtmalar uchun maxsus narx.", emoji: '☀️', delivery: "O'zbekiston bo'ylab 3–5 kun", minOrder: '20 dona', status: 'published', createdAt: d(4) },
-  { id: 'm2', title: 'Quritilgan o\'rik, eksport sifati', kind: 'goods', price: 3.8, unit: 'kg', sellerId: 'u30', sellerName: "Farg'ona Agro Export", sellerVerified: true, country: 'UZ', sector: 'agro', desc: "Shakar qo'shilmagan, GOST va EU standartlari bo'yicha sertifikatlangan.", emoji: '🍑', delivery: 'FOB Toshkent', minOrder: '1 tonna', status: 'published', createdAt: d(7) },
-  { id: 'm3', title: 'Suzani — qo\'lda tikilgan, 2×1.5 m', kind: 'goods', price: 340, unit: 'dona', sellerId: 'u8', sellerName: 'Aziza Yusupova', sellerVerified: true, country: 'UZ', sector: 'ecommerce', desc: "Buxoro ustalari tomonidan ipak iplar bilan tikilgan. Har bir buyum yagona nusxada.", emoji: '🧵', delivery: 'Xalqaro DHL, 5–9 kun', status: 'published', createdAt: d(2) },
-  { id: 'm4', title: 'Biznes-reja shabloni (Excel + Word)', kind: 'digital', price: 29, sellerId: 'u31', sellerName: 'StartupKit', sellerVerified: false, country: 'EE', sector: 'startup', desc: "Moliyaviy model, P&L, cash-flow va investorlar uchun taqdimot tuzilmasi. O'zbek, rus, ingliz tillarida.", emoji: '📊', status: 'published', createdAt: d(10) },
-  { id: 'm5', title: 'Mobil ilova UI kit (Figma)', kind: 'digital', price: 49, sellerId: 'c21', sellerName: 'PixelForge Studio', sellerVerified: false, country: 'PL', sector: 'design', desc: '320+ komponent, yorug\' va qorong\'i mavzu, taksi va e-commerce ekranlari.', emoji: '🎨', status: 'published', createdAt: d(5) },
-  { id: 'm6', title: 'Onlayn kurs: Python va Data Science', kind: 'digital', price: 79, sellerId: 'u2', sellerName: 'EduBridge', sellerVerified: true, country: 'UZ', sector: 'education', desc: "60 soatlik video, amaliy loyihalar va sertifikat. O'zbek tilida.", emoji: '🐍', status: 'published', createdAt: d(3) },
-  { id: 'm7', title: 'Bojxona rasmiylashtiruvi', kind: 'service', price: 180, unit: 'deklaratsiya', sellerId: 'c20', sellerName: 'Silk Road Logistics', sellerVerified: true, country: 'KZ', sector: 'logistics', desc: 'Eksport-import deklaratsiyalari, sertifikatlar va litsenziyalar bo\'yicha yordam.', emoji: '📦', status: 'published', createdAt: d(6) },
-  { id: 'm8', title: 'Saytni ingliz va rus tiliga tarjima', kind: 'service', price: 0.06, unit: "so'z", sellerId: 'u32', sellerName: 'LinguaPro', sellerVerified: true, country: 'UZ', sector: 'eservices', desc: "Texnik, yuridik va marketing matnlari. Ona tili egalari tomonidan tahrir.", emoji: '🌐', status: 'published', createdAt: d(9) },
-  { id: 'm9', title: 'Sanoat 3D printeri FDM-600', kind: 'goods', price: 7400, unit: 'dona', sellerId: 'u33', sellerName: 'Shenzhen MakerTech', sellerVerified: true, country: 'CN', sector: 'manufacturing', desc: '600×600×600 mm bosma maydoni, sanoat plastmassalari. O\'rnatish va o\'qitish bilan.', emoji: '🖨️', delivery: 'Toshkentgacha 21 kun', minOrder: '1 dona', status: 'published', createdAt: d(13) },
-  { id: 'm10', title: 'Yuridik maslahat: MChJ ochish', kind: 'service', price: 120, unit: 'paket', sellerId: 'u34', sellerName: 'LexAsia Advokatlik byurosi', sellerVerified: true, country: 'UZ', sector: 'legal', desc: "Xorijiy investitsiyali korxonani ro'yxatdan o'tkazish, ustav va bank hisobini ochish.", emoji: '⚖️', status: 'published', createdAt: d(1) },
+  { id: 'm1', title: 'Quyosh paneli 550 Vt (Tier-1)', kind: 'goods', price: 118, unit: 'dona', sellerId: 'c3', sellerName: 'SunPower Central Asia', sellerVerified: true, country: 'UZ', sector: 'energy', desc: "Monokristall panel, 25 yil kafolat. Ulgurji buyurtmalar uchun maxsus narx.", delivery: "O'zbekiston bo'ylab 3–5 kun", minOrder: '20 dona', status: 'published', createdAt: d(4) },
+  { id: 'm2', title: 'Quritilgan o\'rik, eksport sifati', kind: 'goods', price: 3.8, unit: 'kg', sellerId: 'u30', sellerName: "Farg'ona Agro Export", sellerVerified: true, country: 'UZ', sector: 'agro', desc: "Shakar qo'shilmagan, GOST va EU standartlari bo'yicha sertifikatlangan.", delivery: 'FOB Toshkent', minOrder: '1 tonna', status: 'published', createdAt: d(7) },
+  { id: 'm3', title: 'Suzani — qo\'lda tikilgan, 2×1.5 m', kind: 'goods', price: 340, unit: 'dona', sellerId: 'u8', sellerName: 'Aziza Yusupova', sellerVerified: true, country: 'UZ', sector: 'ecommerce', desc: "Buxoro ustalari tomonidan ipak iplar bilan tikilgan. Har bir buyum yagona nusxada.", delivery: 'Xalqaro DHL, 5–9 kun', status: 'published', createdAt: d(2) },
+  { id: 'm4', title: 'Biznes-reja shabloni (Excel + Word)', kind: 'digital', price: 29, sellerId: 'u31', sellerName: 'StartupKit', sellerVerified: false, country: 'EE', sector: 'startup', desc: "Moliyaviy model, P&L, cash-flow va investorlar uchun taqdimot tuzilmasi. O'zbek, rus, ingliz tillarida.", status: 'published', createdAt: d(10) },
+  { id: 'm5', title: 'Mobil ilova UI kit (Figma)', kind: 'digital', price: 49, sellerId: 'c21', sellerName: 'PixelForge Studio', sellerVerified: false, country: 'PL', sector: 'design', desc: '320+ komponent, yorug\' va qorong\'i mavzu, taksi va e-commerce ekranlari.', status: 'published', createdAt: d(5) },
+  { id: 'm6', title: 'Onlayn kurs: Python va Data Science', kind: 'digital', price: 79, sellerId: 'u2', sellerName: 'EduBridge', sellerVerified: true, country: 'UZ', sector: 'education', desc: "60 soatlik video, amaliy loyihalar va sertifikat. O'zbek tilida.", status: 'published', createdAt: d(3) },
+  { id: 'm7', title: 'Bojxona rasmiylashtiruvi', kind: 'service', price: 180, unit: 'deklaratsiya', sellerId: 'c20', sellerName: 'Silk Road Logistics', sellerVerified: true, country: 'KZ', sector: 'logistics', desc: 'Eksport-import deklaratsiyalari, sertifikatlar va litsenziyalar bo\'yicha yordam.', status: 'published', createdAt: d(6) },
+  { id: 'm8', title: 'Saytni ingliz va rus tiliga tarjima', kind: 'service', price: 0.06, unit: "so'z", sellerId: 'u32', sellerName: 'LinguaPro', sellerVerified: true, country: 'UZ', sector: 'eservices', desc: "Texnik, yuridik va marketing matnlari. Ona tili egalari tomonidan tahrir.", status: 'published', createdAt: d(9) },
+  { id: 'm9', title: 'Sanoat 3D printeri FDM-600', kind: 'goods', price: 7400, unit: 'dona', sellerId: 'u33', sellerName: 'Shenzhen MakerTech', sellerVerified: true, country: 'CN', sector: 'manufacturing', desc: '600×600×600 mm bosma maydoni, sanoat plastmassalari. O\'rnatish va o\'qitish bilan.', delivery: 'Toshkentgacha 21 kun', minOrder: '1 dona', status: 'published', createdAt: d(13) },
+  { id: 'm10', title: 'Yuridik maslahat: MChJ ochish', kind: 'service', price: 120, unit: 'paket', sellerId: 'u34', sellerName: 'LexAsia Advokatlik byurosi', sellerVerified: true, country: 'UZ', sector: 'legal', desc: "Xorijiy investitsiyali korxonani ro'yxatdan o'tkazish, ustav va bank hisobini ochish.", status: 'published', createdAt: d(1) },
 ];
 
 export const SEED_SPECIALISTS: Specialist[] = [

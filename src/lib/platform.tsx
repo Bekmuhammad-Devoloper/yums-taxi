@@ -61,8 +61,11 @@ type State = {
   planUntil?: string;
   boostCredits: number;
   twoFactor: boolean;
-  ads: { id: string; title: string; budget: number; status: 'review' | 'active' }[];
+  ads: Ad[];
 };
+
+/** Reklama kampaniyasi; banner — 2:1 rasm (data: URI) */
+export type Ad = { id: string; title: string; budget: number; status: 'review' | 'active'; image?: string };
 
 const device = () => (Platform.OS === 'ios' ? 'iPhone' : Platform.OS === 'android' ? 'Android' : 'Veb-brauzer');
 
@@ -137,7 +140,7 @@ type Ctx = State & {
   logEvent: (event: string, ok?: boolean) => void;
   setPlan: (p: Plan, yearly: boolean) => void;
   setTwoFactor: (on: boolean) => void;
-  createAd: (title: string, budget: number) => void;
+  createAd: (title: string, budget: number, image?: string) => void;
   exportData: () => string;
   resetPlatform: () => void;
 };
@@ -415,9 +418,9 @@ export function PlatformProvider({ children }: { children: ReactNode }) {
       setS(x => ({ ...x, plan, planUntil: plan === 'free' ? undefined : until.toISOString(), boostCredits: plan === 'free' ? 0 : plan === 'pro' ? 2 : 5 }));
     },
     setTwoFactor: on => setS(x => ({ ...x, twoFactor: on })),
-    createAd: (title, b) => {
+    createAd: (title, b, image) => {
       const id = uid('ad');
-      setS(x => ({ ...x, ads: [{ id, title, budget: b, status: 'review' }, ...x.ads] }));
+      setS(x => ({ ...x, ads: [{ id, title, budget: b, status: 'review', image }, ...x.ads] }));
       later(() => setS(x => ({ ...x, ads: x.ads.map(a => (a.id === id ? { ...a, status: 'active' } : a)) })), 6000);
     },
     exportData: () => JSON.stringify({
