@@ -143,16 +143,16 @@ export default function ProjectScreen() {
               <Row>
                 {pr.ownerKind === 'company' ? <Logo name={pr.ownerName} color={company?.color ?? c.ok} size={44} /> : <Avatar name={pr.ownerName} size={44} uri={mine ? user?.avatar : undefined} fallback={DEFAULT_AVATAR} />}
                 <View style={{ flex: 1 }}>
-                  <Row gap={4}><Txt v="h3" numberOfLines={1} style={{ flexShrink: 1 }}>{pr.ownerName}</Txt>{pr.ownerVerified && <Verified />}</Row>
-                  <Txt v="small" muted>{pr.ownerKind === 'company' ? 'Kompaniya' : 'Jismoniy shaxs'} · {ago(pr.createdAt)}</Txt>
+                  <Row gap={4}><Txt numberOfLines={1} style={styles.handName}>{pr.ownerName}</Txt>{pr.ownerVerified && <Verified />}</Row>
+                  <Txt muted style={styles.handSub}>{pr.ownerKind === 'company' ? 'Kompaniya' : 'Jismoniy shaxs'} · {ago(pr.createdAt)}</Txt>
                 </View>
                 {company && <Ionicons name="chevron-forward" size={18} color={c.faint} />}
               </Row>
             </Pressable>
-            <Txt style={{ lineHeight: 22 }}>{pr.summary}</Txt>
+            <Txt style={styles.handBody}>{pr.summary}</Txt>
             <Row gap={16}>
-              <Row gap={4}><Ionicons name="eye-outline" size={15} color={c.faint} /><Txt v="small" faint>{short(pr.views)} ko'rish</Txt></Row>
-              <Row gap={4}><Ionicons name="bookmark-outline" size={15} color={c.faint} /><Txt v="small" faint>{pr.saves} saqlagan</Txt></Row>
+              <Row gap={4}><Ionicons name="eye-outline" size={15} color={c.faint} /><Txt faint style={styles.handMeta}>{short(pr.views)} ko'rish</Txt></Row>
+              <Row gap={4}><Ionicons name="bookmark-outline" size={15} color={c.faint} /><Txt faint style={styles.handMeta}>{pr.saves} saqlagan</Txt></Row>
             </Row>
           </Card>
 
@@ -279,14 +279,19 @@ const styles = StyleSheet.create({
   coverBox: { width: '100%', maxHeight: 460, borderRadius: radius.l },
   menuThumb: { width: 64, height: 48, borderRadius: 12 },
   secPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingLeft: 6, paddingRight: 9, paddingVertical: 4, borderRadius: 9 },
-  secPillText: { fontFamily: F.heavy, fontSize: 11.5 },
+  secPillText: { fontFamily: F.hand, fontSize: 17, lineHeight: 19 },
   heroPill: { backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8 },
   heroPillText: { color: '#fff', fontFamily: F.heavy, fontSize: 11.5 },
   heroLine: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 10, rowGap: 6 },
   // Caveat harflari o'ngga qiyshaygan — oxirgi harf kesilmasligi uchun paddingRight
   heroTitle: { color: '#fff', fontSize: 34, fontFamily: F.hand, lineHeight: 38, flexShrink: 1, paddingRight: 6 },
   toggle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  toggleText: { fontFamily: F.bold, fontSize: 13 },
+  toggleText: { fontFamily: F.hand, fontSize: 20 },
+  // qo'lyozma (Caveat) — kichik harflari Onest'dan maydaroq, shuning uchun o'lchamlar kattaroq
+  handName: { fontFamily: F.hand, fontSize: 23, lineHeight: 26, flexShrink: 1, paddingRight: 4 },
+  handSub: { fontFamily: F.hand, fontSize: 18, lineHeight: 21 },
+  handBody: { fontFamily: F.hand, fontSize: 21, lineHeight: 26 },
+  handMeta: { fontFamily: F.hand, fontSize: 17 },
   alert: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: radius.m },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 12, paddingHorizontal: 16, borderTopWidth: StyleSheet.hairlineWidth },
 });
