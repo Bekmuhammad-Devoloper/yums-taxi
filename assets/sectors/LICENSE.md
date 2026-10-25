@@ -1,9 +1,6 @@
-Sector icons are from Microsoft Fluent UI System Icons (Color style), distributed via
-@fluentui/svg-icons. Licensed under the MIT License.
-https://github.com/microsoft/fluentui-system-icons
+All 25 sector icons are YUMS artwork (3D, generated for the project).
 
-it, ai, transport, startup, invest, manufacturing, ecommerce, realestate, agro, health, education,
-tourism, energy, logistics, design, jobs, ecology, charity, science and eservices icons are YUMS artwork (3D, generated for the project).
+Earlier versions used Microsoft Fluent icons; the notice below is kept for reference:
 
 Copyright (c) Microsoft Corporation.
 
