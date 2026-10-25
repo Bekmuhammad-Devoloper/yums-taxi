@@ -62,10 +62,6 @@ export function SpecialistIdCard({ sp }: { sp: Specialist }) {
         <IdBack sp={sp} onFlip={flip} />
       </Animated.View>
       </View>
-      <Pressable onPress={flip} hitSlop={6} style={({ pressed }) => [styles.flipBtn, { opacity: pressed ? 0.6 : 1 }]} accessibilityRole="button">
-        <Ionicons name="sync-outline" size={15} color="#E0A800" />
-        <Text style={styles.flipBtnText}>{backSide ? 'Old tomoni' : sp.website ? 'Orqa tomoni · portfolio' : 'Orqa tomoni · aloqa'}</Text>
-      </Pressable>
     </View>
   );
 }
@@ -247,8 +243,6 @@ function Field({ label, value, ink, labelColor, big, verified }: { label: string
 
 const styles = StyleSheet.create({
   face: { backfaceVisibility: 'hidden' },
-  flipBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', marginTop: 10, paddingHorizontal: 12, height: 30, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(224,168,0,0.45)', backgroundColor: 'rgba(255,200,0,0.1)' },
-  flipBtnText: { color: '#E0A800', fontFamily: F.bold, fontSize: 12.5 },
   card: { borderRadius: 20, overflow: 'hidden', borderWidth: 1, padding: 14, paddingBottom: 0, gap: 12 },
   rosette: { position: 'absolute', right: -70, top: 18, width: 260, height: 260, alignItems: 'center', justifyContent: 'center' },
   petal: { position: 'absolute', width: 250, height: 96, borderRadius: 125, borderWidth: 1 },
