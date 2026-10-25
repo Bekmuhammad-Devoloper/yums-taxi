@@ -5,9 +5,9 @@ import { router } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { REPORT_REASONS, type Conversation, SEED_SPECIALISTS, SEEKS, STAGES, STATUS_META, INVESTOR_KINDS, type Company, type Investor, type ListingStatus, type MarketItem, type Project, type ReportTarget, type Specialist } from '@/lib/platform-data';
+import { REPORT_REASONS, type Conversation, SEED_SPECIALISTS, SEEKS, STAGES, STATUS_META, INVESTOR_KINDS, type Company, type Investor, type ListingStatus, type Project, type ReportTarget, type Specialist } from '@/lib/platform-data';
 import { coverOf, AD_BANNER } from '@/lib/covers';
-import { budget, countryOf, sectorOf, short, usd, usePlatform } from '@/lib/platform';
+import { budget, countryOf, sectorOf, short, usePlatform } from '@/lib/platform';
 import { SECTION_ART, SECTION_ART_SCALE } from '@/lib/section-art';
 import { PEOPLE_ART } from '@/lib/people-art';
 import { SECTOR_ART } from '@/lib/sector-art';
@@ -300,39 +300,7 @@ export function InvestorCard({ inv, onContact }: { inv: Investor; onContact: () 
   );
 }
 
-/** E'lon rasmi; rasm bo'lmasa soha rangidagi gradient va belgisi. Ota-ona o'lchamini to'ldiradi */
-export function MarketVisual({ m, icon = 40 }: { m: Pick<MarketItem, 'image' | 'sector' | 'title'>; icon?: number }) {
-  const s = sectorOf(m.sector);
-  if (m.image) return <Image source={{ uri: m.image }} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel={m.title} />;
-  return (
-    <LinearGradient colors={[alpha(s.color, 0.2), alpha(s.color, 0.06)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
-      {SECTOR_ART[s.id] ? <Image source={SECTOR_ART[s.id]} style={{ width: icon * 1.6, height: icon * 1.6 }} contentFit="contain" /> : <Ionicons name={s.icon} size={icon} color={s.color} />}
-    </LinearGradient>
-  );
-}
-
-export function MarketCard({ m, style }: { m: MarketItem; style?: StyleProp<ViewStyle> }) {
-  const { colors: c } = useStore();
-  return (
-    <Pressable
-      onPress={() => { haptic.tap(); router.push({ pathname: '/market/[id]', params: { id: m.id } }); }}
-      style={({ pressed }) => [styles.market, { backgroundColor: c.surface, opacity: pressed ? 0.88 : 1 }, shadow(c, 0.5), style]}>
-      <View style={styles.marketImg}>
-        <MarketVisual m={m} icon={40} />
-        <FavButton k={'market:' + m.id} size={20} style={[styles.marketFav, { backgroundColor: c.surface }]} />
-      </View>
-      <View style={{ padding: 12, gap: 4, flex: 1 }}>
-        <Txt v="small" style={{ fontFamily: F.bold, minHeight: 36 }} numberOfLines={2}>{m.title}</Txt>
-        <Txt v="h3">{usd(m.price)}{m.unit ? <Txt v="tiny" faint> / {m.unit}</Txt> : null}</Txt>
-        <Row gap={3}>
-          <Flag code={m.country} size={15} />
-          <Txt v="tiny" faint numberOfLines={1} style={{ flexShrink: 1 }}>{m.sellerName}</Txt>
-          {m.sellerVerified && <Verified size={12} />}
-        </Row>
-      </View>
-    </Pressable>
-  );
-}
+export { MarketCard, MarketVisual } from './market-ui';
 
 /* ---------- Suhbatdosh ---------- */
 
@@ -522,9 +490,6 @@ const styles = StyleSheet.create({
   dot: { position: 'absolute', right: -2, bottom: -2, width: 15, height: 15, borderRadius: 8, borderWidth: 3 },
   mini: { width: 128, padding: 12, borderRadius: radius.l, alignItems: 'center', gap: 4 },
   kv: { flex: 1, padding: 10, borderRadius: 14, gap: 2 },
-  market: { borderRadius: radius.l, overflow: 'hidden' },
-  marketImg: { aspectRatio: 4 / 3, overflow: 'hidden' },
-  marketFav: { position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   ad: { width: '100%', aspectRatio: 2, borderRadius: radius.l, overflow: 'hidden', backgroundColor: '#0B1530' },
   adChip: { position: 'absolute', top: 12, left: 12, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7, backgroundColor: 'rgba(0,0,0,0.45)' },
   adChipCorner: { position: 'absolute', right: 10, bottom: 10, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 7, backgroundColor: 'rgba(0,0,0,0.45)' },

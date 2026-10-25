@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,7 +27,8 @@ export default function Connect() {
   const { colors: c, t } = useStore();
   const p = usePlatform();
   const insets = useSafeAreaInsets();
-  const [tab, setTab] = useState<Tab>('chats');
+  const params = useLocalSearchParams<{ tab?: Tab }>();
+  const [tab, setTab] = useState<Tab>(params.tab === 'requests' || params.tab === 'meetings' ? params.tab : 'chats');
 
   const chats = p.conversations.filter(x => x.kind === 'chat' || x.requestStatus === 'accepted');
   const requests = p.conversations.filter(x => x.kind === 'request' && x.requestStatus !== 'accepted');

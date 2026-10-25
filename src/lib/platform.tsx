@@ -62,7 +62,11 @@ type State = {
   boostCredits: number;
   twoFactor: boolean;
   ads: Ad[];
+  /** Savat: e'lon va miqdor */
+  cart: CartLine[];
 };
+
+export type CartLine = { id: string; qty: number };
 
 /** Reklama kampaniyasi; banner — 2:1 rasm (data: URI) */
 export type Ad = { id: string; title: string; budget: number; status: 'review' | 'active'; image?: string };
@@ -85,6 +89,7 @@ const initial = (): State => ({
   boostCredits: 0,
   twoFactor: false,
   ads: [],
+  cart: [],
 });
 
 const KEY = 'yp:state';
@@ -121,6 +126,12 @@ type Ctx = State & {
   deleteMarketItem: (id: string) => void;
   moderate: (kind: 'project' | 'market', id: string, approve: boolean, reason?: string) => void;
 
+  /** Savat */
+  cartItems: { item: MarketItem; qty: number }[];
+  cartCount: number;
+  cartQty: (id: string) => number;
+  setCartQty: (id: string, qty: number) => void;
+  clearCart: () => void;
   isFav: (key: string) => boolean;
   toggleFav: (key: string) => boolean;
 
@@ -311,6 +322,11 @@ export function PlatformProvider({ children }: { children: ReactNode }) {
 
   const publicProjects = useMemo(() => s.projects.filter(p => p.status === 'published' && !s.blocked.includes('project:' + p.id)), [s.projects, s.blocked]);
   const publicMarket = useMemo(() => s.market.filter(p => p.status === 'published' && !s.blocked.includes('market:' + p.id)), [s.market, s.blocked]);
+  // Savatdagi e'lonlar: o'chirilgan yoki yashirilganlari chiqarib tashlanadi
+  const cartItems = useMemo(() => s.cart.flatMap(l => {
+    const item = s.market.find(m => m.id === l.id && m.status === 'published' && !s.blocked.includes('market:' + m.id));
+    return item ? [{ item, qty: l.qty }] : [];
+  }), [s.cart, s.market, s.blocked]);
   const myProjects = useMemo(() => s.projects.filter(p => p.ownerId === me), [s.projects, me]);
   const myMarket = useMemo(() => s.market.filter(p => p.sellerId === me), [s.market, me]);
   const isBlocked = useCallback((kind: ReportTarget, id: string) => s.blocked.includes(`${kind}:${id}`), [s.blocked]);
@@ -351,6 +367,17 @@ export function PlatformProvider({ children }: { children: ReactNode }) {
         : { ...x, market: x.market.map(m => (m.id === id ? { ...m, status: approve ? 'published' : 'rejected' } : m)) });
     },
 
+    cartItems,
+    cartCount: cartItems.reduce((n, x) => n + x.qty, 0),
+    cartQty: id => s.cart.find(x => x.id === id)?.qty ?? 0,
+    setCartQty: (id, qty) => setS(x => {
+      const rest = x.cart.filter(l => l.id !== id);
+      if (qty <= 0) return { ...x, cart: rest };
+      const at = x.cart.findIndex(l => l.id === id);
+      const line = { id, qty: Math.min(999, Math.round(qty)) };
+      return { ...x, cart: at < 0 ? [...x.cart, line] : x.cart.map(l => (l.id === id ? line : l)) };
+    }),
+    clearCart: () => setS(x => ({ ...x, cart: [] })),
     isFav: key => s.favorites.includes(key),
     toggleFav: key => {
       const on = !s.favorites.includes(key);
