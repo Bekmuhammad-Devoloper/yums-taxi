@@ -9,7 +9,7 @@ type IconName = ComponentProps<typeof Ionicons>['name'];
 
 export type Stage = 'idea' | 'prototype' | 'mvp' | 'growth' | 'scale';
 export type Seek = 'investment' | 'partner' | 'specialist' | 'client' | 'supplier';
-export type ListingStatus = 'draft' | 'review' | 'published' | 'rejected' | 'blocked';
+export type ListingStatus = 'draft' | 'review' | 'published' | 'paused' | 'rejected' | 'blocked';
 export type ContactMethod = 'chat' | 'email' | 'phone';
 export type Plan = 'free' | 'pro' | 'business';
 
@@ -298,6 +298,7 @@ export const STATUS_META: Record<ListingStatus, { name: string; icon: IconName; 
   draft: { name: 'Qoralama', icon: 'create-outline', tone: 'muted' },
   review: { name: "Ko'rib chiqilmoqda", icon: 'hourglass-outline', tone: 'warn' },
   published: { name: 'Faol', icon: 'checkmark-circle', tone: 'ok' },
+  paused: { name: 'Nofaol', icon: 'pause-circle', tone: 'muted' },
   rejected: { name: 'Rad etilgan', icon: 'close-circle', tone: 'danger' },
   blocked: { name: 'Bloklangan', icon: 'ban', tone: 'danger' },
 };

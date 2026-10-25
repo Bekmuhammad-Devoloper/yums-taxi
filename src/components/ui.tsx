@@ -2,8 +2,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image, type ImageSource } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useState, type ComponentProps, type ReactNode } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
+import { useEffect, useState, type ComponentProps, type ReactNode } from 'react';
+import { ActivityIndicator, Animated, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type StyleProp, type TextInputProps, type TextProps, type TextStyle, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FLAGS } from '@/lib/flags';
@@ -431,6 +431,28 @@ export function Sheet({ visible, onClose, title, children, footer }: { visible: 
   );
 }
 
+/** iPhone uslubidagi yoqish/o'chirish tugmasi */
+export function IOSSwitch({ value, onChange, disabled, label }: { value: boolean; onChange: (v: boolean) => void; disabled?: boolean; label?: string }) {
+  const c = useColors();
+  const [anim] = useState(() => new Animated.Value(value ? 1 : 0));
+  useEffect(() => {
+    Animated.spring(anim, { toValue: value ? 1 : 0, useNativeDriver: false, friction: 7, tension: 90 }).start();
+  }, [value, anim]);
+  return (
+    <Pressable
+      onPress={() => { if (disabled) return; haptic.tap(); onChange(!value); }}
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value, disabled }}
+      accessibilityLabel={label}
+      hitSlop={8}
+      style={{ opacity: disabled ? 0.45 : 1 }}>
+      <Animated.View style={[styles.swTrack, { backgroundColor: anim.interpolate({ inputRange: [0, 1], outputRange: [c.surface3, '#34C759'] }) }]}>
+        <Animated.View style={[styles.swKnob, { transform: [{ translateX: anim.interpolate({ inputRange: [0, 1], outputRange: [0, 20] }) }] }]} />
+      </Animated.View>
+    </Pressable>
+  );
+}
+
 export type SheetAction = { key?: string; icon: IconName; title: string; sub?: string; color?: string; danger?: boolean; onPress: () => void };
 
 /**
@@ -507,6 +529,8 @@ const styles = StyleSheet.create({
   sheet: { borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 20, paddingTop: 10, gap: 14, maxHeight: '92%' },
   grab: { width: 42, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 2 },
   close: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  swTrack: { width: 51, height: 31, borderRadius: 16, padding: 2, justifyContent: 'center' },
+  swKnob: { width: 27, height: 27, borderRadius: 14, backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 3, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   actSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 14, paddingTop: 10, gap: 10 },
   actHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth },
   actGroup: { borderRadius: 20, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },

@@ -112,6 +112,8 @@ type Ctx = State & {
 
   saveProject: (input: ProjectInput, opts: { id?: string; submit: boolean }) => string;
   deleteProject: (id: string) => void;
+  /** Egasi faol loyihani vaqtincha yashiradi (Nofaol) yoki qayta yoqadi */
+  setProjectActive: (id: string, active: boolean) => void;
   submitProject: (id: string) => void;
   boostProject: (id: string) => 'credit' | 'paid';
   viewProject: (id: string) => void;
@@ -329,6 +331,10 @@ export function PlatformProvider({ children }: { children: ReactNode }) {
     isBlocked,
 
     saveProject,
+    setProjectActive: (id, active) => setS(x => ({
+      ...x,
+      projects: x.projects.map(p => (p.id === id && (p.status === 'published' || p.status === 'paused') ? { ...p, status: active ? 'published' : 'paused' } : p)),
+    })),
     deleteProject: id => setS(x => ({ ...x, projects: x.projects.filter(p => p.id !== id), favorites: x.favorites.filter(f => f !== 'project:' + id) })),
     submitProject,
     boostProject: id => {

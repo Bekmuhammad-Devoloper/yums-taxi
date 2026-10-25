@@ -1,9 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { Share, StyleSheet, Switch, View } from 'react-native';
+import { Share, StyleSheet, View } from 'react-native';
 
 import { toast } from '@/components/toast';
-import { Badge, Card, ListItem, Row, Screen, SectionTitle, Segmented, Txt } from '@/components/ui';
+import { IOSSwitch, Badge, Card, ListItem, Row, Screen, SectionTitle, Segmented, Txt } from '@/components/ui';
 import { confirm } from '@/lib/confirm';
 import { ago, usePlatform } from '@/lib/platform';
 import { useStore, type Role } from '@/lib/store';
@@ -42,7 +42,7 @@ export default function Security() {
             <Txt v="h3">Ikki bosqichli himoya</Txt>
             <Txt v="small" muted>Har kirishda {user?.email ? 'email' : 'SMS'} orqali qo'shimcha kod</Txt>
           </View>
-          <Switch value={p.twoFactor} onValueChange={v => { p.setTwoFactor(v); p.logEvent(v ? '2FA yoqildi' : "2FA o'chirildi"); toast(v ? 'Ikki bosqichli himoya yoqildi' : "Ikki bosqichli himoya o'chirildi", 'lock-closed'); }} trackColor={{ true: c.brand }} />
+          <IOSSwitch value={p.twoFactor} onChange={v => { p.setTwoFactor(v); p.logEvent(v ? '2FA yoqildi' : "2FA o'chirildi"); toast(v ? 'Ikki bosqichli himoya yoqildi' : "Ikki bosqichli himoya o'chirildi", 'lock-closed'); }} />
         </Row>
         <Row>
           <Ionicons name="phone-portrait-outline" size={20} color={c.muted} />

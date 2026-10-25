@@ -1,6 +1,7 @@
 import { Onest_500Medium } from '@expo-google-fonts/onest/500Medium';
 import { Onest_600SemiBold } from '@expo-google-fonts/onest/600SemiBold';
 import { Onest_700Bold } from '@expo-google-fonts/onest/700Bold';
+import { Caveat_700Bold } from '@expo-google-fonts/caveat/700Bold';
 import { Onest_800ExtraBold } from '@expo-google-fonts/onest/800ExtraBold';
 import { Unbounded_700Bold } from '@expo-google-fonts/unbounded/700Bold';
 import { useFonts } from 'expo-font';
@@ -25,7 +26,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
 
 function Root() {
   const { ready, dark, colors } = useStore();
-  const [fontsLoaded, fontError] = useFonts({ Unbounded_700Bold, Onest_500Medium, Onest_600SemiBold, Onest_700Bold, Onest_800ExtraBold });
+  const [fontsLoaded, fontError] = useFonts({ Unbounded_700Bold, Onest_500Medium, Onest_600SemiBold, Onest_700Bold, Onest_800ExtraBold, Caveat_700Bold });
   // Shrift yuklanmasa ham ilova tizim shrifti bilan ochiladi
   const loaded = ready && (fontsLoaded || !!fontError);
 

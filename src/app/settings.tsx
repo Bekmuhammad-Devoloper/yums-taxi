@@ -1,9 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Card, Flag, ListItem, Row, Screen, SectionTitle, Txt } from '@/components/ui';
+import { IOSSwitch, Card, Flag, ListItem, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { LANGS } from '@/lib/i18n';
 import { haptic, useStore, type ThemePref } from '@/lib/store';
 import { F } from '@/lib/theme';
@@ -55,7 +55,7 @@ export default function Settings() {
         {toggles.map(x => (
           <Row key={x.k}>
             <View style={{ flex: 1 }}><Txt v="h3">{x.title}</Txt><Txt v="small" muted>{x.sub}</Txt></View>
-            <Switch value={notify[x.k]} onValueChange={v => setNotify(n => ({ ...n, [x.k]: v }))} trackColor={{ true: c.brand }} />
+            <IOSSwitch value={notify[x.k]} onChange={v => setNotify(n => ({ ...n, [x.k]: v }))} />
           </Row>
         ))}
       </Card>

@@ -97,4 +97,6 @@ export const F = {
   semi: 'Onest_600SemiBold',
   bold: 'Onest_700Bold',
   heavy: 'Onest_800ExtraBold',
+  /** Qo'lyozma uslubi — loyiha nomlari uchun */
+  hand: 'Caveat_700Bold',
 };

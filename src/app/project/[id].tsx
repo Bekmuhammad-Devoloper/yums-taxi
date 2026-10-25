@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FavButton, KeyValue, Logo, ReportSheet, SectorGlyph, SectorIcon, StatusBadge } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { ActionSheet, alpha, Avatar, Badge, Button, Card, DEFAULT_AVATAR, EmptyState, FitImage, IconButton, ListItem, Row, Screen, shade, Txt, Verified } from '@/components/ui';
+import { ActionSheet, alpha, Avatar, Badge, Button, IOSSwitch, Card, DEFAULT_AVATAR, EmptyState, FitImage, IconButton, ListItem, Row, Screen, shade, Txt, Verified } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
 import { confirm } from '@/lib/confirm';
 import { coverOf } from '@/lib/covers';
@@ -57,6 +57,8 @@ export default function ProjectScreen() {
           if (p.boostCredits > 0) { p.boostProject(pr.id); toast('Loyiha TOPga chiqarildi — tarif krediti ishlatildi', 'flash'); }
           else router.push({ pathname: '/plans', params: { boost: pr.id } });
         }} />
+      ) : pr.status === 'paused' ? (
+        <Button title="Faollashtirish" icon="play" style={{ flex: 1.3 }} onPress={() => { p.setProjectActive(pr.id, true); toast('Loyiha yana katalogda', 'eye'); }} />
       ) : pr.status === 'draft' || pr.status === 'rejected' ? (
         <Button title="Yuborish" icon="send" style={{ flex: 1.3 }} onPress={() => { p.submitProject(pr.id); toast("Loyiha moderatsiyaga yuborildi", 'hourglass'); }} />
       ) : (
@@ -86,16 +88,29 @@ export default function ProjectScreen() {
       </Row>
     </Row>
   );
-  const heroTitle = (
-    <View style={{ gap: 8 }}>
-      <Row gap={6} style={{ flexWrap: 'wrap' }}>
-        {(mine || staff) && <StatusBadge status={pr.status} />}
+  const canToggle = mine && (pr.status === 'published' || pr.status === 'paused');
+  const active = pr.status === 'published';
+  /** Nom (qo'lyozma), soha va holat bitta qatorda; egasi uchun iPhone uslubidagi Faol/Nofaol tugmasi */
+  const heroLine = (onColor: boolean) => {
+    const fg = onColor ? '#fff' : c.text;
+    return (
+      <View style={styles.heroLine}>
+        <Text style={[styles.heroTitle, { color: fg }]} numberOfLines={2}>{pr.title}</Text>
+        <View style={[styles.secPill, { backgroundColor: onColor ? 'rgba(255,255,255,0.22)' : alpha(sec.color, 0.14) }]}>
+          <SectorGlyph id={sec.id} size={16} />
+          <Text style={[styles.secPillText, { color: onColor ? '#fff' : sec.color }]}>{sec.name}</Text>
+        </View>
         {pr.boosted && <Badge label="TOP" icon="flash" tone="brand" />}
-        <View style={styles.heroPill}><Text style={styles.heroPillText}>{sec.name}</Text></View>
-      </Row>
-      <Text style={styles.heroTitle}>{pr.title}</Text>
-    </View>
-  );
+        <View style={{ flex: 1 }} />
+        {canToggle ? (
+          <View style={styles.toggle}>
+            <Text style={[styles.toggleText, { color: active ? (onColor ? '#fff' : c.ok) : (onColor ? 'rgba(255,255,255,0.75)' : c.muted) }]}>{active ? 'Faol' : 'Nofaol'}</Text>
+            <IOSSwitch value={active} label="Loyiha faolligi" onChange={v => { p.setProjectActive(pr.id, v); toast(v ? 'Loyiha yana katalogda' : 'Loyiha vaqtincha yashirildi', v ? 'eye' : 'eye-off'); }} />
+          </View>
+        ) : (mine || staff) ? <StatusBadge status={pr.status} /> : null}
+      </View>
+    );
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -105,24 +120,14 @@ export default function ProjectScreen() {
             {/* tugmalar rasm ustida emas — alohida qatorda; banner to'liq, yozuvsiz ko'rinadi */}
             {heroButtons}
             <FitImage source={cover} style={[styles.coverBox, { aspectRatio: coverRatio }]} label={pr.title} onAspect={r => setCoverRatio(Math.min(3, Math.max(1.2, r)))} />
-            <View style={{ gap: 8, paddingHorizontal: 2 }}>
-              <Row gap={6} style={{ flexWrap: 'wrap' }}>
-                {(mine || staff) && <StatusBadge status={pr.status} />}
-                {pr.boosted && <Badge label="TOP" icon="flash" tone="brand" />}
-                <View style={[styles.secPill, { backgroundColor: alpha(sec.color, 0.14) }]}>
-                  <SectorGlyph id={sec.id} size={16} />
-                  <Text style={[styles.secPillText, { color: sec.color }]}>{sec.name}</Text>
-                </View>
-              </Row>
-              <Text style={[styles.heroTitle, { color: c.text }]}>{pr.title}</Text>
-            </View>
+            {heroLine(false)}
           </View>
         ) : (
           <View style={[styles.hero, { backgroundColor: sec.color, paddingTop: insets.top + 8 }]}>
             <LinearGradient colors={[sec.color, shade(sec.color, 0.6)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
             <Ionicons name={sec.icon} size={190} color="rgba(255,255,255,0.1)" style={{ position: 'absolute', right: -30, bottom: -40 }} />
             {heroButtons}
-            <View style={{ marginTop: 28 }}>{heroTitle}</View>
+            <View style={{ marginTop: 28 }}>{heroLine(true)}</View>
           </View>
         )}
 
@@ -271,7 +276,11 @@ const styles = StyleSheet.create({
   secPillText: { fontFamily: F.heavy, fontSize: 11.5 },
   heroPill: { backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8 },
   heroPillText: { color: '#fff', fontFamily: F.heavy, fontSize: 11.5 },
-  heroTitle: { color: '#fff', fontSize: 23, fontFamily: F.display, letterSpacing: -0.7, lineHeight: 29 },
+  heroLine: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', columnGap: 10, rowGap: 6 },
+  // Caveat harflari o'ngga qiyshaygan — oxirgi harf kesilmasligi uchun paddingRight
+  heroTitle: { color: '#fff', fontSize: 34, fontFamily: F.hand, lineHeight: 38, flexShrink: 1, paddingRight: 6 },
+  toggle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  toggleText: { fontFamily: F.bold, fontSize: 13 },
   favWrap: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   alert: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: radius.m },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 12, paddingHorizontal: 16, borderTopWidth: StyleSheet.hairlineWidth },
