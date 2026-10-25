@@ -1,43 +1,44 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Avatar, Card, Chip, Divider, IOSSwitch, ListItem, Row, Screen, Txt } from '@/components/ui';
+import { toast } from '@/components/toast';
+import { Avatar, Card, Divider, IOSSwitch, Row, Screen, Txt } from '@/components/ui';
 import { useDriver } from '@/driver/lib/driver-store';
 import { TARIFF_ART } from '@/lib/cars';
-import { confirm } from '@/lib/confirm';
 import { TARIFFS } from '@/lib/data';
-import { DISPATCH_URL } from '@/lib/dispatch';
 import { fmtDate } from '@/lib/format';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
 
+const DOCS = [
+  { icon: 'card' as const, title: 'Haydovchilik guvohnomasi', sub: 'B, C toifalari' },
+  { icon: 'document-text' as const, title: 'Texnik pasport', sub: 'Avtomobil ro\'yxatdan o\'tgan' },
+  { icon: 'ribbon' as const, title: 'Taksi litsenziyasi', sub: "O'zbekiston Respublikasi" },
+  { icon: 'shield-checkmark' as const, title: "OSAGO sug'urtasi", sub: 'Amal qiladi' },
+];
+
 export default function Profile() {
-  const { colors: c, dark, setTheme } = useStore();
+  const { colors: c } = useStore();
   const d = useDriver();
   const p = d.profile;
   if (!p) return null;
-  const toggle = (id: string) => {
-    const on = p.tariffs.includes(id);
-    if (on && p.tariffs.length === 1) return;
-    d.updateProfile({ tariffs: on ? p.tariffs.filter(x => x !== id) : [...p.tariffs, id] });
+  const toggle = (id: string, on: boolean) => {
+    if (!on && p.tariffs.length === 1) { toast('Kamida bitta tarif yoqilgan bo\'lishi kerak', 'alert-circle'); return; }
+    d.updateProfile({ tariffs: on ? [...p.tariffs, id] : p.tariffs.filter(x => x !== id) });
   };
 
   return (
-    <Screen title="Profil">
-      <Card style={{ alignItems: 'center', gap: 8, paddingVertical: 22 }}>
-        <Avatar name={p.name} size={76} />
+    <Screen title="Avtomobil va hujjatlar">
+      <Card style={{ alignItems: 'center', gap: 6, paddingVertical: 20 }}>
+        <Avatar name={p.name} size={72} />
         <Txt v="h2">{p.name}</Txt>
-        <Txt v="small" muted>{p.phone} · {p.city}</Txt>
-        <Row gap={18} style={{ marginTop: 6 }}>
-          <View style={{ alignItems: 'center' }}><Txt v="h3">★ {p.rating.toFixed(2)}</Txt><Txt v="tiny" muted>Reyting</Txt></View>
-          <View style={{ alignItems: 'center' }}><Txt v="h3">{p.trips}</Txt><Txt v="tiny" muted>Safarlar</Txt></View>
-          <View style={{ alignItems: 'center' }}><Txt v="h3">{fmtDate(p.joinedAt).split(',')[0]}</Txt><Txt v="tiny" muted>YUMSda</Txt></View>
-        </Row>
+        <Txt v="small" muted>{p.phone} · {p.city} · YUMSda {fmtDate(p.joinedAt).split(',')[0]} dan</Txt>
       </Card>
 
       <Card style={{ gap: 12 }}>
         <Row>
-          <Image source={TARIFF_ART[p.tariffs[0]] ?? TARIFF_ART.start} style={{ width: 92, height: 48 }} contentFit="contain" />
+          <Image source={TARIFF_ART[p.tariffs[0]] ?? TARIFF_ART.start} style={{ width: 100, height: 52 }} contentFit="contain" />
           <View style={{ flex: 1 }}>
             <Txt v="h3">{p.car}</Txt>
             <Txt v="small" muted>{p.color}</Txt>
@@ -47,37 +48,41 @@ export default function Profile() {
           <Text style={[styles.plateText, { color: c.text }]}>{p.plate}</Text>
           <View style={styles.uz}><Text style={styles.uzText}>UZ</Text></View>
         </View>
-        <Divider />
-        <Txt v="small" muted style={{ fontFamily: F.bold }}>Tariflar</Txt>
-        <Row gap={8} style={{ flexWrap: 'wrap' }}>{TARIFFS.map(t => <Chip key={t.id} label={t.name} active={p.tariffs.includes(t.id)} onPress={() => toggle(t.id)} />)}</Row>
       </Card>
 
       <Card style={{ gap: 4 }}>
-        <Row style={{ paddingVertical: 8 }}>
-          <View style={{ flex: 1 }}>
-            <Txt v="h3">Demo harakat</Txt>
-            <Txt v="small" muted>GPS o'rniga mashina marshrut bo'ylab o'zi yuradi</Txt>
+        <Txt v="h3" style={{ marginBottom: 4 }}>Tariflar</Txt>
+        {TARIFFS.map((t, i) => (
+          <View key={t.id}>
+            {i > 0 && <Divider />}
+            <Row style={{ paddingVertical: 8 }}>
+              <Image source={TARIFF_ART[t.id]} style={{ width: 56, height: 30 }} contentFit="contain" />
+              <View style={{ flex: 1 }}>
+                <Txt v="h3">{t.name}</Txt>
+                <Txt v="tiny" muted>{t.desc}</Txt>
+              </View>
+              <IOSSwitch value={p.tariffs.includes(t.id)} onChange={v => toggle(t.id, v)} label={t.name} />
+            </Row>
           </View>
-          <IOSSwitch value={d.autopilot} onChange={d.setAutopilot} label="Demo harakat" />
-        </Row>
-        <Divider />
-        <Row style={{ paddingVertical: 8 }}>
-          <View style={{ flex: 1 }}>
-            <Txt v="h3">Tungi rejim</Txt>
-            <Txt v="small" muted>Kechasi ko'zni charchatmaydi</Txt>
-          </View>
-          <IOSSwitch value={dark} onChange={v => setTheme(v ? 'dark' : 'light')} label="Tungi rejim" />
-        </Row>
+        ))}
       </Card>
 
-      <Card style={{ gap: 6 }}>
-        <Txt v="h3">YUMS bilan bog'lanish</Txt>
-        <Txt v="small" muted>
-          {DISPATCH_URL ? `Dispetcher: ${DISPATCH_URL} · ${d.live ? 'ulangan' : 'ulanmoqda…'}` : 'Dispetcher serveri sozlanmagan — demo buyurtmalar ishlatilmoqda. EXPO_PUBLIC_DISPATCH_URL ni bering.'}
-        </Txt>
+      <Card style={{ gap: 4 }}>
+        <Txt v="h3" style={{ marginBottom: 4 }}>Hujjatlar</Txt>
+        {DOCS.map((doc, i) => (
+          <View key={doc.title}>
+            {i > 0 && <Divider />}
+            <Row style={{ paddingVertical: 10 }}>
+              <View style={[styles.docIcon, { backgroundColor: c.surface2 }]}><Ionicons name={doc.icon} size={18} color={c.text} /></View>
+              <View style={{ flex: 1 }}>
+                <Txt v="h3">{doc.title}</Txt>
+                <Txt v="tiny" muted>{doc.sub}</Txt>
+              </View>
+              <View style={[styles.ok, { backgroundColor: c.okSoft }]}><Ionicons name="checkmark-circle" size={14} color={c.ok} /><Txt v="tiny" color={c.ok}>Tasdiqlangan</Txt></View>
+            </Row>
+          </View>
+        ))}
       </Card>
-
-      <ListItem icon="log-out-outline" title="Chiqish" danger onPress={() => confirm('Hisobdan chiqasizmi?', "Daromad tarixi qurilmada saqlanib qoladi.", d.logout, 'Chiqish')} />
     </Screen>
   );
 }
@@ -87,4 +92,6 @@ const styles = StyleSheet.create({
   plateText: { fontFamily: F.heavy, fontSize: 20, letterSpacing: 2, paddingVertical: 4, paddingRight: 10 },
   uz: { backgroundColor: '#1E88E5', alignSelf: 'stretch', justifyContent: 'center', paddingHorizontal: 6 },
   uzText: { color: '#fff', fontFamily: F.heavy, fontSize: 11 },
+  docIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  ok: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 99 },
 });

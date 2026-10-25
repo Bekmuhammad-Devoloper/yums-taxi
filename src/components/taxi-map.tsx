@@ -1,8 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { useImperativeHandle, useMemo, useRef, type Ref } from 'react';
-import { StyleSheet, View } from 'react-native';
-import MapView, { Circle, Marker, Polyline, type Region } from 'react-native-maps';
+import { StyleSheet, Text, View } from 'react-native';
+import MapView, { Circle, Marker, Polygon, Polyline, type Region } from 'react-native-maps';
 
 import { CAR_TOP } from '@/lib/cars';
 import type { LatLng } from '@/lib/data';
@@ -38,12 +38,18 @@ export type TaxiMapProps = {
   userPos?: (LatLng & { accuracy?: number }) | null;
   /** Dispetcher serveridan kelgan haqiqiy bo'sh haydovchilar — berilsa namunaviy mashinalar o'rniga ko'rsatiladi */
   fleet?: { id: string; pos: LatLng; heading: number }[];
+  /** Haydovchi mashinasining yo'nalishi (berilmasa marshrutdan hisoblanadi) */
+  driverHeading?: number;
+  /** Talab xaritasi kataklari (haydovchi ilovasi) */
+  zones?: { id: string; center: LatLng; ring: LatLng[]; level: 1 | 2 | 3; surge: number }[];
 };
+
+const ZONE_FILL: Record<1 | 2 | 3, string> = { 1: '#FFD23F', 2: '#FF9A1F', 3: '#FF4D2E' };
 
 const DELTA = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
 
 export default function TaxiMap(props: TaxiMapProps) {
-  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching, bottomPad, topPad, onCenterChange, onDragStart, locationGranted, fleet } = props;
+  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching, bottomPad, topPad, onCenterChange, onDragStart, locationGranted, fleet, driverHeading, zones } = props;
   const { colors: c, dark } = useStore();
   const map = useRef<MapView>(null);
 
@@ -66,6 +72,7 @@ export default function TaxiMap(props: TaxiMapProps) {
   }, [initial]);
 
   const heading = useMemo(() => {
+    if (driverHeading != null) return driverHeading;
     if (!driverPos || !driverPath || driverPath.length < 2) return 0;
     let best = 0, bestD = Infinity;
     driverPath.forEach((p, i) => {
@@ -74,7 +81,7 @@ export default function TaxiMap(props: TaxiMapProps) {
     });
     const i = Math.min(best, driverPath.length - 2);
     return bearing(driverPath[i], driverPath[i + 1]);
-  }, [driverPos, driverPath]);
+  }, [driverPos, driverPath, driverHeading]);
 
   return (
     <MapView
@@ -91,6 +98,14 @@ export default function TaxiMap(props: TaxiMapProps) {
       mapPadding={{ top: topPad, right: 0, bottom: bottomPad, left: 0 }}
       onPanDrag={onDragStart}
       onRegionChangeComplete={(r: Region) => onCenterChange?.({ latitude: r.latitude, longitude: r.longitude })}>
+      {zones?.map(z => (
+        <Polygon key={z.id} coordinates={z.ring} fillColor={ZONE_FILL[z.level] + (z.level === 3 ? '55' : z.level === 2 ? '44' : '33')} strokeColor={ZONE_FILL[z.level] + '99'} strokeWidth={1} tappable={false} />
+      ))}
+      {zones?.filter(z => z.level >= 2).map(z => (
+        <Marker key={'l' + z.id} coordinate={z.center} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
+          <View style={[styles.surge, { backgroundColor: ZONE_FILL[z.level] }]}><Text style={styles.surgeText}>×{z.surge.toFixed(1)}</Text></View>
+        </Marker>
+      ))}
       {showNearby && fleet?.map(f => (
         <Marker key={f.id} coordinate={f.pos} anchor={{ x: 0.5, y: 0.5 }} flat rotation={f.heading} tracksViewChanges={false}>
           <Image source={CAR_TOP.taxi} style={styles.car} contentFit="contain" />
@@ -138,4 +153,6 @@ const styles = StyleSheet.create({
   flag: { width: 30, height: 30, borderRadius: 10, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   stick: { width: 3, height: 10, borderRadius: 2 },
   driver: { width: 28, height: 50 },
+  surge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
+  surgeText: { color: '#1A1205', fontSize: 11, fontWeight: '800' },
 });

@@ -80,7 +80,16 @@ YUMS (yo'lovchi)  ──order──▶  dispetcher (server/dispatch.mjs)  ──
 - Haydovchi qabul qilsa yo'lovchi ilovasida uning ismi, mashinasi, davlat raqami va xaritada jonli harakati ko'rinadi.
 - «Yetib keldim», «Safarni boshlash», «Yakunlash» bosqichlari yo'lovchiga darhol yetadi; yo'lovchining bahosi va choy puli haydovchiga qaytadi.
 - Yo'lovchi xaritasida liniyadagi haqiqiy bo'sh mashinalar ko'rsatiladi.
-- Haydovchi ilovasida: ro'yxatdan o'tish (telefon, mashina, rang, davlat raqami, tariflar), Liniyada/emas tugmasi, taklif kartasi (narx, masofa, to'lov, izoh, taymer), navigator, qo'ng'iroq, kutish taymeri, daromad (kunlik / 7 kun, komissiya, naqd/karta, diagramma), profil.
+- Haydovchi ilovasi (Yandex Pro uslubida):
+  - **Talab xaritasi** — olti burchakli kataklar va koeffitsientlar (×1.2 / ×1.4 / ×1.8); yuqori talab hududida buyurtma tezroq va qimmatroq keladi.
+  - **Liniyaga chiqish** katta tugmasi va vidjetlar: faollik, bugungi daromad, liniyadagi vaqt, reyting, «Uyga» rejimi (kuniga 2 marta), tariflar.
+  - **Buyurtma taklifi** — narx, koeffitsient, mijozgacha va safar vaqti/masofasi, to'lov turi; «Qabul qilish» tugmasi ichida 15 soniyalik taymer.
+  - **Faollik** — qabul qilish +2, rad etish / o'tkazib yuborish −5, bekor qilish −10; past faollikda buyurtmalar kamayadi.
+  - **Ichki navigator** — keyingi burilish, masofa, yetib borish vaqti; Yandex Navigator yoki Google Maps'da ochish.
+  - Surib tasdiqlanadigan tugmalar: «Yetib keldim», «Safarni boshlash», «Yakunlash».
+  - **Kutish**: 3 daqiqa bepul, keyin daqiqasiga 500 so'm; taksometr.
+  - **Safar yakuni** — «Naqd oling» / «Kartadan to'landi», komissiya va sof daromad, yo'lovchini baholash.
+  - **Balans va pul yechish** (karta safarlari tushadi, naqd safarlar komissiyasi yechiladi), daromad (kun / 7 / 30 kun), faollik va reyting, avtomobil va hujjatlar, sozlamalar.
 
 Ishga tushirish (uchta terminal, kompyuter IP manzilini qo'ying):
 

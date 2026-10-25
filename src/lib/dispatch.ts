@@ -15,6 +15,8 @@ export type OrderOffer = {
   route: { km: number; min: number; coords: LatLng[] };
   tariffId: string;
   price: number;
+  /** Yuqori talab koeffitsienti (×1.4 va h.k.), narxga allaqachon qo'shilgan */
+  surge?: number;
   payment: PaymentId;
   options: string[];
   comment: string;

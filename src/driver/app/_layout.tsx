@@ -42,8 +42,11 @@ function Root() {
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'slide_from_right' }}>
           <Stack.Protected guard={!!d.profile}>
             <Stack.Screen name="index" options={{ animation: 'fade' }} />
+            <Stack.Screen name="menu" options={{ animation: 'slide_from_left' }} />
             <Stack.Screen name="earnings" />
+            <Stack.Screen name="quality" />
             <Stack.Screen name="profile" />
+            <Stack.Screen name="settings" />
           </Stack.Protected>
           <Stack.Protected guard={!d.profile}>
             <Stack.Screen name="register" options={{ animation: 'fade', gestureEnabled: false }} />

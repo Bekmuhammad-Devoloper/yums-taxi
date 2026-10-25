@@ -199,6 +199,7 @@ const CSS = `
 .ym-car{width:100%;height:100%;display:block;transition:transform .6s ease}
 .ym-glide{transition:transform .45s linear}
 .ym-zooming .ym-glide{transition:none}
+.ym-surge{font:800 11px/20px Onest_800ExtraBold,system-ui,sans-serif;color:#1A1205;text-align:center;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
 .ym-flow{stroke-dasharray:2 14;animation:ym-flow 1s linear infinite}
 @keyframes ym-flow{to{stroke-dashoffset:-16}}
 @keyframes ym-pulse{from{transform:scale(.5);opacity:1}to{transform:scale(1.4);opacity:0}}
@@ -214,6 +215,10 @@ function addCss() {
 }
 
 const FLAG_SVG = '<svg width="14" height="14" viewBox="0 0 24 24"><path fill="#0E1525" d="M5 21V4h9l.4 2H20v10h-7l-.4-2H7v7z"/></svg>';
+
+const ZONE_FILL: Record<1 | 2 | 3, string> = { 1: '#FFD23F', 2: '#FF9A1F', 3: '#FF4D2E' };
+const zoneLabel = (surge: number, level: 1 | 2 | 3) =>
+  L.divIcon({ className: 'ym-icon', html: `<div class="ym-surge" style="background:${ZONE_FILL[level]}">×${surge.toFixed(1)}</div>`, iconSize: [40, 20], iconAnchor: [20, 10] });
 
 const pickupIcon = (radar: boolean) =>
   L.divIcon({ className: 'ym-icon', html: `<div class="ym-pick${radar ? ' ym-radar' : ''}"></div>`, iconSize: [22, 22], iconAnchor: [11, 11] });
@@ -258,11 +263,11 @@ function drawIn(line: L.Polyline) {
 /* ---------- Xarita ---------- */
 
 export default function TaxiMap(props: TaxiMapProps) {
-  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching = false, bottomPad, topPad, overlayBottom = 0, onCenterChange, onDragStart, userPos, fleet } = props;
+  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching = false, bottomPad, topPad, overlayBottom = 0, onCenterChange, onDragStart, userPos, fleet, driverHeading, zones } = props;
   const { dark } = useStore();
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
-  const layers = useRef<{ pickup?: L.Marker; dest?: L.Marker; driver?: L.Marker; route?: L.LayerGroup; approach?: L.Polyline; nearby: L.Marker[]; fleet: Map<string, L.Marker>; me?: L.Marker; meAcc?: L.Circle }>({ nearby: [], fleet: new Map() });
+  const layers = useRef<{ pickup?: L.Marker; dest?: L.Marker; driver?: L.Marker; route?: L.LayerGroup; approach?: L.Polyline; nearby: L.Marker[]; fleet: Map<string, L.Marker>; zones?: L.LayerGroup; me?: L.Marker; meAcc?: L.Circle }>({ nearby: [], fleet: new Map() });
   const cb = useRef({ onCenterChange, onDragStart });
   const pads = useRef({ topPad, bottomPad });
   const [offline, setOffline] = useState(false);
@@ -316,6 +321,12 @@ export default function TaxiMap(props: TaxiMapProps) {
     m.on('moveend', () => { const c = m.getCenter(); cb.current.onCenterChange?.({ latitude: c.lat, longitude: c.lng }); });
     m.on('zoomstart', () => el.classList.add('ym-zooming'));
     m.on('zoomend', () => setTimeout(() => el.classList.remove('ym-zooming'), 50));
+    // talab kataklari marshrut va belgilar ostida
+    const zp = m.createPane('ym-zones');
+    zp.style.zIndex = '350';
+    const zl = m.createPane('ym-zone-labels');
+    zl.style.zIndex = '450';
+    zl.style.pointerEvents = 'none';
     map.current = m;
     const ro = new ResizeObserver(() => {
       m.invalidateSize();
@@ -425,8 +436,8 @@ export default function TaxiMap(props: TaxiMapProps) {
     const m = map.current, l = layers.current;
     if (!m) return;
     if (!driverPos) { l.driver?.remove(); l.driver = undefined; return; }
-    let heading = 0;
-    if (driverPath && driverPath.length > 1) {
+    let heading = driverHeading ?? 0;
+    if (driverHeading == null && driverPath && driverPath.length > 1) {
       let best = 0, bestD = Infinity;
       driverPath.forEach((p, i) => {
         const d = (p.latitude - driverPos.latitude) ** 2 + (p.longitude - driverPos.longitude) ** 2;
@@ -437,7 +448,21 @@ export default function TaxiMap(props: TaxiMapProps) {
     }
     if (!l.driver) l.driver = L.marker(ll(driverPos), { icon: carIcon('taxi', heading, 28), interactive: false, keyboard: false, zIndexOffset: 1000 }).addTo(m);
     else { l.driver.setLatLng(ll(driverPos)); setRot(l.driver, heading); }
-  }, [driverPos, driverPath]);
+  }, [driverPos, driverPath, driverHeading]);
+
+  // Talab xaritasi (haydovchi ilovasi): rangli olti burchakli kataklar va koeffitsientlar
+  useEffect(() => {
+    const m = map.current, l = layers.current;
+    if (!m) return;
+    l.zones?.remove();
+    l.zones = undefined;
+    if (!zones?.length) return;
+    const items: L.Layer[] = zones.map(z => L.polygon(z.ring.map(ll), {
+      pane: 'ym-zones', color: ZONE_FILL[z.level], weight: 1, opacity: 0.55, fillColor: ZONE_FILL[z.level], fillOpacity: z.level === 3 ? 0.34 : z.level === 2 ? 0.26 : 0.17, interactive: false,
+    }));
+    zones.filter(z => z.level >= 2).forEach(z => items.push(L.marker(ll(z.center), { icon: zoneLabel(z.surge, z.level), pane: 'ym-zone-labels', interactive: false, keyboard: false })));
+    l.zones = L.layerGroup(items).addTo(m);
+  }, [zones]);
 
   // Atrofdagi mashinalar
   useEffect(() => {
