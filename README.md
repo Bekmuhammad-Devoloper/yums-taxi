@@ -87,8 +87,10 @@ Ishga tushirish (uchta terminal, kompyuter IP manzilini qo'ying):
 ```bash
 npm run dispatch                                                   # server: ws://0.0.0.0:8787
 EXPO_PUBLIC_DISPATCH_URL=ws://192.168.1.10:8787 npx expo start     # YUMS (yo'lovchi)
-EXPO_PUBLIC_DISPATCH_URL=ws://192.168.1.10:8787 npm run driver -- --port 8082   # YUMS Driver
+EXPO_PUBLIC_DISPATCH_URL=ws://192.168.1.10:8787 npm run driver               # YUMS Driver (port 8082)
 ```
+
+Faqat haydovchi ilovasini demo rejimda ko'rish: `npm run driver` (telefonda Expo Go bilan QR-kodni skanerlang) yoki brauzerda `npm run driver:web`. Windows'da ham shu buyruqlar ishlaydi; `EXPO_PUBLIC_DISPATCH_URL` ni PowerShell'da `$env:EXPO_PUBLIC_DISPATCH_URL="ws://..."` bilan bering.
 
 `EXPO_PUBLIC_DISPATCH_URL` berilmasa ikkala ilova ham demo rejimda ishlaydi: yo'lovchiga virtual haydovchi, haydovchiga sinov buyurtmalari keladi. Haydovchi ilovasida «Demo harakat» yoqilsa mashina marshrut bo'ylab o'zi yuradi (GPS o'rniga).
 

@@ -272,24 +272,34 @@ export default function TaxiMap(props: TaxiMapProps) {
   useEffect(() => { cb.current = { onCenterChange, onDragStart }; }, [onCenterChange, onDragStart]);
   useEffect(() => { pads.current = { topPad, bottomPad }; }, [topPad, bottomPad]);
 
+  // Yashirin ekranda (masalan, boshqa sahifa ochiq) xarita o'lchami 0 bo'ladi — Leaflet animatsiyasi NaN beradi.
+  // Bunday paytda amal eslab qolinadi va xarita qayta ko'ringanda animatsiyasiz bajariladi.
+  const pending = useRef<((m: L.Map, animate: boolean) => void) | null>(null);
+  const run = (op: (m: L.Map, animate: boolean) => void) => {
+    const m = map.current;
+    if (!m) return;
+    const size = m.getSize();
+    if (!size.x || !size.y) { pending.current = op; return; }
+    pending.current = null;
+    op(m, true);
+  };
+
   useImperativeHandle(ref, () => ({
-    center: (p, zoomed = true) => {
-      const m = map.current;
-      if (!m) return;
+    center: (p, zoomed = true) => run((m, animate) => {
       const z = zoomed ? 16 : 15;
       // Yuqori/pastki panellar hisobga olinadi: nuqta ko'rinadigan maydon markaziga tushadi
       const shift = (pads.current.bottomPad - pads.current.topPad) / 2;
       const target = m.unproject(m.project(ll(p), z).add([0, shift]), z);
-      m.flyTo(target, z, { duration: 0.6 });
-    },
+      if (animate) m.flyTo(target, z, { duration: 0.6 });
+      else m.setView(target, z, { animate: false });
+    }),
     fit: pts => {
-      const m = map.current;
-      if (!m || !pts.length) return;
-      m.flyToBounds(L.latLngBounds(pts.map(ll)), {
-        paddingTopLeft: [48, pads.current.topPad + 40],
-        paddingBottomRight: [48, pads.current.bottomPad + 40],
-        duration: 0.7,
-        maxZoom: 16,
+      if (!pts.length) return;
+      run((m, animate) => {
+        const bounds = L.latLngBounds(pts.map(ll));
+        const opts = { paddingTopLeft: L.point(48, pads.current.topPad + 40), paddingBottomRight: L.point(48, pads.current.bottomPad + 40), maxZoom: 16 };
+        if (animate) m.flyToBounds(bounds, { ...opts, duration: 0.7 });
+        else m.fitBounds(bounds, { ...opts, animate: false });
       });
     },
   }), []);
@@ -307,7 +317,11 @@ export default function TaxiMap(props: TaxiMapProps) {
     m.on('zoomstart', () => el.classList.add('ym-zooming'));
     m.on('zoomend', () => setTimeout(() => el.classList.remove('ym-zooming'), 50));
     map.current = m;
-    const ro = new ResizeObserver(() => m.invalidateSize());
+    const ro = new ResizeObserver(() => {
+      m.invalidateSize();
+      const size = m.getSize();
+      if (pending.current && size.x && size.y) { const op = pending.current; pending.current = null; op(m, false); }
+    });
     ro.observe(el);
     return () => { ro.disconnect(); m.remove(); map.current = null; };
     // xarita bir marta yaratiladi
