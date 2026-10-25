@@ -9,7 +9,6 @@ import { REPORT_REASONS, type Conversation, SEED_SPECIALISTS, SEEKS, STAGES, STA
 import { coverOf, AD_BANNER } from '@/lib/covers';
 import { budget, countryOf, sectorOf, short, usePlatform } from '@/lib/platform';
 import { SECTION_ART, SECTION_ART_SCALE } from '@/lib/section-art';
-import { PEOPLE_ART } from '@/lib/people-art';
 import { SECTOR_ART } from '@/lib/sector-art';
 import { COMPANY_LOGOS } from '@/lib/company-logos';
 import { haptic, useStore } from '@/lib/store';
@@ -41,17 +40,18 @@ function ArtTile({ art, color, size, scale = 0.8 }: { art: number; color: string
   );
 }
 
-/** Mutaxassis portreti: soha rangidagi yumshoq fonda 3D portret, bo'lmasa bosh harflar */
-export function SpecialistAvatar({ sp, size = 52 }: { sp: Pick<Specialist, 'id' | 'name' | 'sector'>; size?: number }) {
-  const color = sectorOf(sp.sector).color;
-  const art = PEOPLE_ART[sp.id];
-  if (!art) return <Avatar name={sp.name} size={size} bg={color} />;
+const DEFAULT_PRO = { m: require('@/assets/people/default-m.webp'), f: require('@/assets/people/default-f.webp') };
+
+/** Mutaxassis rasmi: yuklangan surat, bo'lmasa jinsiga mos standart avatar */
+export function SpecialistAvatar({ sp, size = 52 }: { sp: Pick<Specialist, 'id' | 'name' | 'photo' | 'gender'>; size?: number }) {
+  const { colors: c } = useStore();
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2.6, overflow: 'hidden' }}>
-      <LinearGradient colors={[alpha(color, 0.32), alpha(color, 0.12)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end' }}>
-        <Image source={art} style={{ width: size * 0.9, height: size * 0.9 }} contentFit="contain" accessibilityLabel={sp.name} />
-      </LinearGradient>
-    </View>
+    <Image
+      source={sp.photo ? { uri: sp.photo } : DEFAULT_PRO[sp.gender ?? 'm']}
+      style={{ width: size, height: size, borderRadius: size / 2.6, backgroundColor: c.surface2 }}
+      contentFit="cover"
+      accessibilityLabel={sp.name}
+    />
   );
 }
 

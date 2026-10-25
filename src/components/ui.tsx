@@ -305,9 +305,11 @@ export function Badge({ label, tone = 'muted', icon, style }: { label: string; t
 }
 
 /** Tasdiqlangan profil belgisi — faqat tekshiruvdan keyin beriladi */
+const VERIFIED = require('@/assets/images/verified.png');
+
+/** Tasdiqlangan belgisi — Instagram uslubidagi ko'k to'lqinsimon nishon */
 export function Verified({ size = 15 }: { size?: number }) {
-  const c = useColors();
-  return <Ionicons name="checkmark-circle" size={size} color={c.accent} accessibilityLabel="Tasdiqlangan" />;
+  return <Image source={VERIFIED} style={{ width: size + 1, height: size + 1 }} contentFit="contain" accessibilityLabel="Tasdiqlangan" />;
 }
 
 export function Field({ label, hint, error, style, inputStyle, prefix, ...rest }: TextInputProps & { label?: string; hint?: string; error?: string; prefix?: string; inputStyle?: StyleProp<TextStyle> }) {
