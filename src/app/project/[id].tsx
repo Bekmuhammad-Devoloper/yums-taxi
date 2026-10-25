@@ -5,9 +5,9 @@ import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { FavButton, KeyValue, Logo, ReportSheet, StatusBadge } from '@/components/platform-ui';
+import { FavButton, KeyValue, Logo, ReportSheet, SectorGlyph, StatusBadge } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { Avatar, Badge, Button, Card, DEFAULT_AVATAR, EmptyState, FitImage, IconButton, ListItem, Row, Screen, shade, Sheet, Txt, Verified } from '@/components/ui';
+import { alpha, Avatar, Badge, Button, Card, DEFAULT_AVATAR, EmptyState, FitImage, IconButton, ListItem, Row, Screen, shade, Sheet, Txt, Verified } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
 import { confirm } from '@/lib/confirm';
 import { coverOf } from '@/lib/covers';
@@ -101,16 +101,20 @@ export default function ProjectScreen() {
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 110 }}>
         {cover ? (
-          <View style={{ backgroundColor: '#0B0F17', paddingTop: insets.top }}>
-            {/* banner to'liq ko'rinadi — ustiga yozuv qo'yilmaydi */}
-            <View style={[styles.coverBox, { aspectRatio: coverRatio }]}>
-              <FitImage source={cover} style={StyleSheet.absoluteFill} label={pr.title} onAspect={r => setCoverRatio(Math.min(3, Math.max(1.2, r)))} />
-              <LinearGradient colors={['rgba(0,0,0,0.35)', 'rgba(0,0,0,0)']} style={styles.coverShade} />
-              <View style={styles.coverBar}>{heroButtons}</View>
-            </View>
-            <View style={[styles.hero, { paddingTop: 16 }]}>
-              <LinearGradient colors={[sec.color, shade(sec.color, 0.6)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-              {heroTitle}
+          <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 16, gap: 12 }}>
+            {/* tugmalar rasm ustida emas — alohida qatorda; banner to'liq, yozuvsiz ko'rinadi */}
+            {heroButtons}
+            <FitImage source={cover} style={[styles.coverBox, { aspectRatio: coverRatio }]} label={pr.title} onAspect={r => setCoverRatio(Math.min(3, Math.max(1.2, r)))} />
+            <View style={{ gap: 8, paddingHorizontal: 2 }}>
+              <Row gap={6} style={{ flexWrap: 'wrap' }}>
+                {(mine || staff) && <StatusBadge status={pr.status} />}
+                {pr.boosted && <Badge label="TOP" icon="flash" tone="brand" />}
+                <View style={[styles.secPill, { backgroundColor: alpha(sec.color, 0.14) }]}>
+                  <SectorGlyph id={sec.id} size={16} />
+                  <Text style={[styles.secPillText, { color: sec.color }]}>{sec.name}</Text>
+                </View>
+              </Row>
+              <Text style={[styles.heroTitle, { color: c.text }]}>{pr.title}</Text>
             </View>
           </View>
         ) : (
@@ -122,7 +126,7 @@ export default function ProjectScreen() {
           </View>
         )}
 
-        <View style={{ padding: 16, gap: 14, marginTop: -18 }}>
+        <View style={{ padding: 16, gap: 14, marginTop: cover ? 0 : -18 }}>
           <Card style={{ gap: 12 }}>
             <Pressable disabled={!company} onPress={() => company && router.push({ pathname: '/company/[id]', params: { id: company.id } })}>
               <Row>
@@ -244,9 +248,9 @@ export default function ProjectScreen() {
 const styles = StyleSheet.create({
   hero: { paddingHorizontal: 16, paddingBottom: 40, overflow: 'hidden' },
   // balandlik rasmning o'z nisbatiga moslanadi (1.2–3), banner to'liq ko'rinadi
-  coverBox: { width: '100%', maxHeight: 460 },
-  coverShade: { position: 'absolute', left: 0, right: 0, top: 0, height: 80 },
-  coverBar: { position: 'absolute', left: 16, right: 16, top: 8 },
+  coverBox: { width: '100%', maxHeight: 460, borderRadius: radius.l },
+  secPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingLeft: 6, paddingRight: 9, paddingVertical: 4, borderRadius: 9 },
+  secPillText: { fontFamily: F.heavy, fontSize: 11.5 },
   heroPill: { backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8 },
   heroPillText: { color: '#fff', fontFamily: F.heavy, fontSize: 11.5 },
   heroTitle: { color: '#fff', fontSize: 23, fontFamily: F.display, letterSpacing: -0.7, lineHeight: 29 },
