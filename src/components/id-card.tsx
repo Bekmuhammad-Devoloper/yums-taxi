@@ -7,14 +7,14 @@ import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View 
 
 import { useStartChat } from '@/lib/actions';
 import { CARD_BACKS } from '@/lib/card-backs';
-import type { Specialist } from '@/lib/platform-data';
+import { LANGUAGES, type Specialist } from '@/lib/platform-data';
 import { countryOf } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
 
 import { SpecialistAvatar } from './platform-ui';
 import { toast } from './toast';
-import { BrandMark, Flag, Verified } from './ui';
+import { BrandMark, Flag, Verified, type IconName } from './ui';
 
 const ISO3: Record<string, string> = {
   UZ: 'UZB', KZ: 'KAZ', KG: 'KGZ', TJ: 'TJK', TM: 'TKM', TR: 'TUR', GE: 'GEO', AE: 'ARE', SA: 'SAU', CN: 'CHN', KR: 'KOR', JP: 'JPN', IN: 'IND', SG: 'SGP',
@@ -88,15 +88,17 @@ function IdBack({ sp, onFlip }: { sp: Specialist; onFlip: () => void }) {
   const site = sp.website?.replace(/^https?:\/\//, '').replace(/\/$/, '');
   const num = 'YM' + sp.id.replace(/\D/g, '').padStart(7, '0');
   const bars = [...(num + sp.name)].map(ch => 1 + (ch.charCodeAt(0) % 4));
+  const langs = sp.languages.map(l => LANGUAGES.find(x => x.id === l)?.name ?? l).join(', ');
+  const chat = () => { haptic.tap(); start({ peerId: sp.id, peerName: sp.name, peerKind: 'specialist', peerVerified: sp.verified }, { subject: 'YUMS ID orqali murojaat' }); };
   const go = () => {
+    if (!sp.website) return chat();
     haptic.tap();
-    if (sp.website) Linking.openURL(sp.website).catch(() => toast("Saytni ochib bo'lmadi", 'alert-circle'));
-    else start({ peerId: sp.id, peerName: sp.name, peerKind: 'specialist', peerVerified: sp.verified }, { subject: 'YUMS ID orqali murojaat' });
+    Linking.openURL(sp.website).catch(() => toast("Saytni ochib bo'lmadi", 'alert-circle'));
   };
   return (
-    <Pressable onPress={go} style={styles.back} accessibilityRole="button" accessibilityLabel={sp.website ? `Portfolio saytini ochish: ${site}` : 'YUMS chatda yozish'}>
+    <View style={styles.back}>
       {art ? <Image source={art} style={StyleSheet.absoluteFill} contentFit="cover" /> : <LinearGradient colors={BACK_THEMES[i]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
-      <LinearGradient colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.05)', 'rgba(0,0,0,0.6)']} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0.25)', 'rgba(0,0,0,0.05)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
       <View style={styles.backTop}>
         <BrandMark size={22} style={{ borderRadius: 6 }} />
         <Text style={styles.backBrand}>YUMS <Text style={{ color: '#FFC800' }}>ID</Text></Text>
@@ -104,27 +106,57 @@ function IdBack({ sp, onFlip }: { sp: Specialist; onFlip: () => void }) {
           <Ionicons name="sync-outline" size={16} color="#fff" />
         </Pressable>
       </View>
-      <View>
-        <Text style={styles.backKicker}>{sp.website ? 'PORTFOLIO' : 'YUMS CHAT'}</Text>
-        <Text style={styles.backTitle} numberOfLines={1}>{sp.website ? site : sp.name}</Text>
-        <Text style={styles.backSub} numberOfLines={1}>{sp.website ? 'Ishlari, keyslari va aloqa ma\'lumotlari' : "Sayti yo'q — to'g'ridan-to'g'ri yozing"}</Text>
-        <View style={styles.backCta}>
+      <View style={{ gap: 7 }}>
+        <View>
+          <Text style={styles.backKicker}>{sp.website ? `PORTFOLIO · ${site}` : 'YUMS CHAT ORQALI ALOQA'}</Text>
+          <Text style={styles.backTitle} numberOfLines={1}>{sp.name}</Text>
+        </View>
+        <View style={styles.statRow}>
+          <Stat icon="star" tint="#FFC800" text={`${sp.rating.toFixed(1)} (${sp.reviews})`} />
+          <Stat icon="cash-outline" text={`$${sp.rate}/soat`} />
+          <Stat icon="ribbon-outline" text={`${sp.experience} yil`} />
+          {sp.remote && <Stat icon="globe-outline" text="Masofaviy" />}
+        </View>
+        <View style={styles.skillRow}>
+          {sp.skills.slice(0, 4).map(k => <View key={k} style={styles.skill}><Text style={styles.skillText} numberOfLines={1}>{k}</Text></View>)}
+        </View>
+        <Text style={styles.backSub} numberOfLines={1}>
+          <Ionicons name="language-outline" size={12} color="rgba(255,255,255,0.8)" /> {langs}  ·  {sp.available ? "Hozir bo'sh — buyurtma qabul qiladi" : 'Hozir band'}
+        </Text>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        <Pressable onPress={go} style={({ pressed }) => [styles.backCta, { opacity: pressed ? 0.85 : 1 }]}>
           <Ionicons name={sp.website ? 'open-outline' : 'chatbubble-ellipses'} size={15} color="#0E1525" />
           <Text style={styles.backCtaText}>{sp.website ? 'Saytni ochish' : 'Chatda yozish'}</Text>
+        </Pressable>
+        {sp.website ? (
+          <Pressable onPress={chat} style={({ pressed }) => [styles.backGhost, { opacity: pressed ? 0.7 : 1 }]} accessibilityLabel="YUMS chatda yozish">
+            <Ionicons name="chatbubble-ellipses-outline" size={15} color="#fff" />
+          </Pressable>
+        ) : null}
+        <View style={{ flex: 1 }} />
+        <View style={{ alignItems: 'flex-end', gap: 3 }}>
+          <View style={styles.barcode}>
+            {bars.map((w, k) => <View key={k} style={{ width: w, height: k % 3 ? 18 : 14, backgroundColor: 'rgba(255,255,255,0.85)' }} />)}
+          </View>
+          <Text style={styles.backNum}>№ {num}</Text>
         </View>
       </View>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-        <Text style={styles.backNum}>№ {num}</Text>
-        <View style={styles.barcode}>
-          {bars.map((w, k) => <View key={k} style={{ width: w, height: k % 3 ? 26 : 20, backgroundColor: 'rgba(255,255,255,0.85)' }} />)}
-        </View>
-      </View>
-    </Pressable>
+    </View>
+  );
+}
+
+function Stat({ icon, text, tint }: { icon: IconName; text: string; tint?: string }) {
+  return (
+    <View style={styles.stat}>
+      <Ionicons name={icon} size={12} color={tint ?? 'rgba(255,255,255,0.85)'} />
+      <Text style={styles.statText}>{text}</Text>
+    </View>
   );
 }
 
 function IdFront({ sp }: { sp: Specialist }) {
-  const { colors: c, dark } = useStore();
+  const { colors: c } = useStore();
   const k = countryOf(sp.country);
   const words = sp.name.trim().split(/\s+/);
   const surname = words.length > 1 ? words[words.length - 1] : words[0];
@@ -134,13 +166,15 @@ function IdFront({ sp }: { sp: Specialist }) {
   const mrz1 = pad(`ID${iso}${latin(surname)}<<${latin(given)}`, 30);
   const mrz2 = pad(`${num}<${iso}<<${String(sp.experience).padStart(2, '0')}Y<<${sp.verified ? 'VERIFIED' : ''}`, 30);
 
-  const t = dark
-    ? { bg: ['#1C2537', '#121926', '#1A2740'] as const, ink: '#EEF1F7', label: '#8E99B3', line: 'rgba(229,193,88,0.16)', mrz: 'rgba(255,255,255,0.05)' }
-    : { bg: ['#FFF8E1', '#FFFFFF', '#EAF1FF'] as const, ink: '#14213D', label: '#6B7690', line: 'rgba(184,138,0,0.17)', mrz: 'rgba(20,33,61,0.05)' };
+  // Old tomon ham orqa tomondagi fon rasmida — matn har doim oq
+  const i = backIndex(sp.id);
+  const art = CARD_BACKS[i];
+  const t = { ink: '#FFFFFF', label: 'rgba(255,255,255,0.62)', line: 'rgba(255,214,90,0.14)', mrz: 'rgba(0,0,0,0.38)' };
 
   return (
-    <View style={[styles.card, { borderColor: dark ? 'rgba(229,193,88,0.28)' : 'rgba(184,138,0,0.25)' }]}>
-      <LinearGradient colors={t.bg} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+    <View style={[styles.card, { borderColor: 'rgba(229,193,88,0.3)' }]}>
+      {art ? <Image source={art} style={StyleSheet.absoluteFill} contentFit="cover" /> : <LinearGradient colors={BACK_THEMES[i]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
+      <LinearGradient colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.28)', 'rgba(0,0,0,0.1)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
       {/* Himoya naqshi (gilosh) */}
       <View pointerEvents="none" style={styles.rosette}>
         {Array.from({ length: 14 }, (_, i) => (
@@ -167,7 +201,7 @@ function IdFront({ sp }: { sp: Specialist }) {
       {/* Asosiy qism */}
       <View style={styles.body}>
         <View>
-          <View style={[styles.photo, { borderColor: dark ? 'rgba(255,255,255,0.12)' : 'rgba(20,33,61,0.1)' }]}>
+          <View style={[styles.photo, { borderColor: 'rgba(255,255,255,0.25)' }]}>
             <SpecialistAvatar sp={sp} size={96} />
           </View>
           <LinearGradient colors={['rgba(255,120,200,0.55)', 'rgba(120,200,255,0.55)', 'rgba(255,230,120,0.55)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.holo} />
@@ -191,7 +225,7 @@ function IdFront({ sp }: { sp: Specialist }) {
       <View style={[styles.mrz, { backgroundColor: t.mrz }]}>
         <Text style={[styles.mrzText, { color: t.ink }]} numberOfLines={1} adjustsFontSizeToFit>{mrz1}</Text>
         <Text style={[styles.mrzText, { color: t.ink }]} numberOfLines={1} adjustsFontSizeToFit>{mrz2}</Text>
-        <View style={[styles.flipHint, { backgroundColor: dark ? 'rgba(255,255,255,0.1)' : 'rgba(20,33,61,0.08)' }]}>
+        <View style={[styles.flipHint, { backgroundColor: 'rgba(255,255,255,0.14)' }]}>
           <Ionicons name="sync-outline" size={13} color={t.ink} />
         </View>
       </View>
@@ -241,9 +275,16 @@ const styles = StyleSheet.create({
   backFlip: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.16)' },
   backKicker: { color: 'rgba(255,255,255,0.75)', fontFamily: F.heavy, fontSize: 10, letterSpacing: 1.6 },
   backTitle: { color: '#fff', fontFamily: F.display, fontSize: 22, letterSpacing: -0.5 },
-  backSub: { color: 'rgba(255,255,255,0.8)', fontFamily: F.semi, fontSize: 12.5 },
-  backCta: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: '#FFC800', height: 34, paddingHorizontal: 14, borderRadius: 17, marginTop: 8 },
+  backSub: { color: 'rgba(255,255,255,0.85)', fontFamily: F.semi, fontSize: 12 },
+  statRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  stat: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 24, paddingHorizontal: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.14)' },
+  statText: { color: '#fff', fontFamily: F.bold, fontSize: 11.5 },
+  skillRow: { flexDirection: 'row', flexWrap: 'nowrap', gap: 5, overflow: 'hidden' },
+  skill: { height: 22, paddingHorizontal: 8, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(255,214,90,0.5)', justifyContent: 'center', flexShrink: 1 },
+  skillText: { color: '#FFD54A', fontFamily: F.semi, fontSize: 11 },
+  backGhost: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.16)', marginTop: 0 },
+  backCta: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFC800', height: 34, paddingHorizontal: 14, borderRadius: 17 },
   backCtaText: { color: '#0E1525', fontFamily: F.bold, fontSize: 13 },
-  barcode: { flexDirection: 'row', alignItems: 'flex-end', height: 26, gap: 1.5 },
-  backNum: { color: 'rgba(255,255,255,0.7)', fontFamily: F.mono, fontSize: 12, letterSpacing: 1.4 },
+  barcode: { flexDirection: 'row', alignItems: 'flex-end', height: 18, gap: 1.5 },
+  backNum: { color: 'rgba(255,255,255,0.7)', fontFamily: F.mono, fontSize: 10.5, letterSpacing: 1.2 },
 });
