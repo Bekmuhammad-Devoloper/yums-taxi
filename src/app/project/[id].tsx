@@ -5,9 +5,9 @@ import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { FavButton, KeyValue, Logo, ReportSheet, SectorGlyph, SectorIcon, StatusBadge } from '@/components/platform-ui';
+import { KeyValue, Logo, ReportSheet, SectorGlyph, SectorIcon, StatusBadge } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { ActionSheet, alpha, Avatar, Badge, Button, IOSSwitch, Card, DEFAULT_AVATAR, EmptyState, FitImage, IconButton, ListItem, Row, Screen, shade, Txt, Verified } from '@/components/ui';
+import { ActionSheet, alpha, Avatar, Badge, Button, IOSSwitch, NavButton, NavGroup, Card, DEFAULT_AVATAR, EmptyState, FitImage, ListItem, Row, Screen, shade, Txt, Verified } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
 import { confirm } from '@/lib/confirm';
 import { coverOf } from '@/lib/covers';
@@ -78,14 +78,20 @@ export default function ProjectScreen() {
   );
 
   const cover = coverOf(pr);
+  const saved = p.isFav('project:' + pr.id);
   const heroButtons = (
     <Row style={{ justifyContent: 'space-between' }}>
-      <IconButton name="chevron-back" size={42} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-      <Row gap={8}>
-        <IconButton name="share-outline" size={42} onPress={share} />
-        {!mine && <View style={[styles.favWrap, { backgroundColor: c.surface }]}><FavButton k={'project:' + pr.id} /></View>}
-        <IconButton name="ellipsis-horizontal" size={42} onPress={() => setMenu(true)} />
-      </Row>
+      <NavButton icon="chevron-back" label="Orqaga" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+      <NavGroup items={[
+        { icon: 'share-outline', label: 'Ulashish', onPress: share },
+        ...(!mine ? [{
+          icon: (saved ? 'bookmark' : 'bookmark-outline') as 'bookmark',
+          label: saved ? 'Saqlanganlardan olib tashlash' : 'Saqlash',
+          color: saved ? c.brandDeep : undefined,
+          onPress: () => { const v = p.toggleFav('project:' + pr.id); toast(v ? "Saqlanganlarga qo'shildi" : 'Saqlanganlardan olib tashlandi', v ? 'bookmark' : 'bookmark-outline'); },
+        }] : []),
+        { icon: 'ellipsis-horizontal', label: 'Amallar', onPress: () => setMenu(true) },
+      ]} />
     </Row>
   );
   const canToggle = mine && (pr.status === 'published' || pr.status === 'paused');
@@ -281,7 +287,6 @@ const styles = StyleSheet.create({
   heroTitle: { color: '#fff', fontSize: 34, fontFamily: F.hand, lineHeight: 38, flexShrink: 1, paddingRight: 6 },
   toggle: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   toggleText: { fontFamily: F.bold, fontSize: 13 },
-  favWrap: { width: 42, height: 42, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   alert: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: radius.m },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 12, paddingHorizontal: 16, borderTopWidth: StyleSheet.hairlineWidth },
 });

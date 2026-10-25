@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Image, type ImageSource } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -431,6 +432,51 @@ export function Sheet({ visible, onClose, title, children, footer }: { visible: 
   );
 }
 
+const LIQUID_GLASS = Platform.OS === 'ios' && isLiquidGlassAvailable();
+
+/** Shisha fon: iOS 26 da tizimning Liquid Glass effekti, boshqa joyda xira shaffof qatlam */
+function Glass({ style, children }: { style?: StyleProp<ViewStyle>; children: ReactNode }) {
+  const c = useColors();
+  if (LIQUID_GLASS) return <GlassView glassEffectStyle="regular" isInteractive style={style}>{children}</GlassView>;
+  const web = Platform.OS === 'web' ? ({ backdropFilter: 'blur(18px) saturate(1.6)', WebkitBackdropFilter: 'blur(18px) saturate(1.6)' } as unknown as ViewStyle) : null;
+  return (
+    <View style={[{ backgroundColor: alpha(c.surface, 0.72), borderWidth: StyleSheet.hairlineWidth, borderColor: alpha(c.text, 0.1) }, shadow(c, 0.3), web, style]}>
+      {children}
+    </View>
+  );
+}
+
+export type NavAction = { icon: IconName; onPress: () => void; label: string; color?: string };
+
+/** Sahifa tepasidagi yumaloq shisha tugma (orqaga va h.k.) */
+export function NavButton({ icon, onPress, label }: NavAction) {
+  const c = useColors();
+  return (
+    <Pressable onPress={() => { haptic.tap(); onPress(); }} accessibilityRole="button" accessibilityLabel={label} hitSlop={6}
+      style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.92 : 1 }] })}>
+      <Glass style={styles.navBtn}><Ionicons name={icon} size={21} color={c.text} /></Glass>
+    </Pressable>
+  );
+}
+
+/** Bir nechta amal bitta shisha kapsulada (iOS uslubi) */
+export function NavGroup({ items }: { items: NavAction[] }) {
+  const c = useColors();
+  return (
+    <Glass style={styles.navGroup}>
+      {items.map((it, i) => (
+        <View key={it.label} style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {i > 0 && <View style={[styles.navSep, { backgroundColor: alpha(c.text, 0.12) }]} />}
+          <Pressable onPress={() => { haptic.tap(); it.onPress(); }} accessibilityRole="button" accessibilityLabel={it.label}
+            style={({ pressed }) => [styles.navItem, { opacity: pressed ? 0.5 : 1 }]}>
+            <Ionicons name={it.icon} size={20} color={it.color ?? c.text} />
+          </Pressable>
+        </View>
+      ))}
+    </Glass>
+  );
+}
+
 /** iPhone uslubidagi yoqish/o'chirish tugmasi */
 export function IOSSwitch({ value, onChange, disabled, label }: { value: boolean; onChange: (v: boolean) => void; disabled?: boolean; label?: string }) {
   const c = useColors();
@@ -529,6 +575,10 @@ const styles = StyleSheet.create({
   sheet: { borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 20, paddingTop: 10, gap: 14, maxHeight: '92%' },
   grab: { width: 42, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 2 },
   close: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  navBtn: { width: 42, height: 42, borderRadius: 21, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  navGroup: { height: 42, borderRadius: 21, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 4, overflow: 'hidden' },
+  navItem: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
+  navSep: { width: StyleSheet.hairlineWidth * 2, height: 18, borderRadius: 1 },
   swTrack: { width: 51, height: 31, borderRadius: 16, padding: 2, justifyContent: 'center' },
   swKnob: { width: 27, height: 27, borderRadius: 14, backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 3, shadowOffset: { width: 0, height: 2 }, elevation: 3 },
   actSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 14, paddingTop: 10, gap: 10 },
