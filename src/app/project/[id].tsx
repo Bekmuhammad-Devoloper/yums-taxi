@@ -1,5 +1,4 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -8,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FavButton, KeyValue, Logo, ReportSheet, StatusBadge } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { Avatar, Badge, Button, Card, EmptyState, IconButton, ListItem, Row, Screen, shade, Sheet, Txt, Verified } from '@/components/ui';
+import { Avatar, Badge, Button, Card, DEFAULT_AVATAR, EmptyState, FitImage, IconButton, ListItem, Row, Screen, shade, Sheet, Txt, Verified } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
 import { confirm } from '@/lib/confirm';
 import { coverOf } from '@/lib/covers';
@@ -25,6 +24,7 @@ export default function ProjectScreen() {
   const insets = useSafeAreaInsets();
   const [menu, setMenu] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [coverRatio, setCoverRatio] = useState(16 / 9);
   const pr = p.projects.find(x => x.id === id);
   const mine = pr?.ownerId === (user?.id ?? 'me');
   const staff = user?.role === 'moderator' || user?.role === 'admin';
@@ -103,8 +103,8 @@ export default function ProjectScreen() {
         {cover ? (
           <View style={{ backgroundColor: '#0B0F17', paddingTop: insets.top }}>
             {/* banner to'liq ko'rinadi — ustiga yozuv qo'yilmaydi */}
-            <View style={styles.coverBox}>
-              <Image source={cover} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel={pr.title} />
+            <View style={[styles.coverBox, { aspectRatio: coverRatio }]}>
+              <FitImage source={cover} style={StyleSheet.absoluteFill} label={pr.title} onAspect={r => setCoverRatio(Math.min(3, Math.max(1.2, r)))} />
               <LinearGradient colors={['rgba(0,0,0,0.35)', 'rgba(0,0,0,0)']} style={styles.coverShade} />
               <View style={styles.coverBar}>{heroButtons}</View>
             </View>
@@ -126,7 +126,7 @@ export default function ProjectScreen() {
           <Card style={{ gap: 12 }}>
             <Pressable disabled={!company} onPress={() => company && router.push({ pathname: '/company/[id]', params: { id: company.id } })}>
               <Row>
-                {pr.ownerKind === 'company' ? <Logo name={pr.ownerName} color={company?.color ?? c.ok} size={44} /> : <Avatar name={pr.ownerName} size={44} bg={c.accent} />}
+                {pr.ownerKind === 'company' ? <Logo name={pr.ownerName} color={company?.color ?? c.ok} size={44} /> : <Avatar name={pr.ownerName} size={44} uri={mine ? user?.avatar : undefined} fallback={DEFAULT_AVATAR} />}
                 <View style={{ flex: 1 }}>
                   <Row gap={4}><Txt v="h3" numberOfLines={1} style={{ flexShrink: 1 }}>{pr.ownerName}</Txt>{pr.ownerVerified && <Verified />}</Row>
                   <Txt v="small" muted>{pr.ownerKind === 'company' ? 'Kompaniya' : 'Jismoniy shaxs'} · {ago(pr.createdAt)}</Txt>
@@ -243,7 +243,8 @@ export default function ProjectScreen() {
 
 const styles = StyleSheet.create({
   hero: { paddingHorizontal: 16, paddingBottom: 40, overflow: 'hidden' },
-  coverBox: { width: '100%', aspectRatio: 16 / 9 },
+  // balandlik rasmning o'z nisbatiga moslanadi (1.2–3), banner to'liq ko'rinadi
+  coverBox: { width: '100%', maxHeight: 460 },
   coverShade: { position: 'absolute', left: 0, right: 0, top: 0, height: 80 },
   coverBar: { position: 'absolute', left: 16, right: 16, top: 8 },
   heroPill: { backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8 },

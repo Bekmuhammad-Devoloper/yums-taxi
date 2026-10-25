@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Image } from 'expo-image';
+import { Image, type ImageSource } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useState, type ComponentProps, type ReactNode } from 'react';
@@ -145,6 +145,26 @@ export function Avatar({ name, size = 48, bg, uri, fallback }: { name: string; s
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2.6, backgroundColor: bg ?? c.brand, alignItems: 'center', justifyContent: 'center' }}>
       <Text style={{ color: c.brandText, fontFamily: F.heavy, fontSize: size * 0.36 }}>{init}</Text>
+    </View>
+  );
+}
+
+/**
+ * Rasmni kesmasdan to'liq ko'rsatadi: bo'sh qolgan joyni shu rasmning xira nusxasi to'ldiradi.
+ * Yozuvli bannerlar chetidan kesilib qolmasligi uchun.
+ */
+export function FitImage({ source, style, label, onAspect }: { source: ImageSource | number; style?: StyleProp<ViewStyle>; label?: string; onAspect?: (ratio: number) => void }) {
+  return (
+    <View style={[{ overflow: 'hidden', backgroundColor: '#0B0F17' }, style]}>
+      <Image source={source} style={StyleSheet.absoluteFill} contentFit="cover" blurRadius={28} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.22)' }]} />
+      <Image
+        source={source}
+        style={StyleSheet.absoluteFill}
+        contentFit="contain"
+        accessibilityLabel={label}
+        onLoad={e => { if (onAspect && e.source.width && e.source.height) onAspect(e.source.width / e.source.height); }}
+      />
     </View>
   );
 }

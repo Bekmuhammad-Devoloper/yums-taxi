@@ -16,7 +16,7 @@ import { haptic, useStore } from '@/lib/store';
 import { F, radius, shadow } from '@/lib/theme';
 
 import { toast } from './toast';
-import { Avatar, Badge, BrandMark, Button, Card, Flag, IconTile, Row, Sheet, Txt, Verified, alpha, shade, type IconName } from './ui';
+import { Avatar, Badge, BrandMark, Button, Card, FitImage, Flag, IconTile, Row, Sheet, Txt, Verified, alpha, shade, type IconName } from './ui';
 
 /* ---------- Kichik bo'laklar ---------- */
 
@@ -117,7 +117,7 @@ export function ProjectCard({ p, mine }: { p: Project; mine?: boolean }) {
   const cover = coverOf(p);
   return (
     <Card onPress={() => router.push({ pathname: '/project/[id]', params: { id: p.id } })} style={{ gap: 10, overflow: 'hidden' }}>
-      {cover ? <Image source={cover} style={styles.cardCover} contentFit="cover" accessibilityLabel={p.title} /> : null}
+      {cover ? <FitImage source={cover} style={styles.cardCover} label={p.title} /> : null}
       <Row>
         <SectorIcon id={p.sector} />
         <View style={{ flex: 1 }}>
@@ -164,7 +164,7 @@ export function ProjectTile({ p }: { p: Project }) {
       <LinearGradient colors={[sec.color, shade(sec.color)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.tileTop, cover ? styles.tileCover : null]}>
         {cover ? (
           // banner o'zi to'liq dizayn — ustiga yozuv qo'ymaymiz
-          <Image source={cover} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel={p.title} />
+          <FitImage source={cover} style={StyleSheet.absoluteFill} label={p.title} />
         ) : (
           <>
             <Ionicons name={sec.icon} size={96} color="rgba(255,255,255,0.13)" style={{ position: 'absolute', right: -10, bottom: -18 }} />

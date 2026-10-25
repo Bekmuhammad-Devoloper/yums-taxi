@@ -8,7 +8,7 @@ import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
 
 import { toast } from './toast';
-import { Row, Txt } from './ui';
+import { FitImage, Row, Txt } from './ui';
 
 /** Muqova (16:9), banner (2:1) yoki mahsulot (4:3) rasmi yuklash maydoni — oldindan ko'rish bilan */
 export function ImageSlot({ kind, value, onChange, label }: { kind: 'cover' | 'banner' | 'product'; value?: string; onChange: (uri: string | undefined) => void; label: string }) {
@@ -33,7 +33,9 @@ export function ImageSlot({ kind, value, onChange, label }: { kind: 'cover' | 'b
       </Row>
       {value ? (
         <View style={[styles.frame, { aspectRatio: spec.aspect[0] / spec.aspect[1], backgroundColor: c.surface2 }]}>
-          <Image source={{ uri: value }} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel={label} />
+          {kind === 'cover'
+            ? <FitImage source={{ uri: value }} style={StyleSheet.absoluteFill} label={label} />
+            : <Image source={{ uri: value }} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel={label} />}
           <Row gap={8} style={styles.actions}>
             <Pressable onPress={pick} style={styles.action} accessibilityLabel="Rasmni almashtirish">
               <Ionicons name="swap-horizontal" size={15} color="#fff" />

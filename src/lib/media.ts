@@ -4,10 +4,10 @@ import { Platform } from 'react-native';
 
 export type PickResult = { ok: true; uri: string } | { ok: false; reason: 'cancel' | 'denied' | 'error' };
 
-/** Rasm o'lchamlari: profil 1:1, loyiha muqovasi 16:9, reklama banneri 2:1, mahsulot 4:3 */
+/** Rasm o'lchamlari: profil 1:1, reklama banneri 2:1, mahsulot 4:3. Loyiha muqovasi qirqilmaydi (o'z nisbatida) */
 export const IMAGE_SPECS = {
   avatar: { aspect: [1, 1] as [number, number], width: 400, label: '400×400' },
-  cover: { aspect: [16, 9] as [number, number], width: 1280, label: '1280×720 (16:9)' },
+  cover: { aspect: [16, 9] as [number, number], width: 1600, label: '16:9 tavsiya · qirqilmaydi', free: true },
   banner: { aspect: [2, 1] as [number, number], width: 1200, label: '1200×600 (2:1)' },
   product: { aspect: [4, 3] as [number, number], width: 1000, label: '1000×750 (4:3)' },
 };
@@ -23,17 +23,25 @@ export async function pickImage(kind: keyof typeof IMAGE_SPECS, source: 'library
       const perm = await ImagePicker.requestCameraPermissionsAsync();
       if (!perm.granted) return { ok: false, reason: 'denied' };
     }
-    const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], allowsEditing: true, aspect: spec.aspect, quality: 0.9 };
+    const free = 'free' in spec && spec.free;
+    // Muqova butunligicha saqlanadi — yozuvli bannerlar chetidan kesilmasin
+    const options: ImagePicker.ImagePickerOptions = free ? { mediaTypes: ['images'], allowsEditing: false, quality: 0.9 } : { mediaTypes: ['images'], allowsEditing: true, aspect: spec.aspect, quality: 0.9 };
     const res = source === 'camera' ? await ImagePicker.launchCameraAsync(options) : await ImagePicker.launchImageLibraryAsync(options);
     if (res.canceled || !res.assets?.[0]) return { ok: false, reason: 'cancel' };
 
     const a = res.assets[0];
     const [rw, rh] = spec.aspect;
     if (Platform.OS === 'web') {
-      const uri = await cropOnCanvas(a.uri, rw / rh, spec.width, kind === 'avatar' ? 0.82 : 0.78);
+      const uri = await cropOnCanvas(a.uri, free ? 0 : rw / rh, spec.width, kind === 'avatar' ? 0.82 : 0.8);
       return { ok: true, uri };
     }
     const ctx = ImageManipulator.manipulate(a.uri);
+    if (free) {
+      if (a.width > spec.width) ctx.resize({ width: spec.width });
+      const img = await ctx.renderAsync();
+      const out = await img.saveAsync({ format: SaveFormat.JPEG, compress: 0.8, base64: true });
+      return out.base64 ? { ok: true, uri: `data:image/jpeg;base64,${out.base64}` } : { ok: false, reason: 'error' };
+    }
     // Vebda qirqish oynasi yo'q — markazdan kerakli nisbatda olamiz
     if (a.width && a.height && Math.abs(a.width / a.height - rw / rh) > 0.01) {
       const w = Math.min(a.width, (a.height * rw) / rh);
@@ -58,6 +66,8 @@ function cropOnCanvas(src: string, ratio: number, maxW: number, quality: number)
   return new Promise((resolve, reject) => {
     const img = new window.Image();
     img.onload = () => {
+      // ratio 0 — qirqmasdan, faqat kichraytiramiz
+      if (!ratio) ratio = img.naturalWidth / img.naturalHeight;
       const sw = Math.min(img.naturalWidth, img.naturalHeight * ratio);
       const sh = sw / ratio;
       const w = Math.round(Math.min(maxW, sw)), h = Math.round(w / ratio);
