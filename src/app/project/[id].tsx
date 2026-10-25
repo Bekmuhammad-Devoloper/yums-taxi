@@ -5,9 +5,9 @@ import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { FavButton, KeyValue, Logo, ReportSheet, SectorGlyph, StatusBadge } from '@/components/platform-ui';
+import { FavButton, KeyValue, Logo, ReportSheet, SectorGlyph, SectorIcon, StatusBadge } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { alpha, Avatar, Badge, Button, Card, DEFAULT_AVATAR, EmptyState, FitImage, IconButton, ListItem, Row, Screen, shade, Sheet, Txt, Verified } from '@/components/ui';
+import { ActionSheet, alpha, Avatar, Badge, Button, Card, DEFAULT_AVATAR, EmptyState, FitImage, IconButton, ListItem, Row, Screen, shade, Txt, Verified } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
 import { confirm } from '@/lib/confirm';
 import { coverOf } from '@/lib/covers';
@@ -221,25 +221,42 @@ export default function ProjectScreen() {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12, backgroundColor: c.bg, borderTopColor: c.line }]}>{footer}</View>
 
-      <Sheet visible={menu} onClose={() => setMenu(false)} title="Amallar">
-        <View style={{ gap: 2 }}>
-          <ListItem icon="share-social-outline" title="Ulashish" onPress={() => { setMenu(false); share(); }} />
-          {mine ? (
-            <>
-              <ListItem icon="create-outline" title="Tahrirlash" onPress={() => { setMenu(false); router.push({ pathname: '/project/edit', params: { id: pr.id } }); }} />
-              <ListItem icon="trash-outline" title="Loyihani o'chirish" danger onPress={() => {
-                setMenu(false);
-                confirm("Loyihani o'chirasizmi?", "Bu amalni qaytarib bo'lmaydi.", () => { p.deleteProject(pr.id); toast("Loyiha o'chirildi", 'trash'); router.back(); }, "O'chirish");
-              }} />
-            </>
-          ) : (
-            <>
-              <ListItem icon="chatbubble-ellipses-outline" title="Muallifga yozish" onPress={() => { setMenu(false); start(peer, { subject: pr.title }); }} />
-              <ListItem icon="flag-outline" title="Shikoyat qilish" danger onPress={() => { setMenu(false); setTimeout(() => setReporting(true), 350); }} />
-            </>
-          )}
-        </View>
-      </Sheet>
+      <ActionSheet
+        visible={menu}
+        onClose={() => setMenu(false)}
+        header={
+          <>
+            {cover
+              ? <FitImage source={cover} style={styles.menuThumb} />
+              : <SectorIcon id={sec.id} size={48} />}
+            <View style={{ flex: 1, gap: 2 }}>
+              <Txt v="h3" numberOfLines={1}>{pr.title}</Txt>
+              <Txt v="small" muted numberOfLines={1}>{sec.name} · {budget(pr.budgetMin, pr.budgetMax)}</Txt>
+            </View>
+          </>
+        }
+        groups={mine ? [
+          [
+            { icon: 'share-social-outline', title: 'Ulashish', sub: 'Havolani yuborish', color: c.accent, onPress: () => { setMenu(false); share(); } },
+            { icon: 'create-outline', title: 'Tahrirlash', sub: "Ma'lumot va bannerni o'zgartirish", color: c.ok, onPress: () => { setMenu(false); router.push({ pathname: '/project/edit', params: { id: pr.id } }); } },
+            ...(pr.status === 'published' && !pr.boosted ? [{ icon: 'flash-outline' as const, title: 'TOPga chiqarish', sub: "Ko'proq investor va hamkorlar ko'radi", color: '#E0A800', onPress: () => { setMenu(false); router.push({ pathname: '/plans', params: { boost: pr.id } }); } }] : []),
+          ],
+          [
+            { icon: 'trash-outline', title: "Loyihani o'chirish", sub: "Qaytarib bo'lmaydi", danger: true, onPress: () => {
+              setMenu(false);
+              confirm("Loyihani o'chirasizmi?", "Bu amalni qaytarib bo'lmaydi.", () => { p.deleteProject(pr.id); toast("Loyiha o'chirildi", 'trash'); router.back(); }, "O'chirish");
+            } },
+          ],
+        ] : [
+          [
+            { icon: 'share-social-outline', title: 'Ulashish', sub: 'Havolani yuborish', color: c.accent, onPress: () => { setMenu(false); share(); } },
+            { icon: 'chatbubble-ellipses-outline', title: 'Muallifga yozish', sub: pr.ownerName, color: c.ok, onPress: () => { setMenu(false); start(peer, { subject: pr.title }); } },
+          ],
+          [
+            { icon: 'flag-outline', title: 'Shikoyat qilish', sub: "Qoidalarni buzgan bo'lsa", danger: true, onPress: () => { setMenu(false); setTimeout(() => setReporting(true), 350); } },
+          ],
+        ]}
+      />
       <ReportSheet visible={reporting} onClose={() => setReporting(false)} kind="project" id={pr.id} title={pr.title} />
     </View>
   );
@@ -249,6 +266,7 @@ const styles = StyleSheet.create({
   hero: { paddingHorizontal: 16, paddingBottom: 40, overflow: 'hidden' },
   // balandlik rasmning o'z nisbatiga moslanadi (1.2–3), banner to'liq ko'rinadi
   coverBox: { width: '100%', maxHeight: 460, borderRadius: radius.l },
+  menuThumb: { width: 64, height: 48, borderRadius: 12 },
   secPill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingLeft: 6, paddingRight: 9, paddingVertical: 4, borderRadius: 9 },
   secPillText: { fontFamily: F.heavy, fontSize: 11.5 },
   heroPill: { backgroundColor: 'rgba(255,255,255,0.22)', paddingHorizontal: 9, paddingVertical: 4, borderRadius: 8 },

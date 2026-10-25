@@ -431,6 +431,53 @@ export function Sheet({ visible, onClose, title, children, footer }: { visible: 
   );
 }
 
+export type SheetAction = { key?: string; icon: IconName; title: string; sub?: string; color?: string; danger?: boolean; onPress: () => void };
+
+/**
+ * Amallar oynasi (iOS uslubida): ixtiyoriy sarlavha kartasi, guruhlangan amallar,
+ * xavfli amal alohida guruhda va pastda «Bekor qilish».
+ */
+export function ActionSheet({ visible, onClose, header, groups }: { visible: boolean; onClose: () => void; header?: ReactNode; groups: SheetAction[][] }) {
+  const c = useColors();
+  const insets = useSafeAreaInsets();
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
+      <Pressable style={[styles.sheetBg, { backgroundColor: c.overlay }]} onPress={onClose}>
+        <Pressable style={[styles.actSheet, { backgroundColor: c.bg, paddingBottom: insets.bottom + 14 }]} onPress={() => {}}>
+          <View style={[styles.grab, { backgroundColor: c.surface3 }]} />
+          {header ? <View style={[styles.actHeader, { backgroundColor: c.surface, borderColor: c.line }]}>{header}</View> : null}
+          {groups.filter(g => g.length).map((g, gi) => (
+            <View key={gi} style={[styles.actGroup, { backgroundColor: c.surface, borderColor: c.line }]}>
+              {g.map((a, i) => {
+                const tint = a.danger ? c.danger : (a.color ?? c.text);
+                return (
+                  <View key={a.key ?? a.title}>
+                    {i > 0 && <View style={[styles.actSep, { backgroundColor: c.line }]} />}
+                    <Pressable
+                      onPress={() => { haptic.tap(); a.onPress(); }}
+                      accessibilityRole="button"
+                      style={({ pressed }) => [styles.actRow, { backgroundColor: pressed ? c.surface2 : 'transparent' }]}>
+                      <IconTile name={a.icon} color={a.danger ? c.danger : (a.color ?? c.accent)} size={40} />
+                      <View style={{ flex: 1, gap: 1 }}>
+                        <Txt v="h3" color={a.danger ? c.danger : undefined} numberOfLines={1}>{a.title}</Txt>
+                        {a.sub ? <Txt v="small" muted numberOfLines={1}>{a.sub}</Txt> : null}
+                      </View>
+                      {!a.danger && <Ionicons name="chevron-forward" size={17} color={tint === c.text ? c.faint : alpha(tint, 0.7)} />}
+                    </Pressable>
+                  </View>
+                );
+              })}
+            </View>
+          ))}
+          <Pressable onPress={onClose} style={({ pressed }) => [styles.actCancel, { backgroundColor: pressed ? c.surface2 : c.surface, borderColor: c.line }]}>
+            <Txt v="h3">Bekor qilish</Txt>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 export function Progress({ value, color, style }: { value: number; color?: string; style?: StyleProp<ViewStyle> }) {
   const c = useColors();
   return (
@@ -460,4 +507,10 @@ const styles = StyleSheet.create({
   sheet: { borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 20, paddingTop: 10, gap: 14, maxHeight: '92%' },
   grab: { width: 42, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 2 },
   close: { width: 34, height: 34, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  actSheet: { borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 14, paddingTop: 10, gap: 10 },
+  actHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth },
+  actGroup: { borderRadius: 20, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
+  actRow: { flexDirection: 'row', alignItems: 'center', gap: 13, paddingVertical: 11, paddingHorizontal: 12 },
+  actSep: { height: StyleSheet.hairlineWidth, marginLeft: 65 },
+  actCancel: { height: 52, borderRadius: 18, alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth, marginTop: 2 },
 });

@@ -7,7 +7,7 @@ import { haptic, useStore } from '@/lib/store';
 
 import { Logo } from './platform-ui';
 import { toast } from './toast';
-import { Avatar, DEFAULT_AVATAR, ListItem, Sheet } from './ui';
+import { ActionSheet, Avatar, DEFAULT_AVATAR, Txt } from './ui';
 
 /** Profil rasmi: bosilganda galereya / kamera / o'chirish tanlovi */
 export function AvatarEditor({ size = 64 }: { size?: number }) {
@@ -41,15 +41,26 @@ export function AvatarEditor({ size = 64 }: { size?: number }) {
         </View>
       </Pressable>
 
-      <Sheet visible={open} onClose={() => setOpen(false)} title="Profil rasmi">
-        <View style={{ gap: 2 }}>
-          <ListItem icon="images-outline" title="Galereyadan tanlash" sub="JPG yoki PNG" onPress={() => pick('library')} />
-          {Platform.OS !== 'web' && <ListItem icon="camera-outline" title="Kamera bilan olish" onPress={() => pick('camera')} />}
-          {user.avatar ? (
-            <ListItem icon="trash-outline" title="Rasmni o'chirish" danger onPress={() => { setOpen(false); updateUser({ avatar: undefined }); toast("Profil rasmi o'chirildi", 'trash'); }} />
-          ) : null}
-        </View>
-      </Sheet>
+      <ActionSheet
+        visible={open}
+        onClose={() => setOpen(false)}
+        header={
+          <>
+            <Avatar name={user.name} size={44} uri={user.avatar} fallback={DEFAULT_AVATAR} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Txt v="h3" numberOfLines={1}>Profil rasmi</Txt>
+              <Txt v="small" muted numberOfLines={1}>JPG yoki PNG · 400×400</Txt>
+            </View>
+          </>
+        }
+        groups={[
+          [
+            { icon: 'images-outline', title: 'Galereyadan tanlash', sub: 'Telefon yoki kompyuterdan', color: c.accent, onPress: () => pick('library') },
+            ...(Platform.OS !== 'web' ? [{ icon: 'camera-outline' as const, title: 'Kamera bilan olish', sub: 'Hozir surat oling', color: c.ok, onPress: () => pick('camera') }] : []),
+          ],
+          user.avatar ? [{ icon: 'trash-outline', title: "Rasmni o'chirish", danger: true, onPress: () => { setOpen(false); updateUser({ avatar: undefined }); toast("Profil rasmi o'chirildi", 'trash'); } }] : [],
+        ]}
+      />
     </>
   );
 }
