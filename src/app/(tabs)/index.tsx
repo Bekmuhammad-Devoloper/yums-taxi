@@ -94,14 +94,17 @@ export default function Home() {
           <LinearGradient colors={['#FFD84D', '#FFC800', '#F2B100']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.taxi}>
             <Image source={TAXI_CARD} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="right" />
             <View style={styles.taxiText}>
-              <Text style={styles.taxiKicker}>YUMS TAXI</Text>
-              <Text style={styles.taxiTitle}>{t('home.taxiTitle')}</Text>
-              <Row gap={6} style={{ alignItems: 'flex-start', maxWidth: '86%' }}>
-                <View style={[styles.taxiDot, { marginTop: 5 }]} />
-                <Text style={styles.taxiSub}>{t('sec.taxi')} · {t('home.taxiEta')}</Text>
-              </Row>
+              {/* mashina tomidagi «YUMS» belgisi uslubida: qora plashka, oltin harflar */}
+              <View style={styles.taxiSign}>
+                <Text style={styles.taxiKicker}>YUMS <Text style={{ color: '#FFFFFF' }}>TAXI</Text></Text>
+              </View>
+              <Text style={styles.taxiTitle} numberOfLines={2}>{t('home.taxiTitle')}</Text>
+              <View style={styles.taxiChip}>
+                <View style={styles.taxiDot} />
+                <Text style={styles.taxiSub} numberOfLines={1}>{t('home.taxiChip')}</Text>
+              </View>
             </View>
-            <View style={styles.taxiArrow}><Ionicons name="arrow-forward" size={20} color="#0E1525" /></View>
+            <View style={styles.taxiArrow}><Ionicons name="arrow-forward" size={20} color="#FFC800" /></View>
           </LinearGradient>
         </Pressable>
       </View>
@@ -197,12 +200,14 @@ const styles = StyleSheet.create({
   section: { width: '25%', alignItems: 'center', gap: 8 },
   sectionName: { fontSize: 10.5, fontFamily: F.bold, letterSpacing: 0.6 },
   taxi: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: radius.l, overflow: 'hidden', aspectRatio: 3, minHeight: 112 },
-  taxiText: { flex: 1, maxWidth: '64%', gap: 4 },
-  taxiKicker: { color: '#0E1525', opacity: 0.55, fontSize: 9.5, fontFamily: F.heavy, letterSpacing: 1.6 },
-  taxiTitle: { color: '#0E1525', fontSize: 22, fontFamily: F.display, letterSpacing: -0.7 },
+  taxiText: { flex: 1, maxWidth: '58%', gap: 7, alignItems: 'flex-start' },
+  taxiSign: { backgroundColor: '#0E1525', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
+  taxiChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(14,21,37,0.12)', paddingHorizontal: 9, height: 24, borderRadius: 12, maxWidth: '100%' },
+  taxiKicker: { color: '#FFC800', fontSize: 10, fontFamily: F.brand, letterSpacing: 1.4 },
+  taxiTitle: { color: '#0E1525', fontSize: 19, lineHeight: 24, fontFamily: F.brand, letterSpacing: -0.4 },
   taxiDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#12A66A' },
-  taxiSub: { flexShrink: 1, color: '#0E1525', opacity: 0.72, fontSize: 12, lineHeight: 16, fontFamily: F.semi },
-  taxiArrow: { position: 'absolute', right: 14, bottom: 14, width: 40, height: 40, borderRadius: 14, backgroundColor: '#FFC800', alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
+  taxiSub: { flexShrink: 1, color: '#0E1525', fontSize: 12, fontFamily: F.bold },
+  taxiArrow: { position: 'absolute', right: 14, bottom: 14, width: 40, height: 40, borderRadius: 14, backgroundColor: '#0E1525', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: '#FFC800', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
   verify: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.l, borderWidth: StyleSheet.hairlineWidth },
   sector: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 40, paddingHorizontal: 14, borderRadius: 13, borderWidth: StyleSheet.hairlineWidth },
   cta: { alignItems: 'center', gap: 6, padding: 24, borderRadius: radius.xl, borderWidth: StyleSheet.hairlineWidth },
