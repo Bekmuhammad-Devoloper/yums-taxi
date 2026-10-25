@@ -54,7 +54,10 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "driver": "APP_VARIANT=driver expo start",
+    "driver:web": "APP_VARIANT=driver expo start --web",
+    "dispatch": "node server/dispatch.mjs"
   },
   "private": true
 }

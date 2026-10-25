@@ -1,0 +1,12 @@
+{
+  "cli": { "appVersionSource": "remote" },
+  "build": {
+    "development": { "developmentClient": true, "distribution": "internal" },
+    "preview": { "distribution": "internal" },
+    "production": { "autoIncrement": true },
+    "driver-development": { "developmentClient": true, "distribution": "internal", "env": { "APP_VARIANT": "driver" } },
+    "driver-preview": { "distribution": "internal", "env": { "APP_VARIANT": "driver" } },
+    "driver-production": { "autoIncrement": true, "env": { "APP_VARIANT": "driver" } }
+  },
+  "submit": { "production": {} }
+}

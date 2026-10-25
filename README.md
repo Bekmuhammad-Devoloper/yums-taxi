@@ -29,7 +29,7 @@ React Native + Expo (SDK 58), Expo Router, TypeScript.
 - Daromad modeli (`/plans`): Free / Pro / Business tariflar, TOPga chiqarish, reklama kampaniyalari, professional xizmatlar, savdo komissiyasi
 - 25 ta soha, 28 mamlakat, ko'p tilli interfeys (o'zbek, rus, ingliz), yorug'/qorong'i mavzu
 
-> Hozircha server qismi yo'q: barcha ma'lumotlar qurilmada saqlanadi, moderatsiya, javoblar, SMS kod va to'lovlar demo rejimida ishlaydi.
+> Taksidan tashqari server qismi hozircha yo'q: ma'lumotlar qurilmada saqlanadi, moderatsiya, javoblar, SMS kod va to'lovlar demo rejimida ishlaydi.
 
 ## Ishga tushirish
 
@@ -66,6 +66,34 @@ Demo ssenariylar:
 - Investorga «Taklif yuborish» — so'rov bir necha soniyada qabul qilinadi.
 - Taksi promokodlari: `YUMS20`, `YANGI30`, `TOSHKENT`.
 
+## YUMS Driver — haydovchi ilovasi
+
+Haydovchi uchun **alohida ilova** (nomi «YUMS Driver», `uz.yums.driver`, sxema `yumsdriver://`). U shu kod bazasidan yig'iladi va asosiy YUMS ilovasi bilan **dispetcher serveri** orqali real vaqtda bog'lanadi:
+
+```
+YUMS (yo'lovchi)  ──order──▶  dispetcher (server/dispatch.mjs)  ──offer──▶  YUMS Driver
+                  ◀─accepted / driverPos / arrived / started / finished──  (haydovchi)
+                  ──rate (baho, choy puli)──────────────────────────────▶
+```
+
+- Yo'lovchi buyurtma beradi → server eng yaqin bo'sh haydovchiga (tarifi mos) 15 soniyalik taklif yuboradi → rad etsa yoki javob bermasa keyingisiga o'tadi.
+- Haydovchi qabul qilsa yo'lovchi ilovasida uning ismi, mashinasi, davlat raqami va xaritada jonli harakati ko'rinadi.
+- «Yetib keldim», «Safarni boshlash», «Yakunlash» bosqichlari yo'lovchiga darhol yetadi; yo'lovchining bahosi va choy puli haydovchiga qaytadi.
+- Yo'lovchi xaritasida liniyadagi haqiqiy bo'sh mashinalar ko'rsatiladi.
+- Haydovchi ilovasida: ro'yxatdan o'tish (telefon, mashina, rang, davlat raqami, tariflar), Liniyada/emas tugmasi, taklif kartasi (narx, masofa, to'lov, izoh, taymer), navigator, qo'ng'iroq, kutish taymeri, daromad (kunlik / 7 kun, komissiya, naqd/karta, diagramma), profil.
+
+Ishga tushirish (uchta terminal, kompyuter IP manzilini qo'ying):
+
+```bash
+npm run dispatch                                                   # server: ws://0.0.0.0:8787
+EXPO_PUBLIC_DISPATCH_URL=ws://192.168.1.10:8787 npx expo start     # YUMS (yo'lovchi)
+EXPO_PUBLIC_DISPATCH_URL=ws://192.168.1.10:8787 npm run driver -- --port 8082   # YUMS Driver
+```
+
+`EXPO_PUBLIC_DISPATCH_URL` berilmasa ikkala ilova ham demo rejimda ishlaydi: yo'lovchiga virtual haydovchi, haydovchiga sinov buyurtmalari keladi. Haydovchi ilovasida «Demo harakat» yoqilsa mashina marshrut bo'ylab o'zi yuradi (GPS o'rniga).
+
+EAS build: `npx eas-cli@latest build --profile driver-preview` (yoki `driver-production`). Bu profillarda `APP_VARIANT=driver` o'rnatilgan — `app.config.js` nom, bundle ID, sxema va marshrutlar papkasini (`src/driver/app`) almashtiradi.
+
 ## Tuzilma
 
 ```
@@ -75,11 +103,17 @@ src/
     project/ company/ specialist/ market/ chat/   platforma sahifalari
     taxi.tsx      YUMS Taxi xaritasi (+ menu, payment, history, … ekranlari)
   components/     UI tizimi, platforma kartalari, xarita, buyurtma panellari
+  driver/
+    app/          YUMS Driver marshrutlari (alohida ilova): index, register, earnings, profile
+    lib/          haydovchi holati (driver-store.tsx)
   lib/
+    dispatch.ts       dispetcher protokoli va WebSocket klienti (ikkala ilova uchun)
     store.tsx         hisob, mavzu, til, taksi holati
     platform.tsx      platforma holati: loyihalar, chatlar, moderatsiya, tariflar
     platform-data.ts  turlar, sohalar, mamlakatlar, namuna ma'lumotlar
     i18n.ts           o'zbek / rus / ingliz matnlari
+server/
+  dispatch.mjs    dispetcher serveri (Node + ws): buyurtmalarni haydovchilarga taqsimlash
 ```
 
 ## Tekshiruvlar

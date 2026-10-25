@@ -147,6 +147,7 @@ export default function Taxi() {
         driverPos={inTrip ? order.driverPos : undefined}
         showPickup={!idle && order.phase !== 'inride'}
         showNearby={idle || order.phase === 'choosing' || order.phase === 'searching'}
+        fleet={s.dispatchState === 'online' ? s.fleet.filter(f => !f.busy) : undefined}
         searching={order.phase === 'searching'}
         bottomPad={idle ? 0 : sheetH}
         overlayBottom={sheetH}

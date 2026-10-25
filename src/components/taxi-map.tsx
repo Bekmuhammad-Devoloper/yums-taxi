@@ -36,12 +36,14 @@ export type TaxiMapProps = {
   locationGranted: boolean;
   /** Foydalanuvchining aniq joylashuvi (veb xaritada ko'k nuqta va aniqlik doirasi) */
   userPos?: (LatLng & { accuracy?: number }) | null;
+  /** Dispetcher serveridan kelgan haqiqiy bo'sh haydovchilar — berilsa namunaviy mashinalar o'rniga ko'rsatiladi */
+  fleet?: { id: string; pos: LatLng; heading: number }[];
 };
 
 const DELTA = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
 
 export default function TaxiMap(props: TaxiMapProps) {
-  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching, bottomPad, topPad, onCenterChange, onDragStart, locationGranted } = props;
+  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching, bottomPad, topPad, onCenterChange, onDragStart, locationGranted, fleet } = props;
   const { colors: c, dark } = useStore();
   const map = useRef<MapView>(null);
 
@@ -89,7 +91,12 @@ export default function TaxiMap(props: TaxiMapProps) {
       mapPadding={{ top: topPad, right: 0, bottom: bottomPad, left: 0 }}
       onPanDrag={onDragStart}
       onRegionChangeComplete={(r: Region) => onCenterChange?.({ latitude: r.latitude, longitude: r.longitude })}>
-      {showNearby && nearby.map(n => (
+      {showNearby && fleet?.map(f => (
+        <Marker key={f.id} coordinate={f.pos} anchor={{ x: 0.5, y: 0.5 }} flat rotation={f.heading} tracksViewChanges={false}>
+          <Image source={CAR_TOP.taxi} style={styles.car} contentFit="contain" />
+        </Marker>
+      ))}
+      {showNearby && !fleet && nearby.map(n => (
         <Marker key={n.id} coordinate={n} anchor={{ x: 0.5, y: 0.5 }} flat rotation={n.rot} tracksViewChanges={false}>
           <Image source={n.id % 3 === 2 ? CAR_TOP.car : CAR_TOP.taxi} style={styles.car} contentFit="contain" />
         </Marker>

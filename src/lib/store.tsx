@@ -4,7 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { Platform, useColorScheme } from 'react-native';
 
 import { DRIVERS, SEED_RIDES, TARIFFS, type Card, type Driver, type LatLng, type PaymentId, type Place, type Ride } from './data';
-import { fetchRoute, nearbyPoint, pathLength, pointAt, priceFor, type RouteInfo } from './geo';
+import { DispatchClient, DISPATCH_URL, type ConnState, type FleetCar } from './dispatch';
+import { distanceKm, fetchRoute, nearbyPoint, pathLength, pointAt, priceFor, type RouteInfo } from './geo';
 import { DICTS, type Lang, type TKey } from './i18n';
 import { palette, type Colors } from './theme';
 
@@ -53,6 +54,8 @@ export type Order = {
   progress: number;
   etaMin: number;
   arrivedAt?: number;
+  /** Jonli buyurtma (dispetcher serveri orqali haqiqiy haydovchi) — id; bo'lmasa demo simulyatsiya */
+  liveId?: string;
 };
 
 const PROMOS: Record<string, number> = { YUMS20: 20, YANGI30: 30, TOSHKENT: 10 };
@@ -107,6 +110,9 @@ type Ctx = {
   setTariff: (id: string) => void;
   toggleOption: (id: string) => void;
   setComment: (s: string) => void;
+  /** Dispetcher serveriga ulanish holati va liniyadagi haydovchilar */
+  dispatchState: ConnState;
+  fleet: FleetCar[];
   placeOrder: () => void;
   cancelOrder: () => void;
   finishRide: (rating: number, tip: number) => void;
@@ -168,9 +174,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [order, setOrder] = useState<Order>(emptyOrder());
 
   const orderRef = useRef(order);
+  const userRef = useRef(user);
+  useEffect(() => { userRef.current = user; }, [user]);
+  const paymentRef = useRef(payment.id);
+  useEffect(() => { paymentRef.current = payment.id; }, [payment.id]);
   useEffect(() => { orderRef.current = order; }, [order]);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const routeReq = useRef(0);
+
+  /* ---------- Dispetcher (jonli rejim) ---------- */
+  const [client, setClient] = useState<DispatchClient | null>(null);
+  const [dispatchState, setDispatchState] = useState<ConnState>('off');
+  const [fleet, setFleet] = useState<FleetCar[]>([]);
+  const fleetRef = useRef<FleetCar[]>([]);
+  useEffect(() => { fleetRef.current = fleet; }, [fleet]);
+  const passengerId = user?.id ?? null;
+  useEffect(() => {
+    if (!DISPATCH_URL || !passengerId) return;
+    const cl = new DispatchClient('passenger', passengerId);
+    const offState = cl.onState(setDispatchState);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- tashqi ulanish obyekti
+    setClient(cl);
+    return () => { offState(); cl.close(); setClient(null); setFleet([]); };
+  }, [passengerId]);
 
   useEffect(() => {
     (async () => {
@@ -241,6 +267,56 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const finalPriceRef = useRef(finalPrice);
   useEffect(() => { finalPriceRef.current = finalPrice; }, [finalPrice]);
 
+  /* ---------- Jonli buyurtma: server xabarlari ---------- */
+  useEffect(() => {
+    if (!client) return;
+    return client.on(m => {
+      const o = orderRef.current;
+      if (m.t === 'fleet') { setFleet(m.drivers); return; }
+      if (!('orderId' in m) || m.orderId !== o.liveId) return;
+      switch (m.t) {
+        case 'accepted': {
+          haptic.success();
+          const pos = m.pos ?? o.pickup!;
+          setOrder(x => ({ ...x, phase: 'accepted', driver: m.driver, driverPos: pos, driverPath: undefined, progress: 0, etaMin: Math.max(1, Math.round(distanceKm(pos, x.pickup!) / 0.45)) }));
+          // haydovchining olib ketish nuqtasigacha yo'li (xaritada punktir)
+          fetchRoute(pos, o.pickup!).then(r => setOrder(x => (x.liveId === o.liveId && x.phase === 'accepted' ? { ...x, driverPath: r.coords } : x)));
+          break;
+        }
+        case 'driverPos':
+          setOrder(x => {
+            if (x.phase === 'accepted' && x.pickup) return { ...x, driverPos: m.pos, etaMin: Math.max(1, Math.round(distanceKm(m.pos, x.pickup) / 0.45)) };
+            if (x.phase === 'inride' && x.route) {
+              const left = distanceKm(m.pos, x.destination!);
+              const t = Math.min(1, Math.max(0, 1 - left / Math.max(0.1, x.route.km)));
+              return { ...x, driverPos: m.pos, progress: t, etaMin: Math.max(1, Math.ceil((1 - t) * x.route.min)) };
+            }
+            return { ...x, driverPos: m.pos };
+          });
+          break;
+        case 'arrived':
+          haptic.success();
+          setOrder(x => ({ ...x, phase: 'arrived', arrivedAt: Date.now() }));
+          break;
+        case 'started':
+          setOrder(x => ({ ...x, phase: 'inride', driverPath: x.route?.coords, progress: 0, etaMin: x.route?.min ?? 0 }));
+          break;
+        case 'finished':
+          haptic.success();
+          setOrder(x => ({ ...x, phase: 'done', progress: 1 }));
+          break;
+        case 'driverCancelled':
+          haptic.error();
+          setOrder(x => ({ ...x, phase: 'searching', driver: undefined, driverPos: undefined, driverPath: undefined, progress: 0 }));
+          break;
+        case 'noDriver':
+          haptic.error();
+          setOrder(x => ({ ...x, phase: 'choosing', liveId: undefined }));
+          break;
+      }
+    });
+  }, [client]);
+
   /* ---------- Simulyatsiya ---------- */
   const animate = (path: LatLng[], ms: number, totalMin: number, onDone: () => void) => {
     const start = Date.now();
@@ -257,7 +333,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!o.pickup || !o.destination || !o.route) return;
     haptic.tap();
     clearTimers();
-    setOrder(x => ({ ...x, phase: 'searching', progress: 0 }));
+    // Server ulangan va liniyada bo'sh haydovchi bor — buyurtma haqiqiy haydovchiga ketadi
+    if (client?.state === 'online' && fleetRef.current.some(d => !d.busy)) {
+      const id = 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      const u = userRef.current;
+      client.send({ t: 'order', order: {
+        id, pickup: o.pickup, destination: o.destination,
+        route: { km: o.route.km, min: o.route.min, coords: o.route.coords.filter((_, i, a) => i % Math.max(1, Math.floor(a.length / 120)) === 0 || i === a.length - 1) },
+        tariffId: o.tariffId, price: finalPriceRef.current, payment: paymentRef.current, options: o.options, comment: o.comment,
+        passenger: { name: u?.name ?? 'Yo\'lovchi', phone: u?.phone, rating: u?.rating ?? 5 }, createdAt: new Date().toISOString(),
+      } });
+      setOrder(x => ({ ...x, phase: 'searching', progress: 0, liveId: id }));
+      return;
+    }
+    setOrder(x => ({ ...x, phase: 'searching', progress: 0, liveId: undefined }));
     timers.current.push(setTimeout(async () => {
       const driver = DRIVERS[Math.floor(Math.random() * DRIVERS.length)];
       const pickup = orderRef.current.pickup!;
@@ -279,11 +368,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }, WAIT_MS));
       });
     }, 3500));
-  }, []);
+  }, [client]);
 
   const cancelOrder = useCallback(() => {
     clearTimers();
     const o = orderRef.current;
+    if (o.liveId) client?.send({ t: 'cancel', orderId: o.liveId });
     if (o.driver && o.pickup && o.destination && (o.phase === 'accepted' || o.phase === 'arrived')) {
       const r: Ride = {
         id: 'r' + Date.now(), from: o.pickup, to: o.destination, tariffId: o.tariffId, price: 0,
@@ -291,11 +381,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       };
       setRides(rs => { const n = [r, ...rs]; persist(K.rides, n); return n; });
     }
-    setOrder(x => ({ ...x, phase: x.destination ? 'choosing' : 'idle', driver: undefined, driverPos: undefined, driverPath: undefined, progress: 0 }));
-  }, [payment.id]);
+    setOrder(x => ({ ...x, phase: x.destination ? 'choosing' : 'idle', driver: undefined, driverPos: undefined, driverPath: undefined, progress: 0, liveId: undefined }));
+  }, [payment.id, client]);
 
   const finishRide = useCallback((rating: number, tip: number) => {
     const o = orderRef.current;
+    if (o.liveId) client?.send({ t: 'rate', orderId: o.liveId, stars: rating, tip });
     if (o.driver && o.pickup && o.destination && o.route) {
       const price = finalPriceRef.current;
       const r: Ride = {
@@ -310,7 +401,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setPromo(null);
     clearTimers();
     setOrder(emptyOrder(o.destination));
-  }, [payment.id]);
+  }, [payment.id, client]);
 
   const pushRecent = useCallback((p: Place) => {
     setRecent(rs => {
@@ -321,7 +412,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value: Ctx = {
-    ready, colors, dark, theme,
+    ready, colors, dark, theme, dispatchState, fleet,
     setTheme: t => { setThemeState(t); persist(K.theme, t); },
     user,
     login: u => {

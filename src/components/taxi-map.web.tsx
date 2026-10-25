@@ -258,15 +258,16 @@ function drawIn(line: L.Polyline) {
 /* ---------- Xarita ---------- */
 
 export default function TaxiMap(props: TaxiMapProps) {
-  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching = false, bottomPad, topPad, overlayBottom = 0, onCenterChange, onDragStart, userPos } = props;
+  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching = false, bottomPad, topPad, overlayBottom = 0, onCenterChange, onDragStart, userPos, fleet } = props;
   const { dark } = useStore();
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
-  const layers = useRef<{ pickup?: L.Marker; dest?: L.Marker; driver?: L.Marker; route?: L.LayerGroup; approach?: L.Polyline; nearby: L.Marker[]; me?: L.Marker; meAcc?: L.Circle }>({ nearby: [] });
+  const layers = useRef<{ pickup?: L.Marker; dest?: L.Marker; driver?: L.Marker; route?: L.LayerGroup; approach?: L.Polyline; nearby: L.Marker[]; fleet: Map<string, L.Marker>; me?: L.Marker; meAcc?: L.Circle }>({ nearby: [], fleet: new Map() });
   const cb = useRef({ onCenterChange, onDragStart });
   const pads = useRef({ topPad, bottomPad });
   const [offline, setOffline] = useState(false);
   const theme = dark ? 'dark' : 'light';
+  const live = !!fleet;
 
   useEffect(() => { cb.current = { onCenterChange, onDragStart }; }, [onCenterChange, onDragStart]);
   useEffect(() => { pads.current = { topPad, bottomPad }; }, [topPad, bottomPad]);
@@ -430,7 +431,7 @@ export default function TaxiMap(props: TaxiMapProps) {
     if (!m) return;
     l.nearby.forEach(x => x.remove());
     l.nearby = [];
-    if (!showNearby) return;
+    if (!showNearby || live) return;
     const cars = seedNearby(pickup ?? initial);
     l.nearby = cars.map((c, i) => L.marker([c.lat, c.lng], { icon: carIcon(i % 3 === 2 ? 'car' : 'taxi', c.rot, 21), interactive: false, keyboard: false }).addTo(m));
     // Har 2.5 soniyada mashinalar ko'cha bo'ylab biroz siljiydi, ba'zan buriladi
@@ -450,7 +451,21 @@ export default function TaxiMap(props: TaxiMapProps) {
     return () => clearInterval(iv);
     // olish nuqtasi o'zgarganda mashinalar qayta joylashmaydi — faqat ko'rinish yoqilganda
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showNearby, initial]);
+  }, [showNearby, initial, live]);
+
+  // Haqiqiy haydovchilar (dispetcher serveri)
+  useEffect(() => {
+    const m = map.current, l = layers.current;
+    if (!m) return;
+    const list = showNearby ? fleet ?? [] : [];
+    const ids = new Set(list.map(f => f.id));
+    l.fleet.forEach((mk, id) => { if (!ids.has(id)) { mk.remove(); l.fleet.delete(id); } });
+    list.forEach(f => {
+      const mk = l.fleet.get(f.id);
+      if (!mk) l.fleet.set(f.id, L.marker(ll(f.pos), { icon: carIcon('taxi', f.heading, 21), interactive: false, keyboard: false }).addTo(m));
+      else { mk.setLatLng(ll(f.pos)); setRot(mk, f.heading); }
+    });
+  }, [fleet, showNearby]);
 
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: PALETTE[theme].land }]}>
