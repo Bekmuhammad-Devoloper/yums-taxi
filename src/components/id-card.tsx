@@ -2,7 +2,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useStartChat } from '@/lib/actions';
@@ -38,10 +38,21 @@ export function SpecialistIdCard({ sp }: { sp: Specialist }) {
     setBackSide(!backSide);
     Animated.timing(rot, { toValue: to, duration: 520, easing: Easing.out(Easing.cubic), useNativeDriver: Platform.OS !== 'web' }).start(() => { busy.current = false; });
   };
+  // Ochilganda karta bir marta biroz buriladi — orqa tomoni borligini ko'rsatish uchun
+  useEffect(() => {
+    const peek = Animated.sequence([
+      Animated.delay(700),
+      Animated.timing(rot, { toValue: 0.12, duration: 380, easing: Easing.out(Easing.quad), useNativeDriver: Platform.OS !== 'web' }),
+      Animated.spring(rot, { toValue: 0, friction: 4, useNativeDriver: Platform.OS !== 'web' }),
+    ]);
+    peek.start();
+    return () => peek.stop();
+  }, [rot]);
   const front = rot.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
   const back = rot.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '360deg'] });
   return (
     <View>
+      <View>
       <Animated.View style={[styles.face, { transform: [{ perspective: 1200 }, { rotateY: front }] }]} pointerEvents={backSide ? 'none' : 'auto'}>
         <Pressable onPress={flip} accessibilityRole="button" accessibilityLabel="Kartaning orqa tomonini ko'rish">
           <IdFront sp={sp} />
@@ -50,6 +61,11 @@ export function SpecialistIdCard({ sp }: { sp: Specialist }) {
       <Animated.View style={[StyleSheet.absoluteFill, styles.face, { transform: [{ perspective: 1200 }, { rotateY: back }] }]} pointerEvents={backSide ? 'auto' : 'none'}>
         <IdBack sp={sp} onFlip={flip} />
       </Animated.View>
+      </View>
+      <Pressable onPress={flip} hitSlop={6} style={({ pressed }) => [styles.flipBtn, { opacity: pressed ? 0.6 : 1 }]} accessibilityRole="button">
+        <Ionicons name="sync-outline" size={15} color="#E0A800" />
+        <Text style={styles.flipBtnText}>{backSide ? 'Old tomoni' : sp.website ? 'Orqa tomoni · portfolio' : 'Orqa tomoni · aloqa'}</Text>
+      </Pressable>
     </View>
   );
 }
@@ -197,6 +213,8 @@ function Field({ label, value, ink, labelColor, big, verified }: { label: string
 
 const styles = StyleSheet.create({
   face: { backfaceVisibility: 'hidden' },
+  flipBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'center', marginTop: 10, paddingHorizontal: 12, height: 30, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(224,168,0,0.45)', backgroundColor: 'rgba(255,200,0,0.1)' },
+  flipBtnText: { color: '#E0A800', fontFamily: F.bold, fontSize: 12.5 },
   card: { borderRadius: 20, overflow: 'hidden', borderWidth: 1, padding: 14, paddingBottom: 0, gap: 12 },
   rosette: { position: 'absolute', right: -70, top: 18, width: 260, height: 260, alignItems: 'center', justifyContent: 'center' },
   petal: { position: 'absolute', width: 250, height: 96, borderRadius: 125, borderWidth: 1 },
