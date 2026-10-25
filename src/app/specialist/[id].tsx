@@ -3,11 +3,12 @@ import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { FavButton, KeyValue, Place, ReportSheet, SpecialistAvatar } from '@/components/platform-ui';
-import { Badge, Button, Card, EmptyState, IconButton, Row, Screen, SectionHeader, Txt, Verified } from '@/components/ui';
+import { SpecialistIdCard } from '@/components/id-card';
+import { FavButton, KeyValue, ReportSheet } from '@/components/platform-ui';
+import { Badge, Button, Card, EmptyState, IconButton, Row, Screen, SectionHeader, Txt } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
 import { LANGUAGES } from '@/lib/platform-data';
-import { countryOf, usePlatform } from '@/lib/platform';
+import { usePlatform } from '@/lib/platform';
 import { useStore } from '@/lib/store';
 
 const REVIEWS = [
@@ -25,7 +26,6 @@ export default function SpecialistScreen() {
   const sp = p.specialists.find(x => x.id === id);
 
   if (!sp || p.isBlocked('specialist', sp.id)) return <Screen title="Mutaxassis"><EmptyState icon="person-outline" title="Profil topilmadi" /></Screen>;
-  const k = countryOf(sp.country);
   const peer = { peerId: sp.id, peerName: sp.name, peerKind: 'specialist' as const, peerVerified: sp.verified };
 
   return (
@@ -39,19 +39,11 @@ export default function SpecialistScreen() {
           <Button title="Ishga taklif qilish" icon="briefcase" disabled={!sp.available} style={{ flex: 1.4 }} onPress={() => start(peer, { request: true, subject: 'Loyihaga taklif' })} />
         </Row>
       }>
-      <Card style={{ alignItems: 'center', gap: 8, paddingVertical: 22 }}>
-        <View>
-          <SpecialistAvatar sp={sp} size={84} />
-          <View style={[styles.dot, { backgroundColor: sp.available ? c.ok : c.faint, borderColor: c.surface }]} />
-        </View>
-        <Row gap={5}><Txt v="h1">{sp.name}</Txt>{sp.verified && <Verified size={20} />}</Row>
-        <Txt muted>{sp.title}</Txt>
-        <Place code={k.code} city={sp.city} />
-        <Row gap={6} style={{ marginTop: 4 }}>
-          <Badge label={sp.available ? 'Buyurtma qabul qiladi' : 'Hozir band'} tone={sp.available ? 'ok' : 'muted'} />
-          {sp.remote && <Badge label="Masofaviy" icon="globe-outline" tone="accent" />}
-        </Row>
-      </Card>
+      <SpecialistIdCard sp={sp} />
+      <Row gap={6} style={{ flexWrap: 'wrap', marginTop: -4 }}>
+        <Badge label={sp.available ? 'Buyurtma qabul qiladi' : 'Hozir band'} icon={sp.available ? 'checkmark-circle' : 'time-outline'} tone={sp.available ? 'ok' : 'muted'} />
+        {sp.remote && <Badge label="Masofaviy" icon="globe-outline" tone="accent" />}
+      </Row>
 
       <KeyValue items={[
         { label: 'Stavka', value: `$${sp.rate} / soat`, icon: 'cash-outline' },

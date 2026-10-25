@@ -99,4 +99,6 @@ export const F = {
   heavy: 'Onest_800ExtraBold',
   /** Qo'lyozma uslubi — loyiha nomlari uchun */
   hand: 'Caveat_700Bold',
+  /** OCR uslubidagi monoshrift — ID karta MRZ qatori uchun */
+  mono: 'ShareTechMono_400Regular',
 };
