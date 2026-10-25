@@ -67,7 +67,16 @@ export function SpecialistIdCard({ sp }: { sp: Specialist }) {
 }
 
 // Har bir mutaxassisga 5 ta dizayndan bittasi (id bo'yicha doimiy)
-const backIndex = (id: string) => [...id].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7) % 5;
+// Dizayn: chet eldagilar — «Butun dunyo», vodiy, Samarqand, Buxoro — o'z shahri; qolganlari id bo'yicha doimiy
+const VALLEY = /andijon|farg.ona|namangan|qo.qon|marg.ilon|asaka/i;
+const backIndex = (sp: Pick<Specialist, 'id' | 'country' | 'city'>) => {
+  if (sp.country !== 'UZ') return 9;
+  if (VALLEY.test(sp.city)) return 8;
+  if (/samarqand/i.test(sp.city)) return 5;
+  if (/buxoro/i.test(sp.city)) return 6;
+  const rest = [0, 1, 2, 3, 4, 7];
+  return rest[[...sp.id].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7) % rest.length];
+};
 
 const BACK_THEMES: readonly (readonly [string, string, string])[] = [
   ['#0B1530', '#14306E', '#0B1530'],
@@ -79,7 +88,7 @@ const BACK_THEMES: readonly (readonly [string, string, string])[] = [
 
 function IdBack({ sp, onFlip }: { sp: Specialist; onFlip: () => void }) {
   const start = useStartChat();
-  const i = backIndex(sp.id);
+  const i = backIndex(sp);
   const art = CARD_BACKS[i];
   const site = sp.website?.replace(/^https?:\/\//, '').replace(/\/$/, '');
   const num = 'YM' + sp.id.replace(/\D/g, '').padStart(7, '0');
@@ -93,8 +102,8 @@ function IdBack({ sp, onFlip }: { sp: Specialist; onFlip: () => void }) {
   };
   return (
     <View style={styles.back}>
-      {art ? <Image source={art} style={StyleSheet.absoluteFill} contentFit="cover" /> : <LinearGradient colors={BACK_THEMES[i]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
-      <LinearGradient colors={['rgba(0,0,0,0.55)', 'rgba(0,0,0,0.25)', 'rgba(0,0,0,0.05)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+      {art ? <Image source={art} style={StyleSheet.absoluteFill} contentFit="cover" /> : <LinearGradient colors={BACK_THEMES[i % BACK_THEMES.length]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
+      <LinearGradient colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.45)', 'rgba(0,0,0,0.15)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
       <View style={styles.backTop}>
         <BrandMark size={22} style={{ borderRadius: 6 }} />
         <Text style={styles.backBrand}>YUMS <Text style={{ color: '#FFC800' }}>ID</Text></Text>
@@ -163,14 +172,14 @@ function IdFront({ sp }: { sp: Specialist }) {
   const mrz2 = pad(`${num}<${iso}<<${String(sp.experience).padStart(2, '0')}Y<<${sp.verified ? 'VERIFIED' : ''}`, 30);
 
   // Old tomon ham orqa tomondagi fon rasmida — matn har doim oq
-  const i = backIndex(sp.id);
+  const i = backIndex(sp);
   const art = CARD_BACKS[i];
   const t = { ink: '#FFFFFF', label: 'rgba(255,255,255,0.62)', line: 'rgba(255,214,90,0.14)', mrz: 'rgba(0,0,0,0.38)' };
 
   return (
     <View style={[styles.card, { borderColor: 'rgba(229,193,88,0.3)' }]}>
-      {art ? <Image source={art} style={StyleSheet.absoluteFill} contentFit="cover" /> : <LinearGradient colors={BACK_THEMES[i]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
-      <LinearGradient colors={['rgba(0,0,0,0.5)', 'rgba(0,0,0,0.28)', 'rgba(0,0,0,0.1)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+      {art ? <Image source={art} style={StyleSheet.absoluteFill} contentFit="cover" /> : <LinearGradient colors={BACK_THEMES[i % BACK_THEMES.length]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
+      <LinearGradient colors={['rgba(0,0,0,0.62)', 'rgba(0,0,0,0.38)', 'rgba(0,0,0,0.12)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
       {/* Himoya naqshi (gilosh) */}
       <View pointerEvents="none" style={styles.rosette}>
         {Array.from({ length: 14 }, (_, i) => (
