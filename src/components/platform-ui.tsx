@@ -311,7 +311,7 @@ export const PEER_LABEL: Record<Conversation['peerKind'], string> = {
 export function PeerAvatar({ conv, size = 50 }: { conv: Conversation; size?: number }) {
   const { colors: c } = useStore();
   if (conv.peerKind === 'support') {
-    return <View style={{ width: size, height: size, borderRadius: size / 3, backgroundColor: c.brand, alignItems: 'center', justifyContent: 'center' }}><Text style={{ fontFamily: F.heavy, fontSize: size * 0.42, color: c.brandText }}>Y</Text></View>;
+    return <BrandMark size={size} style={{ borderRadius: size / 3 }} />;
   }
   if (conv.peerKind === 'company' || conv.peerKind === 'investor') return <Logo name={conv.peerName} color={conv.peerKind === 'investor' ? c.violet : c.ok} size={size} />;
   const sp = conv.peerKind === 'specialist' ? SEED_SPECIALISTS.find(x => x.id === conv.peerId) : undefined;
