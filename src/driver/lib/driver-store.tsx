@@ -13,10 +13,13 @@ import { bearing, distanceKm, fetchRoute, nearbyPoint, pathLength, pointAt, pric
 import { haptic } from '@/lib/store';
 
 import { demandSlot, demandZones, surgeAt, type DemandZone } from './demand';
+import { DOC_KINDS, DOC_META, emptyDoc, reviewDoc, sampleDoc, type DocKind, type DriverDoc } from './docs';
 import { nextManeuver } from './nav';
+import { tariffChecks, type Check } from './requirements';
 import { say, setVoiceEnabled, setVoiceLang, type VoiceLang } from './voice';
 
-export type DriverProfile = Driver & { tariffs: string[]; city: string; joinedAt: string };
+/** tariffs — haydovchi yoqqan tariflar (ishlashi uchun shartlari ham bajarilishi kerak), year — avtomobil yili */
+export type DriverProfile = Driver & { tariffs: string[]; city: string; joinedAt: string; year?: number; deliveryTerms?: boolean };
 
 /** chain — joriy safardan keyin bajariladigan (zanjir) buyurtma taklifi */
 export type Offer = { order: OrderOffer; distanceKm: number; expiresAt: number; total: number; chain?: boolean };
@@ -50,8 +53,24 @@ export const feeOf = (e: Earning) => e.fee ?? Math.round((e.price + (e.waitFee ?
 export const waitFeeOf = (arrivedAt: number | undefined, now: number) =>
   arrivedAt ? Math.ceil(Math.max(0, (now - arrivedAt) / 1000 - FREE_WAIT_SEC) / 60) * WAIT_PER_MIN : 0;
 
+export type TariffState = { id: string; checks: Check[]; eligible: boolean; enabled: boolean };
+type Docs = Record<DocKind, DriverDoc>;
+const emptyDocs = () => Object.fromEntries(DOC_KINDS.map(k => [k, emptyDoc(k)])) as Docs;
+/** Hujjat tekshiruvi (demo moderator) qancha vaqt oladi */
+const REVIEW_MS = 4000;
+
 type Ctx = {
   ready: boolean;
+  docs: Docs;
+  docsApproved: boolean;
+  submitDoc: (d: DriverDoc) => void;
+  fillDemoDocs: () => void;
+  tariffState: TariffState[];
+  activeTariffs: string[];
+  setTariffEnabled: (id: string, on: boolean) => boolean;
+  /** Avtomobil almashsa texnik pasport qayta tekshiriladi */
+  updateCar: (car: string, year: number) => void;
+  acceptDeliveryTerms: () => void;
   profile: DriverProfile | null;
   register: (p: Omit<DriverProfile, 'id' | 'rating' | 'trips' | 'joinedAt'>) => void;
   updateProfile: (p: Partial<DriverProfile>) => void;
@@ -116,7 +135,7 @@ export const useDriver = () => {
 
 const K = {
   profile: 'yd:profile', earnings: 'yd:earnings', autopilot: 'yd:autopilot', activity: 'yd:activity', payouts: 'yd:payouts',
-  online: 'yd:onlineLog', home: 'yd:home', homeUses: 'yd:homeUses', navApp: 'yd:navApp', voice: 'yd:voice', voiceLang: 'yd:voiceLang', session: 'yd:session',
+  online: 'yd:onlineLog', home: 'yd:home', homeUses: 'yd:homeUses', navApp: 'yd:navApp', voice: 'yd:voice', voiceLang: 'yd:voiceLang', session: 'yd:session', docs: 'yd:docs',
 };
 /** Ilova qayta ochilganda safar davom etishi uchun saqlanadigan holat */
 type Session = { trip: Trip | null; next: OrderOffer | null; summary: Summary | null; online: boolean; pos: LatLng; savedAt: number };
@@ -159,6 +178,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   const [client, setClient] = useState<DispatchClient | null>(null);
   const [lastRating, setLastRating] = useState<{ stars: number; tip: number } | null>(null);
   const [slot, setSlot] = useState(() => demandSlot());
+  const [docs, setDocs] = useState<Docs>(emptyDocs);
 
   const posRef = useRef(pos);
   useEffect(() => { posRef.current = pos; }, [pos]);
@@ -194,9 +214,12 @@ export function DriverProvider({ children }: { children: ReactNode }) {
         if (e[K.navApp]) setNavAppState(e[K.navApp]);
         if (typeof e[K.voice] === 'boolean') { setVoiceState(e[K.voice]); setVoiceEnabled(e[K.voice]); }
         if (e[K.voiceLang] === 'uz' || e[K.voiceLang] === 'ru') { setVoiceLangState(e[K.voiceLang]); setVoiceLang(e[K.voiceLang]); }
+        const loadedDocs: Docs = { ...emptyDocs(), ...(e[K.docs] ?? {}) };
+        setDocs(loadedDocs);
+        const docsOk = DOC_KINDS.every(k => loadedDocs[k].status === 'approved');
         // to'xtab qolgan safar va liniyadagi holat tiklanadi
         const s: Session | undefined = e[K.session];
-        if (e[K.profile] && s && Date.now() - s.savedAt < SESSION_TTL) {
+        if (e[K.profile] && docsOk && s && Date.now() - s.savedAt < SESSION_TTL) {
           if (s.pos) setPos(s.pos);
           if (s.trip) setTrip(s.trip);
           if (s.next) setNext(s.next);
@@ -241,6 +264,56 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   const bumpActivity = useCallback((d: number) => {
     setActivity(a => { const n = clamp(a + d); persist(K.activity, n); return n; });
   }, []);
+
+  /* ---------- Hujjatlar ---------- */
+  const updateDocs = useCallback((fn: (d: Docs) => Docs) => {
+    setDocs(cur => { const n = fn(cur); persist(K.docs, n); return n; });
+  }, []);
+  const docsApproved = DOC_KINDS.every(k => docs[k].status === 'approved');
+  const docsRef = useRef(docs);
+  useEffect(() => { docsRef.current = docs; }, [docs]);
+
+  // Demo moderator: yuborilgan hujjat bir necha soniyada tekshiriladi
+  useEffect(() => {
+    const pending = DOC_KINDS.filter(k => docs[k].status === 'review');
+    if (!pending.length) return;
+    const timers = pending.map(k => setTimeout(() => {
+      const cur = docsRef.current;
+      if (cur[k].status !== 'review') return;
+      const r = reviewDoc(cur[k]);
+      updateDocs(c => ({ ...c, [k]: { ...c[k], ...r, checkedAt: new Date().toISOString() } }));
+      toast(r.status === 'approved' ? `${DOC_META[k].short} tasdiqlandi` : `${DOC_META[k].short} rad etildi: ${r.note}`, r.status === 'approved' ? 'checkmark-circle' : 'close-circle');
+      if (r.status === 'approved' && DOC_KINDS.every(x => x === k || cur[x].status === 'approved')) {
+        setTimeout(() => toast('Hujjatlar tasdiqlandi — liniyaga chiqishingiz mumkin', 'shield-checkmark'), 1600);
+      }
+    }, Math.max(0, new Date(docs[k].submittedAt ?? 0).getTime() + REVIEW_MS - Date.now())));
+    return () => timers.forEach(clearTimeout);
+  }, [docs, updateDocs]);
+
+  const submitDoc = useCallback((d: DriverDoc) => {
+    updateDocs(cur => ({ ...cur, [d.kind]: { ...d, status: 'review', note: undefined, submittedAt: new Date().toISOString(), checkedAt: undefined } }));
+  }, [updateDocs]);
+
+  const fillDemoDocs = useCallback(() => {
+    const t = Date.now();
+    updateDocs(() => Object.fromEntries(DOC_KINDS.map((k, i) => [k, { ...sampleDoc(k), status: 'review', submittedAt: new Date(t + i * 700).toISOString() }])) as Docs);
+  }, [updateDocs]);
+
+  /* ---------- Tariflar: shartlar bajarilganda yoqiladi ---------- */
+  const rating = useMemo(() => {
+    const st = earnings.filter(e => e.stars).slice(0, 50);
+    return st.length ? st.reduce((s, e) => s + (e.stars ?? 0), 0) / st.length : profile?.rating ?? 5;
+  }, [earnings, profile]);
+
+  const tariffState = useMemo<TariffState[]>(() => TARIFFS.map(t => {
+    const checks = tariffChecks(t.id, profile?.car, profile?.year, { docsApproved, rating, trips: profile?.trips ?? 0, activity, deliveryTerms: !!profile?.deliveryTerms });
+    const ok = checks.every(c => c.ok);
+    return { id: t.id, checks, eligible: ok, enabled: ok && !!profile?.tariffs.includes(t.id) };
+  }), [profile, docsApproved, rating, activity]);
+  const activeKey = tariffState.filter(t => t.enabled).map(t => t.id).join(',');
+  const activeTariffs = useMemo(() => (activeKey ? activeKey.split(',') : []), [activeKey]);
+  const activeRef = useRef(activeTariffs);
+  useEffect(() => { activeRef.current = activeTariffs; }, [activeTariffs]);
 
   /* ---------- Server ---------- */
   const driverId = profile?.id ?? null;
@@ -388,9 +461,9 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   // Server ulanganda liniyadagi holatni qayta e'lon qilish
   useEffect(() => {
     if (client && profile && online && conn === 'online') {
-      client.send({ t: 'online', driver: profile, pos: posRef.current, heading: headingRef.current, tariffs: profile.tariffs });
+      client.send({ t: 'online', driver: profile, pos: posRef.current, heading: headingRef.current, tariffs: activeTariffs });
     }
-  }, [client, profile, online, conn]);
+  }, [client, profile, online, conn, activeTariffs]);
 
   /* ---------- Demo buyurtmalar (server yo'q) ---------- */
   const makeDemoOrder = useCallback(async (from: LatLng): Promise<{ order: OrderOffer; km: number } | null> => {
@@ -401,7 +474,8 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     const dest = homeDest ? (near.length && Math.random() < 0.5 ? near[Math.floor(Math.random() * near.length)] : homeDest) : PLACES[Math.floor(Math.random() * PLACES.length)];
     if (distanceKm(pickup, dest) < 1) return null;
     const route = await fetchRoute(pickup, dest);
-    const tariffId = profile.tariffs[Math.floor(Math.random() * profile.tariffs.length)] ?? 'start';
+    const pool = activeRef.current;
+    const tariffId = pool[Math.floor(Math.random() * pool.length)] ?? 'start';
     const tf = TARIFFS.find(x => x.id === tariffId) ?? TARIFFS[0];
     const surge = surgeAt(zonesRef.current, pickup);
     const order: OrderOffer = {
@@ -590,6 +664,8 @@ export function DriverProvider({ children }: { children: ReactNode }) {
 
   const setOnline = useCallback((v: boolean) => {
     haptic.tap();
+    if (v && !docsApproved) { toast('Avval hujjatlaringiz tasdiqlanishi kerak', 'document-text'); return; }
+    if (v && !activeRef.current.length) { toast('Kamida bitta tarifni yoqing', 'car'); return; }
     setOnlineState(v);
     const now = Date.now();
     if (v) {
@@ -603,7 +679,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
       if (since) setOnlineLog(l => { const n = { date: dayKey(), ms: (l.date === dayKey() ? l.ms : 0) + (now - since) }; persist(K.online, n); return n; });
       setOnlineSince(null);
     }
-  }, [client]);
+  }, [client, docsApproved]);
 
   const onlineMsToday = useCallback((now: number) => (onlineLog.date === dayKey() ? onlineLog.ms : 0) + (onlineSince ? Math.max(0, now - onlineSince) : 0), [onlineLog, onlineSince]);
 
@@ -612,11 +688,6 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     const list = earnings.filter(e => new Date(e.at).toDateString() === d);
     return { sum: list.reduce((s, e) => s + e.price + (e.waitFee ?? 0) + e.tip - feeOf(e), 0), count: list.filter(e => !e.noShow).length, km: list.reduce((s, e) => s + e.km, 0) };
   }, [earnings]);
-
-  const rating = useMemo(() => {
-    const st = earnings.filter(e => e.stars).slice(0, 50);
-    return st.length ? st.reduce((s, e) => s + (e.stars ?? 0), 0) / st.length : profile?.rating ?? 5;
-  }, [earnings, profile]);
 
   // Balans: kartadagi safarlar tushadi, naqd safarlar komissiyasi yechiladi, choy puli qo'shiladi
   const balance = useMemo(() =>
@@ -642,8 +713,29 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
+  const setTariffEnabled = (id: string, on: boolean) => {
+    const st = tariffState.find(t => t.id === id);
+    if (!profile || !st || (on && !st.eligible)) return false;
+    if (!on && activeTariffs.length === 1 && activeTariffs[0] === id && online) { toast("Liniyada kamida bitta tarif yoqilgan bo'lishi kerak", 'alert-circle'); return false; }
+    const tariffs = on ? [...new Set([...profile.tariffs, id])] : profile.tariffs.filter(x => x !== id);
+    setProfile(cur => { if (!cur) return cur; const n = { ...cur, tariffs }; persist(K.profile, n); return n; });
+    return true;
+  };
+
+  const updateCar = (car: string, year: number) => {
+    if (!profile || (profile.car === car && profile.year === year)) return;
+    setProfile(cur => { if (!cur) return cur; const n = { ...cur, car, year }; persist(K.profile, n); return n; });
+    if (docs.techPassport.status !== 'missing') {
+      updateDocs(cur => ({ ...cur, techPassport: { ...cur.techPassport, status: 'rejected', note: "Avtomobil o'zgardi — yangi texnik pasportni yuklang" } }));
+      if (online) setOnline(false);
+      toast('Yangi avtomobil uchun texnik pasportni yuklang', 'document-text');
+    }
+  };
+
   const value: Ctx = {
     ready, profile,
+    docs, docsApproved, submitDoc, fillDemoDocs, tariffState, activeTariffs, setTariffEnabled, updateCar,
+    acceptDeliveryTerms: () => setProfile(cur => { if (!cur) return cur; const n = { ...cur, deliveryTerms: true }; persist(K.profile, n); return n; }),
     register: p => {
       const np: DriverProfile = { ...p, id: 'drv' + Date.now().toString(36), rating: 5, trips: 0, joinedAt: new Date().toISOString() };
       setProfile(np); persist(K.profile, np);
@@ -651,8 +743,8 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     updateProfile: p => setProfile(cur => { if (!cur) return cur; const n = { ...cur, ...p }; persist(K.profile, n); return n; }),
     logout: () => {
       if (online) setOnline(false);
-      setOffer(null); setTrip(null); setNext(null); setSummary(null); setProfile(null);
-      AsyncStorage.multiRemove([K.profile, K.session]).catch(() => {});
+      setOffer(null); setTrip(null); setNext(null); setSummary(null); setProfile(null); setDocs(emptyDocs());
+      AsyncStorage.multiRemove([K.profile, K.session, K.docs]).catch(() => {});
     },
     online, setOnline, pos, heading, gps: gpsState, retryGps: () => setGpsTry(n => n + 1),
     offer, accept, decline, trip, next, leftKm, arrived, startRide, finishRide, cancelTrip, noShow, cancelNext, summary, closeSummary,

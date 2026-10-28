@@ -11,8 +11,10 @@ import { toast } from '@/components/toast';
 import { ActionSheet, Avatar, Row, Sheet, Txt, alpha } from '@/components/ui';
 import { SlideButton } from '@/driver/components/slide-button';
 import { nearestHot, surgeAt, ZONE_COLOR } from '@/driver/lib/demand';
+import { DOC_KINDS } from '@/driver/lib/docs';
 import { ACTIVITY, COMMISSION, FREE_WAIT_SEC, HOME_USES_PER_DAY, NO_SHOW_AFTER_SEC, WAIT_PER_MIN, useDriver, waitFeeOf, type Offer, type Trip } from '@/driver/lib/driver-store';
 import { fmtDist, MANEUVER_TEXT, nextManeuver, type ManeuverKind } from '@/driver/lib/nav';
+import { callNumber } from '@/driver/lib/support';
 import { activityColor, GREEN, ORANGE, VIOLET } from '@/driver/lib/theme';
 import { say, type PhraseKey } from '@/driver/lib/voice';
 import { TARIFF_ART } from '@/lib/cars';
@@ -265,7 +267,13 @@ function HomePanel() {
   }, [d.online, pulse]);
   const ms = d.onlineMsToday(now);
   const hm = `${Math.floor(ms / 3600000)} s ${Math.floor((ms % 3600000) / 60000)} d`;
-  const tariffNames = d.profile?.tariffs.map(id => TARIFFS.find(t => t.id === id)?.name ?? id) ?? [];
+  const tariffNames = d.activeTariffs.map(id => TARIFFS.find(t => t.id === id)?.name ?? id);
+  const approvedDocs = DOC_KINDS.filter(k => d.docs[k].status === 'approved').length;
+  const inReview = DOC_KINDS.some(k => d.docs[k].status === 'review');
+  // liniyaga chiqishdan oldingi to'siq: hujjatlar yoki faol tarif yo'q
+  const block = !d.docsApproved
+    ? { title: inReview ? 'Hujjatlar tekshirilmoqda' : 'Hujjatlarni yuklang', sub: `${approvedDocs} / ${DOC_KINDS.length} tasdiqlangan · liniyaga chiqish uchun kerak`, icon: inReview ? 'time' as const : 'document-text' as const, to: '/documents' }
+    : !d.activeTariffs.length ? { title: 'Tarifni yoqing', sub: 'Shartlari bajarilgan tarif yo\'q yoki hammasi o\'chiq', icon: 'car' as const, to: '/profile' } : null;
 
   return (
     <View style={{ gap: 14 }}>
@@ -280,6 +288,15 @@ function HomePanel() {
             <Txt v="small" muted>{d.live ? 'Buyurtma qidirilmoqda · YUMS yo\'lovchilari' : 'Buyurtma qidirilmoqda · demo'}{d.homeDest ? ` · uyga: ${d.homeDest.title}` : ''}</Txt>
           </View>
           <Ionicons name="power" size={22} color={GREEN} />
+        </Pressable>
+      ) : block ? (
+        <Pressable onPress={() => go(block.to)} style={({ pressed }) => [styles.mainBtn, { backgroundColor: c.surface2, transform: [{ scale: pressed ? 0.98 : 1 }] }]} accessibilityLabel={block.title}>
+          <View style={[styles.powerIcon, { backgroundColor: c.brandSoft }]}><Ionicons name={block.icon} size={22} color={c.brandDeep} /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.mainTitle, { color: c.text }]}>{block.title}</Text>
+            <Txt v="small" muted numberOfLines={1}>{block.sub}</Txt>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={c.faint} />
         </Pressable>
       ) : (
         <Pressable onPress={() => d.setOnline(true)} style={({ pressed }) => [styles.mainBtn, { backgroundColor: c.brand, transform: [{ scale: pressed ? 0.98 : 1 }] }]} accessibilityLabel="Liniyaga chiqish">
@@ -532,7 +549,8 @@ function TripPanel({ trip }: { trip: Trip }) {
         groups={[
           [
             { icon: 'call', title: "Mijozga qo'ng'iroq", onPress: () => { setMore(false); call(); } },
-            { icon: 'shield-checkmark', title: 'Xavfsizlik · 112', sub: 'Favqulodda vaziyatda', onPress: () => { setMore(false); Linking.openURL('tel:112').catch(() => toast("Qo'ng'iroq: 112", 'call')); } },
+            { icon: 'headset', title: 'Yordam markazi', sub: 'Chat · javob 2 daqiqada', onPress: () => { setMore(false); go('/support-chat'); } },
+            { icon: 'shield-checkmark', title: 'Xavfsizlik · 112', sub: 'Favqulodda vaziyatda', onPress: () => { setMore(false); callNumber('112'); } },
           ],
           trip.stage === 'waiting' ? [{
             icon: 'person-remove', title: 'Mijoz chiqmadi', color: '#D97706',

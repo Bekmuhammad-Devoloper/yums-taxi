@@ -2,8 +2,12 @@ import { Image } from 'expo-image';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import Ionicons from '@expo/vector-icons/Ionicons';
+
 import { BrandMark, Button, Chip, Field, Row, Screen, Txt } from '@/components/ui';
+import { CarPicker } from '@/driver/components/car-picker';
 import { useDriver } from '@/driver/lib/driver-store';
+import { CLASS_NAME, findCar } from '@/driver/lib/requirements';
 import { TARIFF_ART } from '@/lib/cars';
 import { TARIFFS } from '@/lib/data';
 import { useStore } from '@/lib/store';
@@ -30,29 +34,35 @@ export default function Register() {
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
   const [car, setCar] = useState('');
+  const [carSheet, setCarSheet] = useState(false);
+  const [year, setYear] = useState('');
   const [color, setColor] = useState('Oq');
   const [plate, setPlate] = useState('');
   const [city, setCity] = useState('Toshkent');
-  const [tariffs, setTariffs] = useState<string[]>(['start']);
   const [tried, setTried] = useState(false);
 
   const err = {
     phone: phone.replace(/\D/g, '').length !== 9 ? 'Telefon raqamini to\'liq kiriting' : '',
     name: name.trim().length < 3 ? 'Ism va familiyani kiriting' : '',
-    car: car.trim().length < 2 ? 'Mashina modelini kiriting' : '',
+    car: !findCar(car) ? 'Avtomobil modelini ro\'yxatdan tanlang' : '',
+    year: !(+year >= 1995 && +year <= new Date().getFullYear() + 1) ? 'Masalan: 2021' : '',
     plate: !/^\d{2} [A-Z] \d{3} [A-Z]{2}$/.test(plate) ? 'Masalan: 01 A 123 BC' : '',
   };
-  const ok = !Object.values(err).some(Boolean) && tariffs.length > 0;
+  const ok = !Object.values(err).some(Boolean);
+  const model = findCar(car);
+  // shu sinfdagi avtomobil qaysi tariflarga mos kelishi mumkin (hujjat va reyting shartlaridan tashqari)
+  const fits = model ? TARIFFS.filter(t => ({ economy: ['start', 'delivery'], comfort: ['start', 'comfort', 'delivery'], business: ['start', 'comfort', 'business', 'delivery'], minivan: ['start', 'minivan', 'delivery'], cargo: ['delivery'] })[model.cls].includes(t.id)) : [];
 
   const submit = () => {
     setTried(true);
     if (!ok) return;
-    register({ name: name.trim(), phone: '+998 ' + phone, car: car.trim(), color, plate, city, tariffs });
+    // tariflar oldindan yoqilgan bo'ladi, lekin har biri o'z shartlari bajarilgandagina ishlaydi
+    register({ name: name.trim(), phone: '+998 ' + phone, car, year: +year, color, plate, city, tariffs: TARIFFS.map(t => t.id) });
   };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Screen title="Haydovchi bo'lish" subtitle="YUMS Driver · ro'yxatdan o'tish" back={false} footer={<Button title="Liniyaga chiqishga tayyorman" icon="car-sport" onPress={submit} />}>
+      <Screen title="Haydovchi bo'lish" subtitle="YUMS Driver · ro'yxatdan o'tish" back={false} footer={<Button title="Ro'yxatdan o'tish" icon="arrow-forward-circle" onPress={submit} />}>
         <View style={[styles.hero, { backgroundColor: '#0F1E3D' }]}>
           <Row gap={10}>
             <BrandMark size={44} />
@@ -70,7 +80,18 @@ export default function Register() {
 
         <Field label="Telefon" prefix="+998" keyboardType="phone-pad" placeholder="90 123 45 67" value={phone} onChangeText={v => setPhone(fmtPhone(v))} error={tried ? err.phone : ''} />
         <Field label="Ism va familiya" placeholder="Masalan: Jasur Karimov" value={name} onChangeText={setName} error={tried ? err.name : ''} />
-        <Field label="Mashina" placeholder="Chevrolet Cobalt" value={car} onChangeText={setCar} error={tried ? err.car : ''} />
+        <View style={{ gap: 6 }}>
+          <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>Avtomobil</Txt>
+          <Pressable onPress={() => setCarSheet(true)} accessibilityLabel="Avtomobilni tanlash"
+            style={[styles.pick, { backgroundColor: c.surface2, borderColor: tried && err.car ? c.danger : c.line }]}>
+            <Ionicons name="car-sport-outline" size={20} color={c.muted} />
+            <Txt v="h3" color={car ? c.text : c.faint} style={{ flex: 1 }}>{car || 'Modelni tanlang'}</Txt>
+            {model ? <Txt v="tiny" muted>{CLASS_NAME[model.cls]}</Txt> : null}
+            <Ionicons name="chevron-down" size={18} color={c.faint} />
+          </Pressable>
+          {tried && err.car ? <Txt v="tiny" color={c.danger} style={{ marginLeft: 2 }}>{err.car}</Txt> : null}
+        </View>
+        <Field label="Ishlab chiqarilgan yili" placeholder="2021" keyboardType="number-pad" maxLength={4} value={year} onChangeText={v => setYear(v.replace(/\D/g, ''))} error={tried ? err.year : ''} />
         <View style={{ gap: 8 }}>
           <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>Rangi</Txt>
           <Row gap={10} style={{ flexWrap: 'wrap' }}>
@@ -87,22 +108,21 @@ export default function Register() {
           <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>Shahar</Txt>
           <Row gap={8} style={{ flexWrap: 'wrap' }}>{CITIES.map(x => <Chip key={x} label={x} active={city === x} onPress={() => setCity(x)} />)}</Row>
         </View>
-        <View style={{ gap: 8 }}>
-          <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>Qaysi tariflarda ishlaysiz</Txt>
-          <View style={styles.grid}>
-            {TARIFFS.map(t => {
-              const on = tariffs.includes(t.id);
-              return (
-                <Pressable key={t.id} onPress={() => setTariffs(ts => (on ? ts.filter(x => x !== t.id) : [...ts, t.id]))}
-                  style={[styles.tariff, { backgroundColor: on ? c.brandSoft : c.surface, borderColor: on ? c.brand : c.line }]}>
-                  <Image source={TARIFF_ART[t.id]} style={{ width: '100%', height: 44 }} contentFit="contain" />
-                  <Txt v="small" style={{ fontFamily: F.bold }}>{t.name}</Txt>
-                </Pressable>
-              );
-            })}
-          </View>
-          {tried && !tariffs.length ? <Txt v="tiny" color={c.danger}>Kamida bitta tarifni tanlang</Txt> : null}
+        <View style={[styles.note, { backgroundColor: c.surface2 }]}>
+          <Txt v="h3">Tariflar qanday ochiladi</Txt>
+          <Txt v="small" muted style={{ lineHeight: 19 }}>Hujjatlaringiz tasdiqlangach tariflar avtomobil sinfi, yili, reyting va safarlar soniga qarab ochiladi.</Txt>
+          {fits.length ? (
+            <Row gap={8} style={{ flexWrap: 'wrap', marginTop: 4 }}>
+              {fits.map(t => (
+                <View key={t.id} style={[styles.fit, { backgroundColor: c.surface }]}>
+                  <Image source={TARIFF_ART[t.id]} style={{ width: 34, height: 18 }} contentFit="contain" />
+                  <Txt v="tiny" style={{ fontFamily: F.bold }}>{t.name}</Txt>
+                </View>
+              ))}
+            </Row>
+          ) : null}
         </View>
+        <CarPicker visible={carSheet} onClose={() => setCarSheet(false)} value={car} onPick={m => setCar(`${m.brand} ${m.model}`)} />
       </Screen>
     </KeyboardAvoidingView>
   );
@@ -114,6 +134,7 @@ const styles = StyleSheet.create({
   perk: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, backgroundColor: 'rgba(255,200,0,0.14)' },
   swatchWrap: { padding: 3, borderRadius: 99, borderWidth: 2 },
   swatch: { width: 30, height: 30, borderRadius: 15, borderWidth: 1 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  tariff: { width: '31%', flexGrow: 1, alignItems: 'center', gap: 4, padding: 10, borderRadius: 16, borderWidth: 1.5 },
+  pick: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 50, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1 },
+  note: { gap: 6, padding: 14, borderRadius: 18 },
+  fit: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 },
 });

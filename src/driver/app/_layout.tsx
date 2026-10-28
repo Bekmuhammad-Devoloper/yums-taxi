@@ -2,6 +2,7 @@ import { Onest_500Medium } from '@expo-google-fonts/onest/500Medium';
 import { Onest_600SemiBold } from '@expo-google-fonts/onest/600SemiBold';
 import { Onest_700Bold } from '@expo-google-fonts/onest/700Bold';
 import { Onest_800ExtraBold } from '@expo-google-fonts/onest/800ExtraBold';
+import { ShareTechMono_400Regular } from '@expo-google-fonts/share-tech-mono/400Regular';
 import { Unbounded_700Bold } from '@expo-google-fonts/unbounded/700Bold';
 import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider, usePathname } from 'expo-router';
@@ -26,7 +27,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
 function Root() {
   const { ready, dark, colors } = useStore();
   const d = useDriver();
-  const [fontsLoaded, fontError] = useFonts({ Unbounded_700Bold, Onest_500Medium, Onest_600SemiBold, Onest_700Bold, Onest_800ExtraBold });
+  const [fontsLoaded, fontError] = useFonts({ Unbounded_700Bold, Onest_500Medium, Onest_600SemiBold, Onest_700Bold, Onest_800ExtraBold, ShareTechMono_400Regular });
   const loaded = ready && d.ready && (fontsLoaded || !!fontError);
 
   useEffect(() => {
@@ -57,6 +58,9 @@ function Root() {
             <Stack.Screen name="quality" />
             <Stack.Screen name="profile" />
             <Stack.Screen name="settings" />
+            <Stack.Screen name="documents" />
+            <Stack.Screen name="support" />
+            <Stack.Screen name="support-chat" />
           </Stack.Protected>
           <Stack.Protected guard={!d.profile}>
             <Stack.Screen name="register" options={{ animation: 'fade', gestureEnabled: false }} />
