@@ -13,6 +13,15 @@ import { F } from '@/lib/theme';
 
 const go = (path: string) => router.push(path as never);
 
+/** Menyu uchun 3D ikonkalar */
+const ART = {
+  car: require('@/assets/menu/car.webp'),
+  documents: require('@/assets/menu/documents.webp'),
+  settings: require('@/assets/menu/settings.webp'),
+  support: require('@/assets/menu/support.webp'),
+  safety: require('@/assets/menu/safety.webp'),
+};
+
 export default function Menu() {
   const { colors: c } = useStore();
   const d = useDriver();
@@ -60,17 +69,17 @@ export default function Menu() {
         <Divider style={{ marginLeft: 62 }} />
         <ListItem icon="pulse" iconBg="#FFF3DC" iconColor="#D97706" title="Faollik va reyting" sub="Qoidalar, baholar, sifat" onPress={() => go('/quality')} />
         <Divider style={{ marginLeft: 62 }} />
-        <ListItem icon="car-sport" iconBg="#E8EEFF" iconColor="#2457F5" title="Avtomobil va tariflar" sub={`${p.car} · ${d.activeTariffs.length} ta faol tarif`} onPress={() => go('/profile')} />
+        <ListItem icon="car-sport" art={ART.car} iconBg="#E8EEFF" iconColor="#2457F5" title="Avtomobil va tariflar" sub={`${p.car} · ${d.activeTariffs.length} ta faol tarif`} onPress={() => go('/profile')} />
         <Divider style={{ marginLeft: 62 }} />
-        <ListItem icon="document-text" iconBg="#F0EAFF" iconColor="#7A4DF0" title="Hujjatlar" sub={`${DOC_KINDS.filter(k => d.docs[k].status === 'approved').length} / ${DOC_KINDS.length} tasdiqlangan · guvohnoma, tex. pasport`} onPress={() => go('/documents')} />
+        <ListItem icon="document-text" art={ART.documents} iconBg="#F0EAFF" iconColor="#7A4DF0" title="Hujjatlar" sub={`${DOC_KINDS.filter(k => d.docs[k].status === 'approved').length} / ${DOC_KINDS.length} tasdiqlangan · guvohnoma, tex. pasport`} onPress={() => go('/documents')} />
       </Card>
 
       <Card style={{ paddingVertical: 6, paddingHorizontal: 4 }}>
-        <ListItem icon="settings" title="Sozlamalar" sub="Navigator, mavzu, demo rejim" onPress={() => go('/settings')} />
+        <ListItem icon="settings" art={ART.settings} title="Sozlamalar" sub="Navigator, mavzu, demo rejim" onPress={() => go('/settings')} />
         <Divider style={{ marginLeft: 62 }} />
-        <ListItem icon="headset" title="Yordam markazi" sub="24/7 · chat, savol-javoblar" onPress={() => go('/support')} />
+        <ListItem icon="headset" art={ART.support} title="Yordam markazi" sub="24/7 · chat, savol-javoblar" onPress={() => go('/support')} />
         <Divider style={{ marginLeft: 62 }} />
-        <ListItem icon="shield-checkmark" title="Xavfsizlik" sub="Favqulodda vaziyat · 112" onPress={() => callNumber('112')} />
+        <ListItem icon="shield-checkmark" art={ART.safety} title="Xavfsizlik" sub="Favqulodda vaziyat · 112" onPress={() => callNumber('112')} />
       </Card>
 
       <Txt v="tiny" faint style={{ textAlign: 'center' }}>YUMS Driver 1.0 · {d.live ? 'YUMS bilan jonli ulangan' : 'demo rejim'}</Txt>

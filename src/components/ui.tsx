@@ -100,15 +100,18 @@ export function Row({ children, style, gap = 12 }: { children: ReactNode; style?
   return <View style={[{ flexDirection: 'row', alignItems: 'center', gap }, style]}>{children}</View>;
 }
 
-export function ListItem({ icon, title, sub, onPress, right, iconBg, iconColor, danger }: {
-  icon: IconName; title: string; sub?: string; onPress?: () => void; right?: ReactNode; iconBg?: string; iconColor?: string; danger?: boolean;
+/** `art` — 3D rasm-ikonka (berilsa, `icon` o'rniga fonsiz ko'rsatiladi) */
+export function ListItem({ icon, art, title, sub, onPress, right, iconBg, iconColor, danger }: {
+  icon: IconName; art?: number; title: string; sub?: string; onPress?: () => void; right?: ReactNode; iconBg?: string; iconColor?: string; danger?: boolean;
 }) {
   const c = useColors();
   return (
     <Pressable onPress={() => { haptic.tap(); onPress?.(); }} style={({ pressed }) => [styles.item, { backgroundColor: pressed ? c.surface2 : 'transparent' }]}>
-      <View style={[styles.itemIcon, { backgroundColor: iconBg ?? (danger ? c.dangerSoft : c.surface2) }]}>
-        <Ionicons name={icon} size={20} color={iconColor ?? (danger ? c.danger : c.text)} />
-      </View>
+      {art ? <Image source={art} style={styles.itemIcon} contentFit="contain" /> : (
+        <View style={[styles.itemIcon, { backgroundColor: iconBg ?? (danger ? c.dangerSoft : c.surface2) }]}>
+          <Ionicons name={icon} size={20} color={iconColor ?? (danger ? c.danger : c.text)} />
+        </View>
+      )}
       <View style={{ flex: 1 }}>
         <Txt v="h3" color={danger ? c.danger : undefined} numberOfLines={1}>{title}</Txt>
         {sub ? <Txt v="small" muted numberOfLines={1}>{sub}</Txt> : null}
