@@ -3,7 +3,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import TaxiMap, { type MapHandle } from '@/components/taxi-map';
@@ -11,11 +11,13 @@ import { toast } from '@/components/toast';
 import { ActionSheet, Avatar, Row, Sheet, Txt, alpha } from '@/components/ui';
 import { SlideButton } from '@/driver/components/slide-button';
 import { nearestHot, surgeAt, ZONE_COLOR } from '@/driver/lib/demand';
-import { ACTIVITY, COMMISSION, FREE_WAIT_SEC, HOME_USES_PER_DAY, WAIT_PER_MIN, useDriver, type Offer, type Trip } from '@/driver/lib/driver-store';
+import { ACTIVITY, COMMISSION, FREE_WAIT_SEC, HOME_USES_PER_DAY, NO_SHOW_AFTER_SEC, WAIT_PER_MIN, useDriver, waitFeeOf, type Offer, type Trip } from '@/driver/lib/driver-store';
 import { fmtDist, MANEUVER_TEXT, nextManeuver, type ManeuverKind } from '@/driver/lib/nav';
-import { activityColor, GREEN, ORANGE } from '@/driver/lib/theme';
+import { activityColor, GREEN, ORANGE, VIOLET } from '@/driver/lib/theme';
+import { say } from '@/driver/lib/voice';
 import { TARIFF_ART } from '@/lib/cars';
 import { PLACES, TARIFFS, type LatLng } from '@/lib/data';
+import { DISPATCH_URL } from '@/lib/dispatch';
 import { distanceKm, som } from '@/lib/geo';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
@@ -52,11 +54,14 @@ export default function DriverHome() {
 
   // Xaritani mashinaga ergashtirish
   const [follow, setFollow] = useState(true);
-  // safarda yaqinroq, bo'sh paytda talab xaritasi ko'rinadigan masshtab
+  // safarda — navigator kamerasi (telefonda yo'nalishga burilib, qiya), bo'sh paytda — talab xaritasi masshtabi
   const inTrip = !!trip;
+  const { heading } = d;
   useEffect(() => {
-    if (follow && !offer) map.current?.center(pos, inTrip);
-  }, [pos, offer, follow, inTrip]);
+    if (!follow || offer) return;
+    if (inTrip) map.current?.follow(pos, heading);
+    else map.current?.center(pos, false);
+  }, [pos, heading, offer, follow, inTrip]);
   // Taklif kelganda butun yo'lni ko'rsatish
   useEffect(() => {
     if (offer) map.current?.fit([pos, offer.order.pickup, offer.order.destination]);
@@ -93,6 +98,7 @@ export default function DriverHome() {
         showPickup={!!shown && stage !== 'inride'}
         showNearby={false}
         zones={showZones ? d.zones : undefined}
+        radar={d.online && !trip && !offer && !summary}
         bottomPad={sheetH}
         overlayBottom={sheetH}
         topPad={insets.top + (trip ? 150 : 70)}
@@ -119,6 +125,8 @@ export default function DriverHome() {
         </View>
       )}
 
+      <StatusBanner top={insets.top + (trip ? 158 : 70)} />
+
       {/* Talab haqida maslahat */}
       {hot && !trip && !offer && !summary && (
         <Pressable
@@ -141,9 +149,34 @@ export default function DriverHome() {
       {/* Pastki panel */}
       <View onLayout={e => setSheetH(e.nativeEvent.layout.height)} style={[styles.sheet, { backgroundColor: c.surface, paddingBottom: insets.bottom + 14, shadowColor: c.shadow }]}>
         <View style={[styles.grab, { backgroundColor: c.line }]} />
-        {summary ? <SummaryPanel /> : offer ? <OfferPanel offer={offer} /> : trip ? <TripPanel trip={trip} /> : <HomePanel />}
+        {/* yangi taklif hamma narsadan ustun — javobsiz qolib faollik kamaymasin */}
+        {offer ? <OfferPanel offer={offer} /> : summary ? <SummaryPanel /> : trip ? <TripPanel trip={trip} /> : <HomePanel />}
       </View>
     </View>
+  );
+}
+
+/* ---------- GPS va aloqa holati ---------- */
+function StatusBanner({ top }: { top: number }) {
+  const d = useDriver();
+  let icon: keyof typeof Ionicons.glyphMap, text: string, action: (() => void) | undefined, color: string;
+  if (d.gps === 'denied') {
+    icon = 'location-outline'; color = '#E5484D'; text = "Joylashuvga ruxsat yo'q — buyurtmalar kelmaydi";
+    // telefonda — tizim sozlamalari, vebda — brauzer ruxsatini qayta so'rash
+    action = () => { if (Platform.OS !== 'web') Linking.openSettings().catch(() => {}); d.retryGps(); };
+  } else if (d.gps === 'searching') {
+    icon = 'locate-outline'; color = '#D97706'; text = 'GPS signali qidirilmoqda…';
+  } else if (DISPATCH_URL && d.conn !== 'online') {
+    icon = 'cloud-offline-outline'; color = '#D97706'; text = "Aloqa yo'q — qayta ulanmoqda…";
+  } else {
+    return null;
+  }
+  return (
+    <Pressable onPress={action} disabled={!action} style={[styles.status, { top, backgroundColor: color }]} accessibilityLabel={text}>
+      <Ionicons name={icon} size={16} color="#fff" />
+      <Text style={styles.statusText} numberOfLines={1}>{text}</Text>
+      {action ? <Text style={styles.statusAction}>Ruxsat berish</Text> : null}
+    </Pressable>
   );
 }
 
@@ -158,6 +191,21 @@ function NavBanner({ trip, path, pos, top }: { trip: Trip; path?: LatLng[]; pos:
   const m = nextManeuver(path ?? [], pos);
   const target = trip.stage === 'inride' ? trip.order.destination : trip.order.pickup;
   const min = etaMin(m.leftKm);
+
+  // Ovozli yo'riqnoma: burilishdan ~400 m oldin va burilish oldidan; manzilga yetganda
+  const spoken = useRef(new Set<string>());
+  const key = `${trip.order.id}:${trip.stage}`;
+  const hasPath = !!path && trip.stage !== 'waiting';
+  useEffect(() => {
+    if (!hasPath) return;
+    const s = spoken.current;
+    const once = (id: string, text: string) => { if (!s.has(id)) { s.add(id); say(text); } };
+    if (m.kind === 'arrive') { once(`${key}:arrive`, trip.stage === 'inride' ? 'Manzilga yetib keldingiz' : 'Mijoz turgan joyga yetib keldingiz'); return; }
+    if (m.at < 0) return;
+    const id = `${key}:${m.at}`;
+    if (m.distM <= 90) { s.add(`${id}:pre`); once(`${id}:now`, MANEUVER_TEXT[m.kind].replace(/^./, ch => ch.toUpperCase())); }
+    else if (m.distM <= 450 && m.distM >= 150) once(`${id}:pre`, `${Math.round(m.distM / 50) * 50} metrdan keyin ${MANEUVER_TEXT[m.kind]}`);
+  }, [hasPath, key, m.kind, m.at, m.distM, trip.stage]);
   const external = () => {
     const { latitude: la, longitude: lo } = target;
     const app = d.navApp === 'yandex' ? `yandexnavi://build_route_on_map?lat_to=${la}&lon_to=${lo}` : `google.navigation:q=${la},${lo}`;
@@ -322,11 +370,13 @@ function OfferPanel({ offer }: { offer: Offer }) {
     return () => a.stop();
   }, [offer, left]);
   const toHome = d.homeDest && distanceKm(o.destination, d.homeDest) < 3;
+  const chainFrom = offer.chain ? d.trip?.order.destination.title : undefined;
   const pickupMin = Math.max(1, Math.round(offer.distanceKm * 2.2));
 
   return (
     <View style={{ gap: 14 }}>
       <Row gap={6} style={{ flexWrap: 'wrap' }}>
+        {offer.chain ? <Tag icon="link" text="Zanjir" bg={VIOLET} fg="#fff" /> : null}
         <Tag text={tariff?.name ?? o.tariffId} bg={c.ink} fg={c.bg} />
         <Tag icon={PAY[o.payment]?.icon} text={PAY[o.payment]?.label ?? o.payment} bg={c.surface2} fg={c.text} />
         {o.surge ? <Tag icon="flame" text={`×${o.surge.toFixed(1)}`} bg={ORANGE} fg="#fff" /> : null}
@@ -343,10 +393,12 @@ function OfferPanel({ offer }: { offer: Offer }) {
       </Row>
 
       <View style={[styles.routeBox, { backgroundColor: c.surface2 }]}>
-        <Stop color="#0F1E3D" big={`${pickupMin} daq · ${offer.distanceKm} km`} title={o.pickup.title} />
+        <Stop color="#0F1E3D" big={`${pickupMin} daq · ${offer.distanceKm} km${chainFrom ? ' · safardan keyin' : ''}`} title={o.pickup.title} />
         <View style={[styles.stopLine, { backgroundColor: c.line }]} />
         <Stop color={c.brand} big={`${o.route.min} daq · ${o.route.km.toFixed(1)} km`} title={o.destination.title} />
       </View>
+
+      {chainFrom ? <Txt v="small" color={VIOLET} style={{ fontFamily: F.bold, marginTop: -6 }}>Joriy safar ({chainFrom}) tugagach boshlanadi</Txt> : null}
 
       <Row gap={10}>
         <Avatar name={o.passenger.name} size={34} />
@@ -404,8 +456,16 @@ function TripPanel({ trip }: { trip: Trip }) {
   const call = () => Linking.openURL(`tel:${(o.passenger.phone ?? '').replace(/\s/g, '')}`).catch(() => toast(`Qo'ng'iroq: ${o.passenger.phone}`, 'call'));
   const waited = trip.arrivedAt ? Math.max(0, (now - trip.arrivedAt) / 1000) : 0;
   const paid = Math.max(0, waited - FREE_WAIT_SEC);
-  const waitFee = trip.stage === 'waiting' ? Math.ceil(paid / 60) * WAIT_PER_MIN : trip.waitFee;
+  const waitFee = trip.stage === 'waiting' ? waitFeeOf(trip.arrivedAt, now) : trip.waitFee;
   const total = o.price + waitFee;
+  const canNoShow = trip.stage === 'waiting' && waited >= NO_SHOW_AFTER_SEC;
+
+  // Pullik kutish boshlanganini ovozda aytish (bir marta)
+  const paidStarted = paid > 0;
+  const paidSaid = useRef('');
+  useEffect(() => {
+    if (paidStarted && paidSaid.current !== o.id) { paidSaid.current = o.id; say('Pullik kutish boshlandi'); }
+  }, [paidStarted, o.id]);
 
   return (
     <View style={{ gap: 14 }}>
@@ -443,6 +503,13 @@ function TripPanel({ trip }: { trip: Trip }) {
         </View>
       )}
 
+      {d.next && (
+        <View style={[styles.nextChip, { backgroundColor: alpha(VIOLET, 0.1) }]}>
+          <Ionicons name="link" size={16} color={VIOLET} />
+          <Txt v="small" color={VIOLET} numberOfLines={1} style={{ flex: 1, fontFamily: F.bold }}>Keyingi: {d.next.pickup.title} · {som(d.next.price)}</Txt>
+        </View>
+      )}
+
       <View style={[styles.passenger, { backgroundColor: c.surface2 }]}>
         <Avatar name={o.passenger.name} size={42} />
         <View style={{ flex: 1 }}>
@@ -466,7 +533,15 @@ function TripPanel({ trip }: { trip: Trip }) {
             { icon: 'call', title: "Mijozga qo'ng'iroq", onPress: () => { setMore(false); call(); } },
             { icon: 'shield-checkmark', title: 'Xavfsizlik · 112', sub: 'Favqulodda vaziyatda', onPress: () => { setMore(false); Linking.openURL('tel:112').catch(() => toast("Qo'ng'iroq: 112", 'call')); } },
           ],
-          trip.stage === 'inride' ? [] : [{ icon: 'close-circle', title: 'Buyurtmani bekor qilish', sub: `Faollik ${ACTIVITY.cancel}`, danger: true, onPress: () => { setMore(false); d.cancelTrip(); } }],
+          trip.stage === 'waiting' ? [{
+            icon: 'person-remove', title: 'Mijoz chiqmadi', color: '#D97706',
+            sub: canNoShow ? 'Faollik kamaymaydi · kutish uchun kompensatsiya' : `${mmss(NO_SHOW_AFTER_SEC - waited)} dan keyin mumkin`,
+            onPress: () => { setMore(false); if (canNoShow) d.noShow(); else toast(`«Mijoz chiqmadi» ${mmss(NO_SHOW_AFTER_SEC - waited)} dan keyin`, 'time-outline'); },
+          }] : [],
+          [
+            ...(d.next ? [{ icon: 'unlink' as const, title: 'Keyingi buyurtmadan voz kechish', sub: `Faollik ${ACTIVITY.cancel}`, danger: true, onPress: () => { setMore(false); d.cancelNext(); } }] : []),
+            ...(trip.stage === 'inride' ? [] : [{ icon: 'close-circle' as const, title: 'Buyurtmani bekor qilish', sub: `Faollik ${ACTIVITY.cancel}`, danger: true, onPress: () => { setMore(false); d.cancelTrip(); } }]),
+          ],
         ]}
       />
       <ActionSheet
@@ -521,8 +596,9 @@ function SummaryPanel() {
           ))}
         </Row>
       </View>
+      {d.trip ? <Txt v="small" color={VIOLET} style={{ textAlign: 'center', fontFamily: F.bold }}>Zanjir: keyingi mijoz — {d.trip.order.pickup.title}</Txt> : null}
       <Pressable onPress={() => d.closeSummary(stars || undefined)} style={({ pressed }) => [styles.mainBtn, { backgroundColor: c.brand, justifyContent: 'center', transform: [{ scale: pressed ? 0.98 : 1 }] }]} accessibilityLabel="Davom etish">
-        <Text style={[styles.mainTitle, { color: '#0E1525' }]}>{d.online ? 'Keyingi buyurtma' : 'Davom etish'}</Text>
+        <Text style={[styles.mainTitle, { color: '#0E1525' }]}>{d.trip ? 'Keyingi mijozga' : d.online ? 'Keyingi buyurtma' : 'Davom etish'}</Text>
       </Pressable>
     </View>
   );
@@ -546,6 +622,10 @@ const styles = StyleSheet.create({
   actBadgeText: { color: '#fff', fontFamily: F.heavy, fontSize: 10 },
   balance: { flex: 1, height: 50, borderRadius: 25, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 16, ...shadow },
   balanceText: { fontFamily: F.heavy, fontSize: 17, letterSpacing: -0.3 },
+  status: { position: 'absolute', left: 14, right: 14, height: 40, borderRadius: 20, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, ...shadow },
+  statusText: { flex: 1, color: '#fff', fontFamily: F.bold, fontSize: 13.5 },
+  statusAction: { color: '#fff', fontFamily: F.heavy, fontSize: 13, textDecorationLine: 'underline' },
+  nextChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 14 },
   hint: { position: 'absolute', left: 14, right: 74, height: 44, borderRadius: 22, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, ...shadow },
   hintDot: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   locate: { position: 'absolute', right: 14, width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', ...shadow },

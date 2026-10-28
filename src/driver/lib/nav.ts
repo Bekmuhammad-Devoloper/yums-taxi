@@ -3,12 +3,13 @@ import type { LatLng } from '@/lib/data';
 import { bearing, distanceKm } from '@/lib/geo';
 
 export type ManeuverKind = 'left' | 'right' | 'sharpLeft' | 'sharpRight' | 'uturn' | 'straight' | 'arrive';
-export type Maneuver = { kind: ManeuverKind; distM: number; leftKm: number };
+/** at — burilish nuqtasining marshrutdagi tartib raqami (ovozli xabar bir marta aytilishi uchun) */
+export type Maneuver = { kind: ManeuverKind; distM: number; leftKm: number; at: number };
 
 const turn = (a: number, b: number) => ((b - a + 540) % 360) - 180; // −180..180, musbat — o'ngga
 
 export function nextManeuver(path: LatLng[], pos: LatLng): Maneuver {
-  if (path.length < 2) return { kind: 'arrive', distM: 0, leftKm: 0 };
+  if (path.length < 2) return { kind: 'arrive', distM: 0, leftKm: 0, at: -1 };
   // marshrutdagi eng yaqin nuqta
   let i = 0, bestD = Infinity;
   path.forEach((p, k) => {
@@ -28,11 +29,11 @@ export function nextManeuver(path: LatLng[], pos: LatLng): Maneuver {
     const abs = Math.abs(t);
     if (abs >= 32) {
       const kind: ManeuverKind = abs >= 150 ? 'uturn' : abs >= 110 ? (t > 0 ? 'sharpRight' : 'sharpLeft') : t > 0 ? 'right' : 'left';
-      return { kind, distM: Math.round(acc * 1000), leftKm: left };
+      return { kind, distM: Math.round(acc * 1000), leftKm: left, at: j };
     }
     acc += distanceKm(path[j], path[j + 1]);
   }
-  return { kind: left < 0.05 ? 'arrive' : 'straight', distM: Math.round(left * 1000), leftKm: left };
+  return { kind: left < 0.05 ? 'arrive' : 'straight', distM: Math.round(left * 1000), leftKm: left, at: -1 };
 }
 
 export const fmtDist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(m >= 10000 ? 0 : 1)} km` : `${Math.max(10, Math.round(m / 10) * 10)} m`);

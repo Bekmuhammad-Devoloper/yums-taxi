@@ -3,6 +3,8 @@ import * as Haptics from 'expo-haptics';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Platform, useColorScheme } from 'react-native';
 
+import { toast } from '@/components/toast';
+
 import { DRIVERS, SEED_RIDES, TARIFFS, type Card, type Driver, type LatLng, type PaymentId, type Place, type Ride } from './data';
 import { DispatchClient, DISPATCH_URL, type ConnState, type FleetCar } from './dispatch';
 import { distanceKm, fetchRoute, nearbyPoint, pathLength, pointAt, priceFor, type RouteInfo } from './geo';
@@ -277,6 +279,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       switch (m.t) {
         case 'accepted': {
           haptic.success();
+          if (m.chain) toast('Haydovchi joriy safarini yakunlab, sizga yo\'l oladi', 'car');
           const pos = m.pos ?? o.pickup!;
           setOrder(x => ({ ...x, phase: 'accepted', driver: m.driver, driverPos: pos, driverPath: undefined, progress: 0, etaMin: Math.max(1, Math.round(distanceKm(pos, x.pickup!) / 0.45)) }));
           // haydovchining olib ketish nuqtasigacha yo'li (xaritada punktir)
@@ -307,11 +310,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           break;
         case 'driverCancelled':
           haptic.error();
+          toast('Haydovchi bekor qildi — yangi haydovchi qidirilmoqda', 'refresh-circle');
           setOrder(x => ({ ...x, phase: 'searching', driver: undefined, driverPos: undefined, driverPath: undefined, progress: 0 }));
           break;
         case 'noDriver':
           haptic.error();
+          toast("Hozir bo'sh haydovchi topilmadi — birozdan so'ng urinib ko'ring", 'alert-circle');
           setOrder(x => ({ ...x, phase: 'choosing', liveId: undefined }));
+          break;
+        case 'noShow':
+          // haydovchi kutdi, yo'lovchi chiqmadi — buyurtma yopildi
+          haptic.error();
+          toast('Haydovchi sizni kutdi, lekin chiqmadingiz — buyurtma yopildi', 'person-remove');
+          setOrder(x => ({ ...x, phase: x.destination ? 'choosing' : 'idle', driver: undefined, driverPos: undefined, driverPath: undefined, progress: 0, liveId: undefined }));
           break;
       }
     });
@@ -333,8 +344,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (!o.pickup || !o.destination || !o.route) return;
     haptic.tap();
     clearTimers();
-    // Server ulangan va liniyada bo'sh haydovchi bor — buyurtma haqiqiy haydovchiga ketadi
-    if (client?.state === 'online' && fleetRef.current.some(d => !d.busy)) {
+    // Server ulangan va liniyada haydovchi bor — buyurtma haqiqiy haydovchiga ketadi
+    // (band haydovchi ham safari tugashiga yaqin uni zanjir buyurtma sifatida olishi mumkin)
+    if (client?.state === 'online' && fleetRef.current.length > 0) {
       const id = 'o' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
       const u = userRef.current;
       client.send({ t: 'order', order: {

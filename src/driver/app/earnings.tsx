@@ -6,6 +6,7 @@ import { toast } from '@/components/toast';
 import { Button, Card, Chip, Divider, EmptyState, Row, Screen, Segmented, Sheet, Txt } from '@/components/ui';
 import { COMMISSION, feeOf, useDriver, type Earning } from '@/driver/lib/driver-store';
 import { GREEN } from '@/driver/lib/theme';
+import { TARIFFS } from '@/lib/data';
 import { fmtDate } from '@/lib/format';
 import { som } from '@/lib/geo';
 import { useStore } from '@/lib/store';
@@ -20,6 +21,7 @@ export default function Earnings() {
   const { earnings } = d;
   const [period, setPeriod] = useState<Period>('today');
   const [sheet, setSheet] = useState(false);
+  const [detail, setDetail] = useState<Earning | null>(null);
   const [now] = useState(() => Date.now());
 
   const list = useMemo(() => {
@@ -113,13 +115,14 @@ export default function Earnings() {
       {list.length ? (
         <Card style={{ gap: 12 }}>
           <Txt v="h3">Safarlar</Txt>
-          {list.map((e, i) => <View key={e.id} style={{ gap: 12 }}>{i > 0 && <Divider />}<TripRow e={e} /></View>)}
+          {list.map((e, i) => <View key={e.id} style={{ gap: 12 }}>{i > 0 && <Divider />}<TripRow e={e} onPress={() => setDetail(e)} /></View>)}
         </Card>
       ) : (
         <EmptyState icon="car-outline" title="Bu davrda safar yo'q" sub="Liniyaga chiqing — birinchi buyurtma tez orada keladi" />
       )}
 
       <WithdrawSheet visible={sheet} onClose={() => setSheet(false)} />
+      <TripSheet e={detail} onClose={() => setDetail(null)} />
     </Screen>
   );
 }
@@ -170,21 +173,52 @@ function Line({ label, value, color, bold }: { label: string; value: string; col
   );
 }
 
-function TripRow({ e }: { e: Earning }) {
+/** Safar tafsilotlari: yo'nalish, narx tarkibi, baholar */
+function TripSheet({ e, onClose }: { e: Earning | null; onClose: () => void }) {
+  const { colors: c } = useStore();
+  if (!e) return <Sheet visible={false} onClose={onClose}><View /></Sheet>;
+  const total = e.price + (e.waitFee ?? 0);
+  const fee = feeOf(e);
+  const tariff = TARIFFS.find(t => t.id === e.tariffId)?.name;
+  return (
+    <Sheet visible onClose={onClose} title={e.noShow ? 'Mijoz chiqmadi' : 'Safar tafsilotlari'}>
+      <Txt v="small" muted>{fmtDate(e.at)}{tariff ? ` · ${tariff}` : ''}{e.surge ? ` · ×${e.surge.toFixed(1)}` : ''}</Txt>
+      <View style={[styles.route, { backgroundColor: c.surface2 }]}>
+        <Row gap={10}><View style={[styles.dot, { backgroundColor: '#0F1E3D' }]} /><Txt v="h3" numberOfLines={1} style={{ flex: 1 }}>{e.from}</Txt></Row>
+        <Row gap={10}><View style={[styles.dot, { backgroundColor: '#FFC800' }]} /><Txt v="h3" numberOfLines={1} style={{ flex: 1 }}>{e.to}</Txt></Row>
+        {!e.noShow ? <Txt v="tiny" muted>{e.km} km · {e.min} daq · {e.payment === 'cash' ? 'naqd' : 'karta'}</Txt> : null}
+      </View>
+      {e.price ? <Line label="Safar narxi" value={som(e.price)} /> : null}
+      {e.waitFee ? <Line label={e.noShow ? 'Kutish uchun kompensatsiya' : 'Pullik kutish'} value={som(e.waitFee)} /> : null}
+      <Line label={`YUMS komissiyasi (${COMMISSION * 100}%)`} value={`−${som(fee)}`} color={c.danger} />
+      {e.tip ? <Line label="Choy puli" value={`+${som(e.tip)}`} color={GREEN} /> : null}
+      <Divider />
+      <Line label="Sizga" value={som(total - fee + e.tip)} bold />
+      <Row gap={10} style={{ marginTop: 4 }}>
+        <View style={[styles.mini, { backgroundColor: c.surface2 }]}><Txt v="tiny" muted>Yo&apos;lovchi bahosi</Txt><Txt v="small" style={{ fontFamily: F.heavy }}>{e.stars ? '★'.repeat(e.stars) : '—'}</Txt></View>
+        <View style={[styles.mini, { backgroundColor: c.surface2 }]}><Txt v="tiny" muted>Sizning bahoyingiz</Txt><Txt v="small" style={{ fontFamily: F.heavy }}>{e.passengerStars ? '★'.repeat(e.passengerStars) : '—'}</Txt></View>
+      </Row>
+    </Sheet>
+  );
+}
+
+function TripRow({ e, onPress }: { e: Earning; onPress: () => void }) {
   const { colors: c } = useStore();
   const total = e.price + (e.waitFee ?? 0);
   return (
-    <Row gap={12}>
-      <View style={[styles.icon, { backgroundColor: c.surface2 }]}><Ionicons name={e.payment === 'cash' ? 'cash-outline' : 'card-outline'} size={18} color={c.muted} /></View>
-      <View style={{ flex: 1 }}>
-        <Txt v="small" numberOfLines={1} style={{ fontFamily: F.bold }}>{e.from} → {e.to}</Txt>
-        <Txt v="tiny" muted numberOfLines={1}>{fmtDate(e.at)} · {e.km} km · {e.min} daq{e.surge ? ` · ×${e.surge.toFixed(1)}` : ''}{e.stars ? ` · ${'★'.repeat(e.stars)}` : ''}</Txt>
-      </View>
-      <View style={{ alignItems: 'flex-end' }}>
-        <Txt v="small" style={{ fontFamily: F.heavy }}>{som(total - feeOf(e))}</Txt>
-        {e.tip ? <Txt v="tiny" color={GREEN}>+{som(e.tip)}</Txt> : <Txt v="tiny" muted>{som(total)}</Txt>}
-      </View>
-    </Row>
+    <Pressable onPress={onPress} accessibilityLabel={`Safar: ${e.from} → ${e.to}`}>
+      <Row gap={12}>
+        <View style={[styles.icon, { backgroundColor: c.surface2 }]}><Ionicons name={e.payment === 'cash' ? 'cash-outline' : 'card-outline'} size={18} color={c.muted} /></View>
+        <View style={{ flex: 1 }}>
+          <Txt v="small" numberOfLines={1} style={{ fontFamily: F.bold }}>{e.from} → {e.to}</Txt>
+          <Txt v="tiny" muted numberOfLines={1}>{fmtDate(e.at)} · {e.km} km · {e.min} daq{e.surge ? ` · ×${e.surge.toFixed(1)}` : ''}{e.stars ? ` · ${'★'.repeat(e.stars)}` : ''}</Txt>
+        </View>
+        <View style={{ alignItems: 'flex-end' }}>
+          <Txt v="small" style={{ fontFamily: F.heavy }}>{som(total - feeOf(e))}</Txt>
+          {e.tip ? <Txt v="tiny" color={GREEN}>+{som(e.tip)}</Txt> : <Txt v="tiny" muted>{som(total)}</Txt>}
+        </View>
+      </Row>
+    </Pressable>
   );
 }
 
@@ -197,5 +231,7 @@ const styles = StyleSheet.create({
   chart: { flexDirection: 'row', alignItems: 'flex-end', height: 100, gap: 6 },
   bar: { width: '70%', borderRadius: 6 },
   icon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  route: { gap: 10, padding: 14, borderRadius: 16 },
+  dot: { width: 10, height: 10, borderRadius: 5 },
   card: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 16 },
 });

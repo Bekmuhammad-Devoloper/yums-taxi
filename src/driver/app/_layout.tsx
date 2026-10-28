@@ -4,7 +4,7 @@ import { Onest_700Bold } from '@expo-google-fonts/onest/700Bold';
 import { Onest_800ExtraBold } from '@expo-google-fonts/onest/800ExtraBold';
 import { Unbounded_700Bold } from '@expo-google-fonts/unbounded/700Bold';
 import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, router, Stack, ThemeProvider, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -32,6 +32,16 @@ function Root() {
   useEffect(() => {
     if (loaded) SplashScreen.hideAsync();
   }, [loaded]);
+
+  // Yangi buyurtma kelganda haydovchi qaysi sahifada bo'lmasin — xarita ekraniga qaytariladi
+  const pathname = usePathname();
+  const offerId = d.offer?.order.id;
+  useEffect(() => {
+    // dismissTo — stekdagi mavjud xarita ekraniga qaytadi (yangi nusxa ochmaydi)
+    if (offerId && pathname !== '/') router.dismissTo('/');
+    // faqat yangi taklif kelganda
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [offerId]);
 
   if (!loaded) return null;
 

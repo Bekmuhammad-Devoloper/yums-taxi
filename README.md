@@ -90,6 +90,12 @@ YUMS (yo'lovchi)  ──order──▶  dispetcher (server/dispatch.mjs)  ──
   - **Kutish**: 3 daqiqa bepul, keyin daqiqasiga 500 so'm; taksometr.
   - **Safar yakuni** — «Naqd oling» / «Kartadan to'landi», komissiya va sof daromad, yo'lovchini baholash.
   - **Balans va pul yechish** (karta safarlari tushadi, naqd safarlar komissiyasi yechiladi), daromad (kun / 7 / 30 kun), faollik va reyting, avtomobil va hujjatlar, sozlamalar.
+  - **Zanjir buyurtma** — safar tugashiga 2 km qolganda keyingi buyurtma shu manzil yaqinidan taklif qilinadi; yakunlangach haydovchi darhol keyingi mijozga yo'l oladi (server ham qo'llab-quvvatlaydi).
+  - **Mijoz chiqmadi** — pullik kutish boshlangandan 2 daqiqa o'tib, faollik kamaymasdan buyurtmani yopish va kutish uchun kompensatsiya.
+  - **Ovozli yo'riqnoma** (expo-speech): yangi buyurtma, burilishlar, pullik kutish, «naqd oling»; sozlamalarda o'chiriladi.
+  - Liniyada ekran o'chmaydi (expo-keep-awake), yangi buyurtmada tebranish; boshqa sahifada bo'lsangiz ham taklif xarita ekranida ochiladi.
+  - Ilova yopilib qayta ochilsa, faol safar, zanjir va liniyadagi holat tiklanadi.
+  - Telefonda navigator kamerasi mashina yo'nalishiga burilib, qiya ko'rinishda ergashadi; GPS ruxsati yo'q yoki aloqa uzilganda ogohlantirish chiqadi.
 
 Ishga tushirish (uchta terminal, kompyuter IP manzilini qo'ying):
 

@@ -13,6 +13,8 @@ import { darkMapStyle, lightMapStyle } from '@/lib/theme';
 export type MapHandle = {
   center: (p: LatLng, zoomed?: boolean) => void;
   fit: (pts: LatLng[]) => void;
+  /** Navigator rejimi: kamera mashina ortidan, harakat yo'nalishiga burilib (vebda — oddiy markazlash) */
+  follow: (p: LatLng, heading: number) => void;
 };
 
 export type TaxiMapProps = {
@@ -40,6 +42,8 @@ export type TaxiMapProps = {
   fleet?: { id: string; pos: LatLng; heading: number }[];
   /** Haydovchi mashinasining yo'nalishi (berilmasa marshrutdan hisoblanadi) */
   driverHeading?: number;
+  /** Haydovchi atrofida qidiruv to'lqini (liniyada buyurtma kutilmoqda) */
+  radar?: boolean;
   /** Talab xaritasi kataklari (haydovchi ilovasi) */
   zones?: { id: string; center: LatLng; ring: LatLng[]; level: 1 | 2 | 3; surge: number }[];
 };
@@ -49,13 +53,15 @@ const ZONE_FILL: Record<1 | 2 | 3, string> = { 1: '#FFD23F', 2: '#FF9A1F', 3: '#
 const DELTA = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
 
 export default function TaxiMap(props: TaxiMapProps) {
-  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching, bottomPad, topPad, onCenterChange, onDragStart, locationGranted, fleet, driverHeading, zones } = props;
+  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching, bottomPad, topPad, onCenterChange, onDragStart, locationGranted, fleet, driverHeading, zones, radar } = props;
   const { colors: c, dark } = useStore();
   const map = useRef<MapView>(null);
 
   useImperativeHandle(ref, () => ({
-    center: (p, zoomed = true) => map.current?.animateToRegion({ ...p, ...(zoomed ? DELTA : { latitudeDelta: 0.02, longitudeDelta: 0.02 }) }, 450),
+    // navigator rejimidan keyin xarita shimolga qaytadi va qiyalik olinadi
+    center: (p, zoomed = true) => map.current?.animateCamera({ center: p, heading: 0, pitch: 0, zoom: zoomed ? 16 : 15 }, { duration: 450 }),
     fit: pts => map.current?.fitToCoordinates(pts, { edgePadding: { top: topPad + 40, right: 50, bottom: bottomPad + 40, left: 50 }, animated: true }),
+    follow: (p, heading) => map.current?.animateCamera({ center: p, heading, pitch: 45, zoom: 17 }, { duration: 600 }),
   }), [bottomPad, topPad]);
 
   // Atrofdagi bo'sh mashinalar (vizual)
@@ -137,6 +143,7 @@ export default function TaxiMap(props: TaxiMapProps) {
           </View>
         </Marker>
       )}
+      {radar && driverPos && <Circle center={driverPos} radius={420} strokeColor="rgba(18,166,106,0.55)" strokeWidth={2} fillColor="rgba(18,166,106,0.10)" />}
       {driverPos && (
         <Marker coordinate={driverPos} anchor={{ x: 0.5, y: 0.5 }} flat rotation={heading}>
           <Image source={CAR_TOP.taxi} style={styles.driver} contentFit="contain" />

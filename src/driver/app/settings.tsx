@@ -18,6 +18,8 @@ export default function Settings() {
       </Card>
 
       <Card style={{ gap: 4 }}>
+        <SwitchRow title="Ovozli yo'riqnoma" sub="Yangi buyurtma, burilishlar va safar holati ovozda" value={d.voice} onChange={d.setVoice} />
+        <Divider />
         <SwitchRow title="Tungi rejim" sub="Kechasi ko'zni charchatmaydi" value={dark} onChange={v => setTheme(v ? 'dark' : 'light')} />
         <Divider />
         <SwitchRow title="Demo harakat" sub="GPS o'rniga mashina marshrut bo'ylab o'zi yuradi" value={d.autopilot} onChange={d.setAutopilot} />

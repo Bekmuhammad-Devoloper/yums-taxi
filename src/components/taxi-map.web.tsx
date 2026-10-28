@@ -199,6 +199,10 @@ const CSS = `
 .ym-car{width:100%;height:100%;display:block;transition:transform .6s ease}
 .ym-glide{transition:transform .45s linear}
 .ym-zooming .ym-glide{transition:none}
+.ym-scan{width:240px;height:240px;border-radius:50%;position:relative;pointer-events:none}
+.ym-scan:before,.ym-scan:after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(18,166,106,.55);background:radial-gradient(circle,rgba(18,166,106,0) 40%,rgba(18,166,106,.16) 100%);animation:ym-scan 2.4s ease-out infinite}
+.ym-scan:after{animation-delay:1.2s}
+@keyframes ym-scan{from{transform:scale(.12);opacity:1}to{transform:scale(1);opacity:0}}
 .ym-surge{font:800 11px/20px Onest_800ExtraBold,system-ui,sans-serif;color:#1A1205;text-align:center;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
 .ym-flow{stroke-dasharray:2 14;animation:ym-flow 1s linear infinite}
 @keyframes ym-flow{to{stroke-dashoffset:-16}}
@@ -263,11 +267,11 @@ function drawIn(line: L.Polyline) {
 /* ---------- Xarita ---------- */
 
 export default function TaxiMap(props: TaxiMapProps) {
-  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching = false, bottomPad, topPad, overlayBottom = 0, onCenterChange, onDragStart, userPos, fleet, driverHeading, zones } = props;
+  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching = false, bottomPad, topPad, overlayBottom = 0, onCenterChange, onDragStart, userPos, fleet, driverHeading, zones, radar } = props;
   const { dark } = useStore();
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
-  const layers = useRef<{ pickup?: L.Marker; dest?: L.Marker; driver?: L.Marker; route?: L.LayerGroup; approach?: L.Polyline; nearby: L.Marker[]; fleet: Map<string, L.Marker>; zones?: L.LayerGroup; me?: L.Marker; meAcc?: L.Circle }>({ nearby: [], fleet: new Map() });
+  const layers = useRef<{ pickup?: L.Marker; dest?: L.Marker; driver?: L.Marker; route?: L.LayerGroup; approach?: L.Polyline; nearby: L.Marker[]; fleet: Map<string, L.Marker>; zones?: L.LayerGroup; radar?: L.Marker; me?: L.Marker; meAcc?: L.Circle }>({ nearby: [], fleet: new Map() });
   const cb = useRef({ onCenterChange, onDragStart });
   const pads = useRef({ topPad, bottomPad });
   const [offline, setOffline] = useState(false);
@@ -307,6 +311,14 @@ export default function TaxiMap(props: TaxiMapProps) {
         else m.fitBounds(bounds, { ...opts, animate: false });
       });
     },
+    // Leaflet xaritani aylantira olmaydi — vebda mashina markazda, yaqin masshtabda
+    follow: p => run((m, animate) => {
+      const z = 16.5;
+      const shift = (pads.current.bottomPad - pads.current.topPad) / 2;
+      const target = m.unproject(m.project(ll(p), z).add([0, shift]), z);
+      if (animate) m.flyTo(target, z, { duration: 0.5 });
+      else m.setView(target, z, { animate: false });
+    }),
   }), []);
 
   // Xaritani yaratish
@@ -449,6 +461,15 @@ export default function TaxiMap(props: TaxiMapProps) {
     if (!l.driver) l.driver = L.marker(ll(driverPos), { icon: carIcon('taxi', heading, 28), interactive: false, keyboard: false, zIndexOffset: 1000 }).addTo(m);
     else { l.driver.setLatLng(ll(driverPos)); setRot(l.driver, heading); }
   }, [driverPos, driverPath, driverHeading]);
+
+  // Qidiruv to'lqini haydovchi atrofida
+  useEffect(() => {
+    const m = map.current, l = layers.current;
+    if (!m) return;
+    if (!radar || !driverPos) { l.radar?.remove(); l.radar = undefined; return; }
+    if (!l.radar) l.radar = L.marker(ll(driverPos), { icon: L.divIcon({ className: 'ym-icon', html: '<div class="ym-scan"></div>', iconSize: [240, 240], iconAnchor: [120, 120] }), interactive: false, keyboard: false, zIndexOffset: -100 }).addTo(m);
+    else l.radar.setLatLng(ll(driverPos));
+  }, [radar, driverPos]);
 
   // Talab xaritasi (haydovchi ilovasi): rangli olti burchakli kataklar va koeffitsientlar
   useEffect(() => {

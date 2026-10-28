@@ -30,21 +30,26 @@ export type ServerMsg =
   | { t: 'welcome'; role: 'driver' | 'passenger' }
   | { t: 'fleet'; drivers: FleetCar[] }
   // yo'lovchiga
-  | { t: 'accepted'; orderId: string; driver: Driver; pos?: LatLng }
+  | { t: 'accepted'; orderId: string; driver: Driver; pos?: LatLng; chain?: boolean }
   | { t: 'driverPos'; orderId: string; pos: LatLng; heading?: number }
   | { t: 'arrived' | 'started' | 'finished'; orderId: string; price?: number }
-  | { t: 'noDriver' | 'driverCancelled'; orderId: string }
+  | { t: 'noDriver' | 'driverCancelled' | 'noShow'; orderId: string }
   // haydovchiga
-  | { t: 'offer'; order: OrderOffer; expiresIn: number; distanceKm: number }
+  // chain — joriy safardan keyingi (zanjir) buyurtma
+  | { t: 'offer'; order: OrderOffer; expiresIn: number; distanceKm: number; chain?: boolean }
   | { t: 'offerGone' | 'cancelled'; orderId: string }
-  | { t: 'assigned'; order: OrderOffer; status?: string }
+  | { t: 'assigned'; order: OrderOffer; status?: string; chain?: boolean }
   | { t: 'rated'; orderId: string; stars: number; tip: number };
 
 export type ClientMsg =
   | { t: 'online'; driver: Driver; pos?: LatLng; heading?: number; tariffs: string[] }
   | { t: 'offline' }
   | { t: 'pos'; pos: LatLng; heading?: number }
-  | { t: 'accept' | 'decline' | 'arrived' | 'started' | 'cancel'; orderId: string }
+  | { t: 'accept' | 'decline' | 'arrived' | 'started'; orderId: string }
+  // noShow — mijoz chiqmadi (yo'lovchi buyurtmasi yopiladi, boshqa haydovchiga berilmaydi)
+  | { t: 'cancel'; orderId: string; reason?: 'noShow' }
+  // safar oxiriga yaqinlashdi: keyingi buyurtmani `from` (joriy manzil) yaqinidan olishga tayyor
+  | { t: 'chain'; on: boolean; from?: LatLng }
   | { t: 'finished'; orderId: string; price: number }
   | { t: 'order'; order: OrderOffer }
   | { t: 'rate'; orderId: string; stars: number; tip: number };
