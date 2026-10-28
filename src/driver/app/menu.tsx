@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Card, Divider, ListItem, PersonAvatar, Row, Screen, Txt } from '@/components/ui';
+import { CARD_ART, CardBg } from '@/driver/components/card-bg';
 import { DOC_KINDS } from '@/driver/lib/docs';
 import { useDriver } from '@/driver/lib/driver-store';
 import { callNumber } from '@/driver/lib/support';
@@ -30,14 +31,15 @@ export default function Menu() {
 
   return (
     <Screen title="Menyu">
-      <Pressable onPress={() => go('/profile')} style={[styles.head, { backgroundColor: c.surface, borderColor: c.line }]}>
+      <Pressable onPress={() => go('/profile')} style={styles.head}>
+        <CardBg source={CARD_ART.profile} />
         <PersonAvatar driver name={p.name} photo={p.photo} gender={p.gender} size={60} />
         <View style={{ flex: 1, gap: 2 }}>
-          <Txt v="h2" numberOfLines={1}>{p.name}</Txt>
-          <Txt v="small" muted numberOfLines={1}>{p.car} · {p.color}</Txt>
-          <View style={[styles.plate, { borderColor: c.text }]}><Text style={[styles.plateText, { color: c.text }]}>{p.plate}</Text></View>
+          <Txt v="h2" color="#fff" numberOfLines={1}>{p.name}</Txt>
+          <Txt v="small" color="rgba(255,255,255,0.72)" numberOfLines={1}>{p.car} · {p.color}</Txt>
+          <View style={styles.plate}><Text style={styles.plateText}>{p.plate}</Text></View>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={c.faint} />
+        <View style={styles.headGo}><Ionicons name="chevron-forward" size={16} color="#fff" /></View>
       </Pressable>
 
       <Row gap={10}>
@@ -55,7 +57,8 @@ export default function Menu() {
         </View>
       </Row>
 
-      <Pressable onPress={() => go('/earnings')} style={[styles.balance, { backgroundColor: '#0F1E3D' }]}>
+      <Pressable onPress={() => go('/earnings')} style={styles.balance}>
+        <CardBg source={CARD_ART.balance} />
         <View style={{ flex: 1 }}>
           <Txt v="small" color="rgba(255,255,255,0.65)">Balans</Txt>
           <Text style={styles.balanceValue}>{som(d.balance)}</Text>
@@ -88,12 +91,13 @@ export default function Menu() {
 }
 
 const styles = StyleSheet.create({
-  head: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 22, borderWidth: StyleSheet.hairlineWidth },
-  plate: { alignSelf: 'flex-start', borderWidth: 1.5, borderRadius: 6, paddingHorizontal: 6, marginTop: 4 },
-  plateText: { fontFamily: F.heavy, fontSize: 12.5, letterSpacing: 1.2 },
+  head: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 22, overflow: 'hidden', backgroundColor: '#0B1224' },
+  headGo: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(8,13,28,0.55)' },
+  plate: { alignSelf: 'flex-start', borderWidth: 1.5, borderColor: '#fff', borderRadius: 6, paddingHorizontal: 6, marginTop: 4, backgroundColor: 'rgba(8,13,28,0.35)' },
+  plateText: { fontFamily: F.heavy, fontSize: 12.5, letterSpacing: 1.2, color: '#fff' },
   stat: { flex: 1, alignItems: 'center', paddingVertical: 14, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, gap: 2 },
   statValue: { fontFamily: F.heavy, fontSize: 20, letterSpacing: -0.5 },
-  balance: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: 22 },
+  balance: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: 22, overflow: 'hidden', backgroundColor: '#0F1E3D' },
   balanceValue: { fontFamily: F.heavy, fontSize: 28, color: '#fff', letterSpacing: -0.8, marginVertical: 2 },
-  withdraw: { backgroundColor: '#FFC800', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14 },
+  withdraw: { backgroundColor: '#FFC800', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, boxShadow: '0 4px 14px rgba(0,0,0,0.45)' },
 });
