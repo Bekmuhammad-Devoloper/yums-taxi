@@ -8,6 +8,7 @@ import { ActivityIndicator, Animated, KeyboardAvoidingView, Modal, Platform, Pre
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FLAGS } from '@/lib/flags';
+import { nameGender } from '@/lib/registry';
 import { haptic, useColors, useStore } from '@/lib/store';
 import { F, radius, shadow } from '@/lib/theme';
 
@@ -155,10 +156,10 @@ export const DEFAULT_PERSON = { m: require('@/assets/people/default-m.webp'), f:
 /** Haydovchilar uchun standart rasm (rulda o'tirgan holatda) */
 export const DEFAULT_DRIVER = { m: require('@/assets/people/driver-m.webp'), f: require('@/assets/people/driver-f.webp') };
 
-/** Odam rasmi: yuklangan surat, bo'lmasa jinsiga mos standart rasm; jinsi noma'lum bo'lsa — bosh harflar */
+/** Odam rasmi: yuklangan surat, bo'lmasa jinsiga mos standart rasm (jinsi noma'lum bo'lsa — ismidan taxmin qilinadi) */
 export function PersonAvatar({ name, photo, gender, size = 48, driver }: { name: string; photo?: string; gender?: 'm' | 'f'; size?: number; driver?: boolean }) {
   const defaults = driver ? DEFAULT_DRIVER : DEFAULT_PERSON;
-  return <Avatar name={name} size={size} uri={photo} fallback={gender ? defaults[gender] : undefined} />;
+  return <Avatar name={name} size={size} uri={photo} fallback={defaults[gender ?? nameGender(name)]} />;
 }
 
 /**

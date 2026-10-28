@@ -10,6 +10,7 @@ import { toast } from '@/components/toast';
 import { DEFAULT_CENTER, PLACES, TARIFFS, type Driver, type LatLng, type Place } from '@/lib/data';
 import { DispatchClient, DISPATCH_URL, type ConnState, type OrderOffer } from '@/lib/dispatch';
 import { bearing, distanceKm, fetchRoute, nearbyPoint, pathLength, pointAt, priceFor } from '@/lib/geo';
+import { nameGender } from '@/lib/registry';
 import { haptic } from '@/lib/store';
 
 import { demandSlot, demandZones, surgeAt, type DemandZone } from './demand';
@@ -207,7 +208,12 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     (async () => {
       try {
         const e = Object.fromEntries((await AsyncStorage.multiGet(Object.values(K))).map(([k, v]) => [k, v ? JSON.parse(v) : undefined]));
-        if (e[K.profile]) setProfile(e[K.profile]);
+        if (e[K.profile]) {
+          // eski profillarda jins saqlanmagan — ismdan taxmin qilib saqlaymiz (profilda o'zgartirsa bo'ladi)
+          const p: DriverProfile = e[K.profile].gender ? e[K.profile] : { ...e[K.profile], gender: nameGender(e[K.profile].name) };
+          if (p !== e[K.profile]) persist(K.profile, p);
+          setProfile(p);
+        }
         if (e[K.earnings]) setEarnings(e[K.earnings]);
         if (e[K.payouts]) setPayouts(e[K.payouts]);
         if (typeof e[K.activity] === 'number') setActivity(e[K.activity]);

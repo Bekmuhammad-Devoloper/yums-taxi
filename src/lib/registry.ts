@@ -38,6 +38,25 @@ export function pinflGender(s?: string): 'm' | 'f' | undefined {
   return +s[0] % 2 === 1 ? 'm' : 'f';
 }
 
+const FEMALE_NAMES = new Set(['nilufar', 'dilnoz', 'mohinur', 'yulduz', 'nargiz', 'saodat', 'barno', 'gulnor', 'dilorom', 'sabohat', 'muattar', 'farangiz', 'rano', 'oydin', 'gulshan', 'mehrinoz', 'sevinch', 'lyubov']);
+const MALE_A_NAMES = new Set(['musa', 'isa', 'mustafa', 'hamza', 'yahya', 'zakariya', 'murtaza', 'taha', 'mirza', 'nikita', 'ilya', 'sasha', 'misha', 'dima', 'kolya', 'vanya', 'petya', 'vova']);
+
+/**
+ * Ismdan taxminiy jins — faqat standart rasm tanlash uchun (jinsi saqlanmagan eski profillar, JShShIR'siz yo'lovchilar).
+ * Familiya/otasining ismi (-ova, -eva, qizi / -ov, -ev, o'g'li) aniqroq; bo'lmasa ism oxiri. Noma'lum bo'lsa — erkak.
+ */
+export function nameGender(name?: string): 'm' | 'f' {
+  const words = (name ?? '').toLowerCase().replace(/[ʻʼ'`’‘]/g, '').split(/\s+/).filter(Boolean);
+  for (const w of words.slice(1)) {
+    if (/(ova|eva|yeva|ovna|evna|qizi|kizi|ова|ева|овна|евна|қизи)$/.test(w)) return 'f';
+    if (/(ov|ev|yev|ovich|evich|ogli|ugli|ов|ев|ович|евич|ўғли|угли)$/.test(w)) return 'm';
+  }
+  const first = words[0] ?? '';
+  if (FEMALE_NAMES.has(first)) return 'f';
+  if (MALE_A_NAMES.has(first)) return 'm';
+  return /(a|ya|oy|xon|gul|bonu|niso|bibi|а|я|ой|хон|гул)$/.test(first) ? 'f' : 'm';
+}
+
 /** Demo reyestr — faqat sinov uchun to'qilgan yozuvlar */
 export const DEMO_REGISTRY: CompanyRecord[] = [
   { stir: '301234567', name: '«YUMS DEMO» MChJ', director: 'Karimov Aziz Bahodirovich', status: 'active' },
