@@ -8,15 +8,26 @@ export type Maneuver = { kind: ManeuverKind; distM: number; leftKm: number; at: 
 
 const turn = (a: number, b: number) => ((b - a + 540) % 360) - 180; // −180..180, musbat — o'ngga
 
+/** Nuqtaga eng yaqin kesma raqami (path[i] → path[i + 1]); kichik masofada tekis koordinatalar yetarli */
+function nearestSegment(path: LatLng[], pos: LatLng) {
+  const kx = Math.cos((pos.latitude * Math.PI) / 180);
+  let best = 0, bestD = Infinity;
+  for (let k = 0; k < path.length - 1; k++) {
+    const ax = (path[k].longitude - pos.longitude) * kx, ay = path[k].latitude - pos.latitude;
+    const bx = (path[k + 1].longitude - pos.longitude) * kx, by = path[k + 1].latitude - pos.latitude;
+    const dx = bx - ax, dy = by - ay;
+    const len = dx * dx + dy * dy;
+    const t = len ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len)) : 0;
+    const d = (ax + t * dx) ** 2 + (ay + t * dy) ** 2;
+    if (d < bestD) { bestD = d; best = k; }
+  }
+  return best;
+}
+
 export function nextManeuver(path: LatLng[], pos: LatLng): Maneuver {
   if (path.length < 2) return { kind: 'arrive', distM: 0, leftKm: 0, at: -1 };
-  // marshrutdagi eng yaqin nuqta
-  let i = 0, bestD = Infinity;
-  path.forEach((p, k) => {
-    const d = (p.latitude - pos.latitude) ** 2 + (p.longitude - pos.longitude) ** 2;
-    if (d < bestD) { bestD = d; i = k; }
-  });
-  i = Math.min(i, path.length - 2);
+  // mashina turgan bo'lak: eng yaqin cho'qqi emas, eng yaqin kesma (aks holda burilish oldidan uni «o'tib ketgan» deb hisoblardi)
+  const i = nearestSegment(path, pos);
   let left = distanceKm(pos, path[i + 1]);
   for (let k = i + 1; k < path.length - 1; k++) left += distanceKm(path[k], path[k + 1]);
 

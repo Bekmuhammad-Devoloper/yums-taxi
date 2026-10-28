@@ -14,7 +14,7 @@ import { nearestHot, surgeAt, ZONE_COLOR } from '@/driver/lib/demand';
 import { ACTIVITY, COMMISSION, FREE_WAIT_SEC, HOME_USES_PER_DAY, NO_SHOW_AFTER_SEC, WAIT_PER_MIN, useDriver, waitFeeOf, type Offer, type Trip } from '@/driver/lib/driver-store';
 import { fmtDist, MANEUVER_TEXT, nextManeuver, type ManeuverKind } from '@/driver/lib/nav';
 import { activityColor, GREEN, ORANGE, VIOLET } from '@/driver/lib/theme';
-import { say } from '@/driver/lib/voice';
+import { say, type PhraseKey } from '@/driver/lib/voice';
 import { TARIFF_ART } from '@/lib/cars';
 import { PLACES, TARIFFS, type LatLng } from '@/lib/data';
 import { DISPATCH_URL } from '@/lib/dispatch';
@@ -199,12 +199,13 @@ function NavBanner({ trip, path, pos, top }: { trip: Trip; path?: LatLng[]; pos:
   useEffect(() => {
     if (!hasPath) return;
     const s = spoken.current;
-    const once = (id: string, text: string) => { if (!s.has(id)) { s.add(id); say(text); } };
-    if (m.kind === 'arrive') { once(`${key}:arrive`, trip.stage === 'inride' ? 'Manzilga yetib keldingiz' : 'Mijoz turgan joyga yetib keldingiz'); return; }
-    if (m.at < 0) return;
+    const once = (id: string, phrase: PhraseKey) => { if (!s.has(id)) { s.add(id); say(phrase); } };
+    if (m.kind === 'arrive') { once(`${key}:arrive`, trip.stage === 'inride' ? 'arriveDest' : 'arrivePickup'); return; }
+    if (m.at < 0 || m.kind === 'straight') return;
     const id = `${key}:${m.at}`;
-    if (m.distM <= 90) { s.add(`${id}:pre`); once(`${id}:now`, MANEUVER_TEXT[m.kind].replace(/^./, ch => ch.toUpperCase())); }
-    else if (m.distM <= 450 && m.distM >= 150) once(`${id}:pre`, `${Math.round(m.distM / 50) * 50} metrdan keyin ${MANEUVER_TEXT[m.kind]}`);
+    if (m.distM <= 90) { s.add(`${id}:pre`); once(`${id}:now`, `turn_${m.kind}`); }
+    // oldindan ogohlantirish 200 / 300 / 400 m ga yaxlitlanadi
+    else if (m.distM <= 450 && m.distM >= 150) once(`${id}:pre`, `pre${m.distM >= 350 ? 400 : m.distM >= 250 ? 300 : 200}_${m.kind}`);
   }, [hasPath, key, m.kind, m.at, m.distM, trip.stage]);
   const external = () => {
     const { latitude: la, longitude: lo } = target;
@@ -464,7 +465,7 @@ function TripPanel({ trip }: { trip: Trip }) {
   const paidStarted = paid > 0;
   const paidSaid = useRef('');
   useEffect(() => {
-    if (paidStarted && paidSaid.current !== o.id) { paidSaid.current = o.id; say('Pullik kutish boshlandi'); }
+    if (paidStarted && paidSaid.current !== o.id) { paidSaid.current = o.id; say('paidWait'); }
   }, [paidStarted, o.id]);
 
   return (

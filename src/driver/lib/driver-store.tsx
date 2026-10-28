@@ -14,7 +14,7 @@ import { haptic } from '@/lib/store';
 
 import { demandSlot, demandZones, surgeAt, type DemandZone } from './demand';
 import { nextManeuver } from './nav';
-import { say, setVoiceEnabled, spokenSom } from './voice';
+import { say, setVoiceEnabled, setVoiceLang, type VoiceLang } from './voice';
 
 export type DriverProfile = Driver & { tariffs: string[]; city: string; joinedAt: string };
 
@@ -96,6 +96,8 @@ type Ctx = {
   setNavApp: (a: NavApp) => void;
   voice: boolean;
   setVoice: (v: boolean) => void;
+  voiceLang: VoiceLang;
+  setVoiceLang: (l: VoiceLang) => void;
   /** Demo harakat: mashina marshrut bo'ylab o'zi yuradi (GPS o'rniga) */
   autopilot: boolean;
   setAutopilot: (v: boolean) => void;
@@ -114,7 +116,7 @@ export const useDriver = () => {
 
 const K = {
   profile: 'yd:profile', earnings: 'yd:earnings', autopilot: 'yd:autopilot', activity: 'yd:activity', payouts: 'yd:payouts',
-  online: 'yd:onlineLog', home: 'yd:home', homeUses: 'yd:homeUses', navApp: 'yd:navApp', voice: 'yd:voice', session: 'yd:session',
+  online: 'yd:onlineLog', home: 'yd:home', homeUses: 'yd:homeUses', navApp: 'yd:navApp', voice: 'yd:voice', voiceLang: 'yd:voiceLang', session: 'yd:session',
 };
 /** Ilova qayta ochilganda safar davom etishi uchun saqlanadigan holat */
 type Session = { trip: Trip | null; next: OrderOffer | null; summary: Summary | null; online: boolean; pos: LatLng; savedAt: number };
@@ -151,6 +153,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   const [homeUses, setHomeUses] = useState<{ date: string; used: number }>({ date: dayKey(), used: 0 });
   const [navApp, setNavAppState] = useState<NavApp>('yandex');
   const [voice, setVoiceState] = useState(true);
+  const [voiceLang, setVoiceLangState] = useState<VoiceLang>('uz');
   const [autopilot, setAutopilotState] = useState(Platform.OS === 'web');
   const [conn, setConn] = useState<ConnState>('off');
   const [client, setClient] = useState<DispatchClient | null>(null);
@@ -190,6 +193,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
         if (e[K.homeUses]?.date === dayKey()) setHomeUses(e[K.homeUses]);
         if (e[K.navApp]) setNavAppState(e[K.navApp]);
         if (typeof e[K.voice] === 'boolean') { setVoiceState(e[K.voice]); setVoiceEnabled(e[K.voice]); }
+        if (e[K.voiceLang] === 'uz' || e[K.voiceLang] === 'ru') { setVoiceLangState(e[K.voiceLang]); setVoiceLang(e[K.voiceLang]); }
         // to'xtab qolgan safar va liniyadagi holat tiklanadi
         const s: Session | undefined = e[K.session];
         if (e[K.profile] && s && Date.now() - s.savedAt < SESSION_TTL) {
@@ -333,7 +337,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
           const t = tripRef.current;
           // band haydovchiga faqat yo'ldagi safarda zanjir taklifi keladi
           if (offerRef.current || (t && !(m.chain && t.stage === 'inride' && !nextRef.current))) { client.send({ t: 'decline', orderId: m.order.id }); return; }
-          notifyOffer(m.order);
+          notifyOffer();
           setOffer({ order: m.order, distanceKm: m.distanceKm, expiresAt: Date.now() + m.expiresIn, total: m.expiresIn, chain: m.chain });
           break;
         }
@@ -359,7 +363,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
         case 'cancelled':
           if (tripRef.current?.order.id === m.orderId) {
             haptic.error();
-            say("Yo'lovchi buyurtmani bekor qildi", true);
+            say('passengerCancelled', true);
             toast("Yo'lovchi buyurtmani bekor qildi", 'close-circle');
             const nx = nextRef.current;
             setTrip(null);
@@ -419,7 +423,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     const t = setTimeout(async () => {
       const made = await makeDemoOrder(posRef.current);
       if (!made || !alive || offerRef.current || tripRef.current) return;
-      notifyOffer(made.order);
+      notifyOffer();
       setOffer({ order: made.order, distanceKm: made.km, expiresAt: Date.now() + OFFER_MS, total: OFFER_MS });
     }, delay);
     return () => { alive = false; clearTimeout(t); };
@@ -436,7 +440,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
       if (!cur || cur.order.id !== tripId) return;
       const made = await makeDemoOrder(cur.order.destination);
       if (!made || !alive || offerRef.current || nextRef.current) return;
-      notifyOffer(made.order, true);
+      notifyOffer(true);
       setOffer({ order: made.order, distanceKm: made.km, expiresAt: Date.now() + OFFER_MS, total: OFFER_MS, chain: true });
     }, 1500 + Math.random() * 2000);
     return () => { alive = false; clearTimeout(t); };
@@ -450,6 +454,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
       if (live) client?.send({ t: 'decline', orderId: offer.order.id });
       setOffer(null);
       bumpActivity(ACTIVITY.missed);
+      say('missed');
       toast(`Buyurtma o'tkazib yuborildi · faollik ${ACTIVITY.missed}`, 'time-outline');
     }, Math.max(0, offer.expiresAt - Date.now()));
     return () => clearTimeout(t);
@@ -465,10 +470,10 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     if (live) { pendingAccept.current = o.order.id; client?.send({ t: 'accept', orderId: o.order.id }); }
     if (o.chain) {
       setNext(o.order);
-      say(`Keyingi buyurtma qabul qilindi. ${o.order.pickup.title}`);
+      say('chainAccepted');
     } else {
       startTrip(o.order);
-      say(`Buyurtma qabul qilindi. Mijozga boring: ${o.order.pickup.title}`);
+      say('accepted');
     }
   }, [live, client, startTrip, bumpActivity]);
 
@@ -489,7 +494,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     if (autopilot) setPos(t.order.pickup);
     setTrip({ ...t, stage: 'waiting', arrivedAt: Date.now() });
     if (live) client?.send({ t: 'arrived', orderId: t.order.id });
-    say('Mijozga yetib kelganingiz haqida xabar yuborildi');
+    say('arrivedSent');
   }, [live, client, autopilot]);
 
   const startRide = useCallback(() => {
@@ -499,7 +504,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     const waitFee = waitFeeOf(t.arrivedAt, Date.now());
     setTrip({ ...t, stage: 'inride', startedAt: Date.now(), waitFee });
     if (live) client?.send({ t: 'started', orderId: t.order.id });
-    say(`Safar boshlandi. Manzil: ${t.order.destination.title}`);
+    say('rideStart');
   }, [live, client]);
 
   /** Joriy safar yopilgach zanjirdagi buyurtmaga o'tish */
@@ -529,7 +534,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     addEarning(e);
     if (autopilot) setPos(t.order.destination);
     setSummary({ earning: e, passenger: t.order.passenger.name });
-    say(t.order.payment === 'cash' ? `Safar yakunlandi. Yo'lovchidan naqd ${spokenSom(total)} oling` : `Safar yakunlandi. ${spokenSom(total)} kartadan to'landi`);
+    say(t.order.payment === 'cash' ? 'finishCash' : 'finishCard');
     goNext();
     // demo: yo'lovchi baholaydi
     if (!live) setTimeout(() => {
@@ -569,6 +574,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
         from: t.order.pickup.title, to: 'Mijoz chiqmadi', payment: 'card', tariffId: t.order.tariffId, noShow: true,
       });
     }
+    say('noShow');
     toast(fee > 0 ? `Mijoz chiqmadi · kompensatsiya ${fee.toLocaleString('ru-RU')} so'm` : 'Mijoz chiqmadi · buyurtma yopildi', 'person-remove');
     goNext();
   }, [live, client, addEarning, goNext]);
@@ -588,10 +594,11 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     const now = Date.now();
     if (v) {
       setOnlineSince(now);
-      say('Siz liniyadasiz. Buyurtmalar qidirilmoqda');
+      say('online');
     } else {
       setOffer(null);
       client?.send({ t: 'offline' });
+      say('offline');
       const since = sinceRef.current;
       if (since) setOnlineLog(l => { const n = { date: dayKey(), ms: (l.date === dayKey() ? l.ms : 0) + (now - since) }; persist(K.online, n); return n; });
       setOnlineSince(null);
@@ -653,6 +660,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     homeDest, homeUsesLeft, setHomeDest,
     navApp, setNavApp: a => { setNavAppState(a); persist(K.navApp, a); },
     voice, setVoice: v => { setVoiceState(v); setVoiceEnabled(v); persist(K.voice, v); },
+    voiceLang, setVoiceLang: l => { setVoiceLangState(l); setVoiceLang(l); persist(K.voiceLang, l); },
     autopilot, setAutopilot: v => { setAutopilotState(v); persist(K.autopilot, v); },
     conn, live, lastRating, clearRating: () => setLastRating(null),
   };
@@ -660,10 +668,10 @@ export function DriverProvider({ children }: { children: ReactNode }) {
 }
 
 /** Yangi taklif: tebranish, ovoz va haptik */
-function notifyOffer(order: OrderOffer, chain = false) {
+function notifyOffer(chain = false) {
   haptic.success();
   if (Platform.OS !== 'web') Vibration.vibrate([0, 350, 180, 350]);
-  say(`${chain ? 'Keyingi buyurtma' : 'Yangi buyurtma'}. ${spokenSom(order.price)}. ${order.pickup.title}`, true);
+  say(chain ? 'chainOrder' : 'newOrder', true);
 }
 
 function nearestTitle(p: LatLng) {

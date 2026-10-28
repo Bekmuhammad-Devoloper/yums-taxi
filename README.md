@@ -92,7 +92,7 @@ YUMS (yo'lovchi)  ──order──▶  dispetcher (server/dispatch.mjs)  ──
   - **Balans va pul yechish** (karta safarlari tushadi, naqd safarlar komissiyasi yechiladi), daromad (kun / 7 / 30 kun), faollik va reyting, avtomobil va hujjatlar, sozlamalar.
   - **Zanjir buyurtma** — safar tugashiga 2 km qolganda keyingi buyurtma shu manzil yaqinidan taklif qilinadi; yakunlangach haydovchi darhol keyingi mijozga yo'l oladi (server ham qo'llab-quvvatlaydi).
   - **Mijoz chiqmadi** — pullik kutish boshlangandan 2 daqiqa o'tib, faollik kamaymasdan buyurtmani yopish va kutish uchun kompensatsiya.
-  - **Ovozli yo'riqnoma** (expo-speech): yangi buyurtma, burilishlar, pullik kutish, «naqd oling»; sozlamalarda o'chiriladi.
+  - **Ovozli yo'riqnoma** — ayol ovozi, o'zbek va rus tilida (Sozlamalar → Ovoz tili): yangi buyurtma, burilishlar (200/300/400 m oldin va burilishda), pullik kutish, «naqd pul oling» va h.k. Batafsil — pastda «Ovoz to'plami».
   - Liniyada ekran o'chmaydi (expo-keep-awake), yangi buyurtmada tebranish; boshqa sahifada bo'lsangiz ham taklif xarita ekranida ochiladi.
   - Ilova yopilib qayta ochilsa, faol safar, zanjir va liniyadagi holat tiklanadi.
   - Telefonda navigator kamerasi mashina yo'nalishiga burilib, qiya ko'rinishda ergashadi; GPS ruxsati yo'q yoki aloqa uzilganda ogohlantirish chiqadi.
@@ -110,6 +110,29 @@ Faqat haydovchi ilovasini demo rejimda ko'rish: `npm run driver` (telefonda Expo
 `EXPO_PUBLIC_DISPATCH_URL` berilmasa ikkala ilova ham demo rejimda ishlaydi: yo'lovchiga virtual haydovchi, haydovchiga sinov buyurtmalari keladi. Haydovchi ilovasida «Demo harakat» yoqilsa mashina marshrut bo'ylab o'zi yuradi (GPS o'rniga).
 
 EAS build: `npx eas-cli@latest build --profile driver-preview` (yoki `driver-production`). Bu profillarda `APP_VARIANT=driver` o'rnatilgan — `app.config.js` nom, bundle ID, sxema va marshrutlar papkasini (`src/driver/app`) almashtiradi.
+
+## Ovoz to'plami (haydovchi ilovasi)
+
+Ovozli yo'riqnoma oldindan yozilgan kliplar bilan ishlaydi — har qanday telefonda bir xil eshitiladi, internet kerak emas:
+
+- Iboralar: `src/driver/lib/voice-phrases.json` (37 ta, o'zbek va rus tilida).
+- Kliplar: `assets/voice/<uz|ru>/<kalit>.mp3`, ro'yxati `src/driver/lib/voice-clips.ts` (avtomatik yaratiladi).
+- Biror til uchun kliplar bo'lmasa, qurilmaning shu tildagi ayol ovozi, u ham bo'lmasa — ikkinchi tildagi kliplar ishlatiladi.
+
+Kliplarni yaratish — `scripts/voice/generate.py` (python3, numpy, ffmpeg):
+
+```bash
+# Tavsiya: Microsoft Azure neyron ovozlari (tijoriy foydalanishga ruxsat; bepul tarif yetadi)
+# uz: uz-UZ-MadinaNeural, ru: ru-RU-SvetlanaNeural — ikkalasi ham ayol ovozi
+export AZURE_SPEECH_KEY=... AZURE_SPEECH_REGION=westeurope
+python3 scripts/voice/generate.py --lang uz --engine azure
+python3 scripts/voice/generate.py --lang ru --engine azure
+
+# Oflayn (Piper / sherpa-onnx): pip install "sherpa-onnx<2"
+python3 scripts/voice/generate.py --lang ru --engine piper --model ./vits-piper-ru_RU-irina-medium
+```
+
+Hozirgi holat: rus tili — Piper «Irina» ovozi (oflayn neyron model). **Uning litsenziyasi noma'lum** — demo va sinov uchun; do'konga chiqarishdan oldin Azure ovozi yoki diktor yozuvi bilan almashtiring. O'zbek tili uchun kliplar hali yo'q (Azure kaliti kerak) — hozircha ruscha kliplar ishlatiladi. Diktor yozdirgan fayllarni ham shu nomlar bilan `assets/voice/<til>/` ga qo'yib, `--map-only` bilan ro'yxatni yangilash kifoya.
 
 ## Tuzilma
 

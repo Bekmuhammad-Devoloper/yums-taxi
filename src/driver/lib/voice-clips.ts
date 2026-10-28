@@ -1,0 +1,47 @@
+// AVTOMATIK YARATILGAN — qo'lda tahrirlamang. Yangilash: python3 scripts/voice/generate.py --map-only
+// Har bir til uchun mavjud ovozli kliplar (assets/voice/<til>/<kalit>.mp3).
+import type { PhraseKey, VoiceLang } from './voice';
+
+export const CLIPS: Record<VoiceLang, Partial<Record<PhraseKey, number>>> = {
+  uz: {
+  },
+  ru: {
+    online: require('@/assets/voice/ru/online.mp3'),
+    offline: require('@/assets/voice/ru/offline.mp3'),
+    newOrder: require('@/assets/voice/ru/newOrder.mp3'),
+    chainOrder: require('@/assets/voice/ru/chainOrder.mp3'),
+    accepted: require('@/assets/voice/ru/accepted.mp3'),
+    chainAccepted: require('@/assets/voice/ru/chainAccepted.mp3'),
+    missed: require('@/assets/voice/ru/missed.mp3'),
+    arrivedSent: require('@/assets/voice/ru/arrivedSent.mp3'),
+    paidWait: require('@/assets/voice/ru/paidWait.mp3'),
+    rideStart: require('@/assets/voice/ru/rideStart.mp3'),
+    finishCash: require('@/assets/voice/ru/finishCash.mp3'),
+    finishCard: require('@/assets/voice/ru/finishCard.mp3'),
+    passengerCancelled: require('@/assets/voice/ru/passengerCancelled.mp3'),
+    noShow: require('@/assets/voice/ru/noShow.mp3'),
+    arrivePickup: require('@/assets/voice/ru/arrivePickup.mp3'),
+    arriveDest: require('@/assets/voice/ru/arriveDest.mp3'),
+    test: require('@/assets/voice/ru/test.mp3'),
+    turn_left: require('@/assets/voice/ru/turn_left.mp3'),
+    turn_right: require('@/assets/voice/ru/turn_right.mp3'),
+    turn_sharpLeft: require('@/assets/voice/ru/turn_sharpLeft.mp3'),
+    turn_sharpRight: require('@/assets/voice/ru/turn_sharpRight.mp3'),
+    turn_uturn: require('@/assets/voice/ru/turn_uturn.mp3'),
+    pre200_left: require('@/assets/voice/ru/pre200_left.mp3'),
+    pre200_right: require('@/assets/voice/ru/pre200_right.mp3'),
+    pre200_sharpLeft: require('@/assets/voice/ru/pre200_sharpLeft.mp3'),
+    pre200_sharpRight: require('@/assets/voice/ru/pre200_sharpRight.mp3'),
+    pre200_uturn: require('@/assets/voice/ru/pre200_uturn.mp3'),
+    pre300_left: require('@/assets/voice/ru/pre300_left.mp3'),
+    pre300_right: require('@/assets/voice/ru/pre300_right.mp3'),
+    pre300_sharpLeft: require('@/assets/voice/ru/pre300_sharpLeft.mp3'),
+    pre300_sharpRight: require('@/assets/voice/ru/pre300_sharpRight.mp3'),
+    pre300_uturn: require('@/assets/voice/ru/pre300_uturn.mp3'),
+    pre400_left: require('@/assets/voice/ru/pre400_left.mp3'),
+    pre400_right: require('@/assets/voice/ru/pre400_right.mp3'),
+    pre400_sharpLeft: require('@/assets/voice/ru/pre400_sharpLeft.mp3'),
+    pre400_sharpRight: require('@/assets/voice/ru/pre400_sharpRight.mp3'),
+    pre400_uturn: require('@/assets/voice/ru/pre400_uturn.mp3'),
+  },
+};

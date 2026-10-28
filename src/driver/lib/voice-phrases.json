@@ -1,0 +1,153 @@
+{
+  "_comment": "Ovozli yo'riqnoma iboralari. Ilova va scripts/voice/generate.py shu fayldan foydalanadi.",
+  "phrases": {
+    "online": {
+      "uz": "Siz liniyadasiz. Buyurtmalar qidirilmoqda.",
+      "ru": "Вы на линии. Ищем заказы."
+    },
+    "offline": {
+      "uz": "Siz liniyadan chiqdingiz.",
+      "ru": "Вы ушли с линии."
+    },
+    "newOrder": {
+      "uz": "Yangi buyurtma!",
+      "ru": "Новый заказ!"
+    },
+    "chainOrder": {
+      "uz": "Keyingi buyurtma taklif qilinmoqda.",
+      "ru": "Предлагаем следующий заказ."
+    },
+    "accepted": {
+      "uz": "Buyurtma qabul qilindi. Mijozga boring.",
+      "ru": "Заказ принят. Едем к клиенту."
+    },
+    "chainAccepted": {
+      "uz": "Keyingi buyurtma qabul qilindi.",
+      "ru": "Следующий заказ принят."
+    },
+    "missed": {
+      "uz": "Buyurtma o'tkazib yuborildi.",
+      "ru": "Заказ пропущен."
+    },
+    "arrivedSent": {
+      "uz": "Mijozga yetib kelganingiz haqida xabar yuborildi.",
+      "ru": "Клиенту отправлено сообщение, что вы на месте."
+    },
+    "paidWait": {
+      "uz": "Pullik kutish boshlandi.",
+      "ru": "Началось платное ожидание."
+    },
+    "rideStart": {
+      "uz": "Safar boshlandi. Yo'lingiz bexatar bo'lsin!",
+      "ru": "Поездка началась. Счастливого пути!"
+    },
+    "finishCash": {
+      "uz": "Safar yakunlandi. Yo'lovchidan naqd pul oling.",
+      "ru": "Поездка завершена. Получите оплату наличными."
+    },
+    "finishCard": {
+      "uz": "Safar yakunlandi. To'lov kartadan o'tdi.",
+      "ru": "Поездка завершена. Оплата прошла картой."
+    },
+    "passengerCancelled": {
+      "uz": "Yo'lovchi buyurtmani bekor qildi.",
+      "ru": "Пассажир отменил заказ."
+    },
+    "noShow": {
+      "uz": "Buyurtma yopildi. Mijoz chiqmadi.",
+      "ru": "Заказ закрыт. Клиент не вышел."
+    },
+    "arrivePickup": {
+      "uz": "Mijoz turgan joyga yetib keldingiz.",
+      "ru": "Вы прибыли к клиенту."
+    },
+    "arriveDest": {
+      "uz": "Manzilga yetib keldingiz.",
+      "ru": "Вы прибыли в пункт назначения."
+    },
+    "test": {
+      "uz": "Salom! Men YUMS yordamchingizman. Yo'lingiz bexatar bo'lsin!",
+      "ru": "Здравствуйте! Я ваш помощник YUMS. Счастливого пути!"
+    },
+    "turn_left": {
+      "uz": "Chapga buriling.",
+      "ru": "Поверните налево."
+    },
+    "turn_right": {
+      "uz": "O'ngga buriling.",
+      "ru": "Поверните направо."
+    },
+    "turn_sharpLeft": {
+      "uz": "Keskin chapga buriling.",
+      "ru": "Резко поверните налево."
+    },
+    "turn_sharpRight": {
+      "uz": "Keskin o'ngga buriling.",
+      "ru": "Резко поверните направо."
+    },
+    "turn_uturn": {
+      "uz": "Orqaga qayriling.",
+      "ru": "Развернитесь."
+    },
+    "pre200_left": {
+      "uz": "Ikki yuz metrdan keyin chapga buriling.",
+      "ru": "Через двести метров поверните налево."
+    },
+    "pre200_right": {
+      "uz": "Ikki yuz metrdan keyin o'ngga buriling.",
+      "ru": "Через двести метров поверните направо."
+    },
+    "pre200_sharpLeft": {
+      "uz": "Ikki yuz metrdan keyin keskin chapga buriling.",
+      "ru": "Через двести метров резко поверните налево."
+    },
+    "pre200_sharpRight": {
+      "uz": "Ikki yuz metrdan keyin keskin o'ngga buriling.",
+      "ru": "Через двести метров резко поверните направо."
+    },
+    "pre200_uturn": {
+      "uz": "Ikki yuz metrdan keyin orqaga qayriling.",
+      "ru": "Через двести метров развернитесь."
+    },
+    "pre300_left": {
+      "uz": "Uch yuz metrdan keyin chapga buriling.",
+      "ru": "Через триста метров поверните налево."
+    },
+    "pre300_right": {
+      "uz": "Uch yuz metrdan keyin o'ngga buriling.",
+      "ru": "Через триста метров поверните направо."
+    },
+    "pre300_sharpLeft": {
+      "uz": "Uch yuz metrdan keyin keskin chapga buriling.",
+      "ru": "Через триста метров резко поверните налево."
+    },
+    "pre300_sharpRight": {
+      "uz": "Uch yuz metrdan keyin keskin o'ngga buriling.",
+      "ru": "Через триста метров резко поверните направо."
+    },
+    "pre300_uturn": {
+      "uz": "Uch yuz metrdan keyin orqaga qayriling.",
+      "ru": "Через триста метров развернитесь."
+    },
+    "pre400_left": {
+      "uz": "To'rt yuz metrdan keyin chapga buriling.",
+      "ru": "Через четыреста метров поверните налево."
+    },
+    "pre400_right": {
+      "uz": "To'rt yuz metrdan keyin o'ngga buriling.",
+      "ru": "Через четыреста метров поверните направо."
+    },
+    "pre400_sharpLeft": {
+      "uz": "To'rt yuz metrdan keyin keskin chapga buriling.",
+      "ru": "Через четыреста метров резко поверните налево."
+    },
+    "pre400_sharpRight": {
+      "uz": "To'rt yuz metrdan keyin keskin o'ngga buriling.",
+      "ru": "Через четыреста метров резко поверните направо."
+    },
+    "pre400_uturn": {
+      "uz": "To'rt yuz metrdan keyin orqaga qayriling.",
+      "ru": "Через четыреста метров развернитесь."
+    }
+  }
+}
