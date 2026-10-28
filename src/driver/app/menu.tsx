@@ -16,6 +16,8 @@ const go = (path: string) => router.push(path as never);
 
 /** Menyu uchun 3D ikonkalar */
 const ART = {
+  earnings: require('@/assets/menu/earnings.webp'),
+  quality: require('@/assets/menu/quality.webp'),
   car: require('@/assets/menu/car.webp'),
   documents: require('@/assets/menu/documents.webp'),
   settings: require('@/assets/menu/settings.webp'),
@@ -68,13 +70,13 @@ export default function Menu() {
       </Pressable>
 
       <Card style={{ paddingVertical: 6, paddingHorizontal: 4 }}>
-        <ListItem icon="stats-chart" iconBg="#E8F7EF" iconColor="#12A66A" title="Daromad" sub="Kun, hafta, oy · safarlar tarixi" onPress={() => go('/earnings')} />
+        <ListItem icon="stats-chart" art={ART.earnings} title="Daromad" sub="Kun, hafta, oy · safarlar tarixi" onPress={() => go('/earnings')} />
         <Divider style={{ marginLeft: 62 }} />
-        <ListItem icon="pulse" iconBg="#FFF3DC" iconColor="#D97706" title="Faollik va reyting" sub="Qoidalar, baholar, sifat" onPress={() => go('/quality')} />
+        <ListItem icon="pulse" art={ART.quality} title="Faollik va reyting" sub="Qoidalar, baholar, sifat" onPress={() => go('/quality')} />
         <Divider style={{ marginLeft: 62 }} />
-        <ListItem icon="car-sport" art={ART.car} iconBg="#E8EEFF" iconColor="#2457F5" title="Avtomobil va tariflar" sub={`${p.car} · ${d.activeTariffs.length} ta faol tarif`} onPress={() => go('/profile')} />
+        <ListItem icon="car-sport" art={ART.car} title="Avtomobil va tariflar" sub={`${p.car} · ${d.activeTariffs.length} ta faol tarif`} onPress={() => go('/profile')} />
         <Divider style={{ marginLeft: 62 }} />
-        <ListItem icon="document-text" art={ART.documents} iconBg="#F0EAFF" iconColor="#7A4DF0" title="Hujjatlar" sub={`${DOC_KINDS.filter(k => d.docs[k].status === 'approved').length} / ${DOC_KINDS.length} tasdiqlangan · guvohnoma, tex. pasport`} onPress={() => go('/documents')} />
+        <ListItem icon="document-text" art={ART.documents} title="Hujjatlar" sub={`${DOC_KINDS.filter(k => d.docs[k].status === 'approved').length} / ${DOC_KINDS.length} tasdiqlangan · guvohnoma, tex. pasport`} onPress={() => go('/documents')} />
       </Card>
 
       <Card style={{ paddingVertical: 6, paddingHorizontal: 4 }}>
