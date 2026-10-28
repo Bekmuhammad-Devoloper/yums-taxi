@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { toast } from '@/components/toast';
 import { Button, Card, Chip, Divider, EmptyState, Row, Screen, Segmented, Sheet, Txt } from '@/components/ui';
-import { CARD_ART, CardBg } from '@/driver/components/card-bg';
+import { CARD_ART, CardBg, useCardInk } from '@/driver/components/card-bg';
 import { COMMISSION, feeOf, useDriver, type Earning } from '@/driver/lib/driver-store';
 import { GREEN } from '@/driver/lib/theme';
 import { TARIFFS } from '@/lib/data';
@@ -19,6 +19,7 @@ const DAY = 86400000;
 export default function Earnings() {
   const { colors: c } = useStore();
   const d = useDriver();
+  const ink = useCardInk();
   const { earnings } = d;
   const [period, setPeriod] = useState<Period>('today');
   const [sheet, setSheet] = useState(false);
@@ -53,16 +54,17 @@ export default function Earnings() {
 
   return (
     <Screen title="Daromad" subtitle={`${list.length} ta safar · ${km.toFixed(1)} km`}>
-      <View style={styles.balance}>
-        <CardBg source={CARD_ART.balance} />
+      <View style={[styles.balance, { borderColor: c.line }]}>
+        <CardBg art={CARD_ART.balance} />
         <View style={{ flex: 1 }}>
-          <Txt v="small" color="rgba(255,255,255,0.65)">Balans</Txt>
-          <Text style={[styles.balanceValue, d.balance < 0 && { color: '#FF8A80' }]}>{som(d.balance)}</Text>
-          <Txt v="tiny" color="rgba(255,255,255,0.55)">{d.balance < 0 ? "Naqd safarlar komissiyasi — balansni to'ldiring" : 'Kartadagi safarlar va choy puli'}</Txt>
+          <Txt v="small" color={ink.sub}>Balans</Txt>
+          <Text style={[styles.balanceValue, { color: d.balance < 0 ? ink.danger : ink.text }]}>{som(d.balance)}</Text>
+          <Txt v="tiny" color={ink.faint}>{d.balance < 0 ? "Naqd safarlar komissiyasi — balansni to'ldiring" : 'Kartadagi safarlar va choy puli'}</Txt>
         </View>
-        <Pressable onPress={() => setSheet(true)} disabled={d.balance <= 0} style={[styles.withdraw, d.balance <= 0 && styles.withdrawOff]} accessibilityLabel="Pul yechish">
-          <Ionicons name="arrow-up-circle" size={18} color={d.balance > 0 ? '#0E1525' : 'rgba(255,255,255,0.55)'} />
-          <Txt v="small" color={d.balance > 0 ? '#0E1525' : 'rgba(255,255,255,0.55)'} style={{ fontFamily: F.heavy }}>Pul yechish</Txt>
+        <Pressable onPress={() => setSheet(true)} disabled={d.balance <= 0} accessibilityLabel="Pul yechish"
+          style={[styles.withdraw, d.balance > 0 ? { backgroundColor: ink.btn, boxShadow: ink.btnShadow } : { backgroundColor: ink.btnOff }]}>
+          <Ionicons name="arrow-up-circle" size={18} color={d.balance > 0 ? ink.btnText : ink.btnOffText} />
+          <Txt v="small" color={d.balance > 0 ? ink.btnText : ink.btnOffText} style={{ fontFamily: F.heavy }}>Pul yechish</Txt>
         </Pressable>
       </View>
 
@@ -225,10 +227,9 @@ function TripRow({ e, onPress }: { e: Earning; onPress: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  balance: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: 24, overflow: 'hidden', backgroundColor: '#0F1E3D' },
-  balanceValue: { fontFamily: F.heavy, fontSize: 30, color: '#fff', letterSpacing: -1, marginVertical: 2 },
-  withdraw: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFC800', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 14, boxShadow: '0 4px 14px rgba(0,0,0,0.45)' },
-  withdrawOff: { backgroundColor: '#2A3348', boxShadow: 'none' },
+  balance: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: 24, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
+  balanceValue: { fontFamily: F.heavy, fontSize: 30, letterSpacing: -1, marginVertical: 2 },
+  withdraw: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 14 },
   big: { fontFamily: F.heavy, fontSize: 32, letterSpacing: -1 },
   mini: { flex: 1, padding: 10, borderRadius: 14, gap: 2 },
   chart: { flexDirection: 'row', alignItems: 'flex-end', height: 100, gap: 6 },
