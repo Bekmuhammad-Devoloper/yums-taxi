@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import TaxiMap, { type MapHandle } from '@/components/taxi-map';
 import { toast } from '@/components/toast';
-import { ActionSheet, Avatar, Row, Sheet, Txt, alpha } from '@/components/ui';
+import { ActionSheet, PersonAvatar, Row, Sheet, Txt, alpha } from '@/components/ui';
 import { SlideButton } from '@/driver/components/slide-button';
 import { nearestHot, surgeAt, ZONE_COLOR } from '@/driver/lib/demand';
 import { DOC_KINDS } from '@/driver/lib/docs';
@@ -419,7 +419,7 @@ function OfferPanel({ offer }: { offer: Offer }) {
       {chainFrom ? <Txt v="small" color={VIOLET} style={{ fontFamily: F.bold, marginTop: -6 }}>Joriy safar ({chainFrom}) tugagach boshlanadi</Txt> : null}
 
       <Row gap={10}>
-        <Avatar name={o.passenger.name} size={34} />
+        <PersonAvatar name={o.passenger.name} photo={o.passenger.photo} gender={o.passenger.gender} size={34} />
         <Txt v="h3">{o.passenger.name}</Txt>
         <Txt v="small" muted>★ {o.passenger.rating.toFixed(1)}</Txt>
         {o.comment ? <Txt v="small" muted numberOfLines={1} style={{ flex: 1, textAlign: 'right' }}>💬 {o.comment}</Txt> : null}
@@ -529,7 +529,7 @@ function TripPanel({ trip }: { trip: Trip }) {
       )}
 
       <View style={[styles.passenger, { backgroundColor: c.surface2 }]}>
-        <Avatar name={o.passenger.name} size={42} />
+        <PersonAvatar name={o.passenger.name} photo={o.passenger.photo} gender={o.passenger.gender} size={42} />
         <View style={{ flex: 1 }}>
           <Txt v="h3">{o.passenger.name}</Txt>
           <Txt v="small" muted numberOfLines={1}>★ {o.passenger.rating.toFixed(1)} · {PAY[o.payment]?.label}{o.comment ? ` · ${o.comment}` : ''}</Txt>

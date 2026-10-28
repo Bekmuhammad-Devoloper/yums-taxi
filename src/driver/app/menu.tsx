@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Avatar, Card, Divider, ListItem, Row, Screen, Txt } from '@/components/ui';
+import { Card, Divider, ListItem, PersonAvatar, Row, Screen, Txt } from '@/components/ui';
 import { DOC_KINDS } from '@/driver/lib/docs';
 import { useDriver } from '@/driver/lib/driver-store';
 import { callNumber } from '@/driver/lib/support';
@@ -22,7 +22,7 @@ export default function Menu() {
   return (
     <Screen title="Menyu">
       <Pressable onPress={() => go('/profile')} style={[styles.head, { backgroundColor: c.surface, borderColor: c.line }]}>
-        <Avatar name={p.name} size={60} />
+        <PersonAvatar driver name={p.name} photo={p.photo} gender={p.gender} size={60} />
         <View style={{ flex: 1, gap: 2 }}>
           <Txt v="h2" numberOfLines={1}>{p.name}</Txt>
           <Txt v="small" muted numberOfLines={1}>{p.car} · {p.color}</Txt>

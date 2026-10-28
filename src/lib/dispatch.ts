@@ -2,14 +2,14 @@
 // Server manzili: EXPO_PUBLIC_DISPATCH_URL (masalan ws://192.168.1.10:8787). Berilmasa ilovalar demo rejimda ishlaydi.
 import { useEffect, useState } from 'react';
 
-import type { Driver, LatLng, PaymentId, Place } from './data';
+import type { Driver, Gender, LatLng, PaymentId, Place } from './data';
 
 export const DISPATCH_URL = process.env.EXPO_PUBLIC_DISPATCH_URL;
 
 /** Haydovchiga taklif qilinadigan buyurtma */
 export type OrderOffer = {
   id: string;
-  passenger: { id?: string; name: string; phone?: string; rating: number };
+  passenger: { id?: string; name: string; phone?: string; rating: number; photo?: string; gender?: Gender };
   pickup: Place;
   destination: Place;
   route: { km: number; min: number; coords: LatLng[] };

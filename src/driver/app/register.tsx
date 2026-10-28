@@ -4,12 +4,12 @@ import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } fro
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-import { BrandMark, Button, Chip, Field, Row, Screen, Txt } from '@/components/ui';
+import { BrandMark, Button, Chip, DEFAULT_DRIVER, Field, Row, Screen, Txt } from '@/components/ui';
 import { CarPicker } from '@/driver/components/car-picker';
 import { useDriver } from '@/driver/lib/driver-store';
 import { CLASS_NAME, findCar } from '@/driver/lib/requirements';
 import { TARIFF_ART } from '@/lib/cars';
-import { TARIFFS } from '@/lib/data';
+import { TARIFFS, type Gender } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
 
@@ -39,11 +39,13 @@ export default function Register() {
   const [color, setColor] = useState('Oq');
   const [plate, setPlate] = useState('');
   const [city, setCity] = useState('Toshkent');
+  const [gender, setGender] = useState<Gender | null>(null);
   const [tried, setTried] = useState(false);
 
   const err = {
     phone: phone.replace(/\D/g, '').length !== 9 ? 'Telefon raqamini to\'liq kiriting' : '',
     name: name.trim().length < 3 ? 'Ism va familiyani kiriting' : '',
+    gender: !gender ? 'Jinsingizni tanlang' : '',
     car: !findCar(car) ? 'Avtomobil modelini ro\'yxatdan tanlang' : '',
     year: !(+year >= 1995 && +year <= new Date().getFullYear() + 1) ? 'Masalan: 2021' : '',
     plate: !/^\d{2} [A-Z] \d{3} [A-Z]{2}$/.test(plate) ? 'Masalan: 01 A 123 BC' : '',
@@ -57,7 +59,7 @@ export default function Register() {
     setTried(true);
     if (!ok) return;
     // tariflar oldindan yoqilgan bo'ladi, lekin har biri o'z shartlari bajarilgandagina ishlaydi
-    register({ name: name.trim(), phone: '+998 ' + phone, car, year: +year, color, plate, city, tariffs: TARIFFS.map(t => t.id) });
+    register({ name: name.trim(), gender: gender ?? undefined, phone: '+998 ' + phone, car, year: +year, color, plate, city, tariffs: TARIFFS.map(t => t.id) });
   };
 
   return (
@@ -80,6 +82,19 @@ export default function Register() {
 
         <Field label="Telefon" prefix="+998" keyboardType="phone-pad" placeholder="90 123 45 67" value={phone} onChangeText={v => setPhone(fmtPhone(v))} error={tried ? err.phone : ''} />
         <Field label="Ism va familiya" placeholder="Masalan: Jasur Karimov" value={name} onChangeText={setName} error={tried ? err.name : ''} />
+        <View style={{ gap: 8 }}>
+          <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>Jinsi</Txt>
+          <Row gap={10}>
+            {([['m', 'Erkak'], ['f', 'Ayol']] as const).map(([g, label]) => (
+              <Pressable key={g} onPress={() => setGender(g)} accessibilityLabel={label}
+                style={[styles.gender, { backgroundColor: gender === g ? c.brandSoft : c.surface2, borderColor: gender === g ? c.brand : tried && !gender ? c.danger : 'transparent' }]}>
+                <Image source={DEFAULT_DRIVER[g]} style={styles.genderPic} contentFit="cover" />
+                <Txt v="h3">{label}</Txt>
+              </Pressable>
+            ))}
+          </Row>
+          {tried && err.gender ? <Txt v="tiny" color={c.danger} style={{ marginLeft: 2 }}>{err.gender}</Txt> : <Txt v="tiny" faint style={{ marginLeft: 2 }}>Profil rasmi yuklanmaguncha shu rasm ko&apos;rinadi</Txt>}
+        </View>
         <View style={{ gap: 6 }}>
           <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>Avtomobil</Txt>
           <Pressable onPress={() => setCarSheet(true)} accessibilityLabel="Avtomobilni tanlash"
@@ -134,6 +149,8 @@ const styles = StyleSheet.create({
   perk: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, backgroundColor: 'rgba(255,200,0,0.14)' },
   swatchWrap: { padding: 3, borderRadius: 99, borderWidth: 2 },
   swatch: { width: 30, height: 30, borderRadius: 15, borderWidth: 1 },
+  gender: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 16, borderWidth: 1.5 },
+  genderPic: { width: 40, height: 40, borderRadius: 14 },
   pick: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 50, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1 },
   note: { gap: 6, padding: 14, borderRadius: 18 },
   fit: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 },

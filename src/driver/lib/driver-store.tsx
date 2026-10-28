@@ -142,7 +142,11 @@ type Session = { trip: Trip | null; next: OrderOffer | null; summary: Summary | 
 const SESSION_TTL = 6 * 3600000;
 
 const persist = (k: string, v: unknown) => { AsyncStorage.setItem(k, JSON.stringify(v)).catch(() => {}); };
-const PASSENGERS = ['Aziza', 'Bekzod', 'Dilshod', 'Madina', 'Sherzod', 'Nigora', 'Javohir', 'Kamola'];
+// demo yo'lovchilar (jinsi — standart rasm uchun)
+const PASSENGERS: { name: string; gender: 'm' | 'f' }[] = [
+  { name: 'Aziza', gender: 'f' }, { name: 'Bekzod', gender: 'm' }, { name: 'Dilshod', gender: 'm' }, { name: 'Madina', gender: 'f' },
+  { name: 'Sherzod', gender: 'm' }, { name: 'Nigora', gender: 'f' }, { name: 'Javohir', gender: 'm' }, { name: 'Kamola', gender: 'f' },
+];
 const COMMENTS = ['Podyezd oldida kutaman', "Bolalar o'rindig'i kerak emas", 'Yukim bor, bagaj kerak', "Tezroq bo'ling, iltimos"];
 const APPROACH_KMH = 32;
 const RIDE_KMH = 38;
@@ -482,7 +486,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
       id: 'd' + Date.now().toString(36), pickup, destination: dest,
       route: { km: route.km, min: route.min, coords: route.coords }, tariffId, price: priceFor(tf, route.km, route.min, surge), surge: surge > 1 ? surge : undefined,
       payment: Math.random() < 0.5 ? 'cash' : 'card', options: Math.random() < 0.3 ? ['ac'] : [], comment: Math.random() < 0.35 ? COMMENTS[Math.floor(Math.random() * COMMENTS.length)] : '',
-      passenger: { name: PASSENGERS[Math.floor(Math.random() * PASSENGERS.length)], rating: 4.6 + Math.round(Math.random() * 4) / 10, phone: '+998 90 123 45 67' },
+      passenger: { ...PASSENGERS[Math.floor(Math.random() * PASSENGERS.length)], rating: 4.6 + Math.round(Math.random() * 4) / 10, phone: '+998 90 123 45 67' },
       createdAt: new Date().toISOString(),
     };
     return { order, km: Math.round(distanceKm(from, pickup) * 10) / 10 };

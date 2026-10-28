@@ -12,7 +12,7 @@ import { haptic, surgeNow, useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
 
 import { toast } from './toast';
-import { Avatar, Button, Chip, Divider, Flag, IconTile, Row, Txt, type IconName } from './ui';
+import { Button, Chip, Divider, Flag, IconTile, PersonAvatar, Row, Txt, type IconName } from './ui';
 
 /* ---------- Kichik bo'laklar ---------- */
 function AddressRow({ dot, label, place, onPress, placeholder }: { dot: 'from' | 'to'; label: string; place?: Place | null; onPress?: () => void; placeholder?: string }) {
@@ -192,7 +192,7 @@ function DriverCard() {
   const d = order.driver!;
   return (
     <Row style={[styles.driverCard, { backgroundColor: c.surface2 }]}>
-      <Avatar name={d.name} size={52} />
+      <PersonAvatar driver name={d.name} photo={d.photo} gender={d.gender} size={52} />
       <View style={{ flex: 1 }}>
         <Txt v="h3">{d.name}</Txt>
         <Row gap={4}>

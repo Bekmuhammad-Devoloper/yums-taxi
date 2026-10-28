@@ -9,6 +9,7 @@ import { DRIVERS, SEED_RIDES, TARIFFS, type Card, type Driver, type LatLng, type
 import { DispatchClient, DISPATCH_URL, type ConnState, type FleetCar } from './dispatch';
 import { distanceKm, fetchRoute, nearbyPoint, pathLength, pointAt, priceFor, type RouteInfo } from './geo';
 import { DICTS, type Lang, type TKey } from './i18n';
+import { pinflGender } from './registry';
 import { palette, type Colors } from './theme';
 
 export type Phase = 'idle' | 'choosing' | 'searching' | 'accepted' | 'arrived' | 'inride' | 'done';
@@ -353,7 +354,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         id, pickup: o.pickup, destination: o.destination,
         route: { km: o.route.km, min: o.route.min, coords: o.route.coords.filter((_, i, a) => i % Math.max(1, Math.floor(a.length / 120)) === 0 || i === a.length - 1) },
         tariffId: o.tariffId, price: finalPriceRef.current, payment: paymentRef.current, options: o.options, comment: o.comment,
-        passenger: { name: u?.name ?? 'Yo\'lovchi', phone: u?.phone, rating: u?.rating ?? 5 }, createdAt: new Date().toISOString(),
+        passenger: { name: u?.name ?? 'Yo\'lovchi', phone: u?.phone, rating: u?.rating ?? 5, photo: u?.avatar, gender: pinflGender(u?.pinfl) }, createdAt: new Date().toISOString(),
       } });
       setOrder(x => ({ ...x, phase: 'searching', progress: 0, liveId: id }));
       return;

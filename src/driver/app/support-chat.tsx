@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Avatar, Chip, Row, Screen, Txt } from '@/components/ui';
+import { Chip, PersonAvatar, Row, Screen, Txt } from '@/components/ui';
 import { useDriver } from '@/driver/lib/driver-store';
 import { autoAnswer } from '@/driver/lib/support';
 import { useStore } from '@/lib/store';
@@ -65,7 +65,7 @@ export default function SupportChat() {
         <ScrollView ref={scroll} onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: true })} contentContainerStyle={{ padding: 16, gap: 10 }}>
           {msgs.map(m => (
             <Row key={m.id} gap={8} style={{ alignItems: 'flex-end', justifyContent: m.from === 'me' ? 'flex-end' : 'flex-start' }}>
-              {m.from === 'op' ? <Avatar name={OPERATOR} size={30} /> : null}
+              {m.from === 'op' ? <PersonAvatar name={OPERATOR} gender="f" size={30} /> : null}
               <View style={[styles.bubble, m.from === 'me' ? { backgroundColor: c.brand, borderBottomRightRadius: 6 } : { backgroundColor: c.surface, borderBottomLeftRadius: 6, borderColor: c.line, borderWidth: StyleSheet.hairlineWidth }]}>
                 <Txt v="small" color={m.from === 'me' ? c.brandText : c.text} style={{ lineHeight: 19 }}>{m.text}</Txt>
                 <Txt v="tiny" color={m.from === 'me' ? 'rgba(14,21,37,0.55)' : c.faint} style={{ alignSelf: 'flex-end', marginTop: 2 }}>{hhmm(m.at)}</Txt>
@@ -74,7 +74,7 @@ export default function SupportChat() {
           ))}
           {typing && (
             <Row gap={8}>
-              <Avatar name={OPERATOR} size={30} />
+              <PersonAvatar name={OPERATOR} gender="f" size={30} />
               <View style={[styles.bubble, { backgroundColor: c.surface }]}><Txt v="small" muted>{OPERATOR} yozmoqda…</Txt></View>
             </Row>
           )}

@@ -32,6 +32,12 @@ export function checkPinfl(s: string): { error: string | null; birth?: Date } {
   return { error: null, birth };
 }
 
+/** JShShIR birinchi raqamidan jins: 1/3/5 — erkak, 2/4/6 — ayol (rasmiy kodlash) */
+export function pinflGender(s?: string): 'm' | 'f' | undefined {
+  if (!s || !/^[1-6]/.test(s)) return undefined;
+  return +s[0] % 2 === 1 ? 'm' : 'f';
+}
+
 /** Demo reyestr — faqat sinov uchun to'qilgan yozuvlar */
 export const DEMO_REGISTRY: CompanyRecord[] = [
   { stir: '301234567', name: '«YUMS DEMO» MChJ', director: 'Karimov Aziz Bahodirovich', status: 'active' },

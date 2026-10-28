@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { View } from 'react-native';
 
-import { Avatar, Button, Card, Divider, Row, Screen, Txt } from '@/components/ui';
+import { Button, Card, Divider, PersonAvatar, Row, Screen, Txt } from '@/components/ui';
 import { TARIFF_ART } from '@/lib/cars';
 import { TARIFFS } from '@/lib/data';
 import { fmtDate } from '@/lib/format';
@@ -50,7 +50,7 @@ export default function RideDetail() {
 
       <Card>
         <Row>
-          <Avatar name={r.driver.name} />
+          <PersonAvatar driver name={r.driver.name} photo={r.driver.photo} gender={r.driver.gender} />
           <View style={{ flex: 1 }}>
             <Row gap={4}><Txt v="h3">{r.driver.name}</Txt><Ionicons name="star" size={13} color="#F5A524" /><Txt v="small" muted>{r.driver.rating}</Txt></Row>
             <Txt v="small" muted>{r.driver.color} {r.driver.car} · {r.driver.plate}</Txt>

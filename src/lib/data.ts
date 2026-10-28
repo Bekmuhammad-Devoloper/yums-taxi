@@ -14,9 +14,14 @@ export type Tariff = {
   desc: string;
 };
 
+export type Gender = 'm' | 'f';
+
 export type Driver = {
   id: string;
   name: string;
+  /** Profil rasmi (data: URI); bo'lmasa jinsiga mos standart rasm ko'rsatiladi */
+  photo?: string;
+  gender?: Gender;
   rating: number;
   trips: number;
   car: string;
@@ -73,10 +78,10 @@ export const TARIFFS: Tariff[] = [
 ];
 
 export const DRIVERS: Driver[] = [
-  { id: 'd1', name: 'Jasur', rating: 4.96, trips: 3420, car: 'Chevrolet Cobalt', color: 'Oq', plate: '01 A 777 BA', phone: '+998901234567' },
-  { id: 'd2', name: 'Sardor', rating: 4.91, trips: 1875, car: 'Chevrolet Gentra', color: 'Kumush', plate: '01 R 452 KA', phone: '+998935554433' },
-  { id: 'd3', name: 'Akmal', rating: 4.98, trips: 5210, car: 'BYD Chazor', color: 'Qora', plate: '01 Z 010 YM', phone: '+998977001122' },
-  { id: 'd4', name: 'Bobur', rating: 4.88, trips: 960, car: 'Kia K5', color: "Ko'k", plate: '10 B 321 TA', phone: '+998946667788' },
+  { id: 'd1', name: 'Jasur', gender: 'm', rating: 4.96, trips: 3420, car: 'Chevrolet Cobalt', color: 'Oq', plate: '01 A 777 BA', phone: '+998901234567' },
+  { id: 'd2', name: 'Sardor', gender: 'm', rating: 4.91, trips: 1875, car: 'Chevrolet Gentra', color: 'Kumush', plate: '01 R 452 KA', phone: '+998935554433' },
+  { id: 'd3', name: 'Akmal', gender: 'm', rating: 4.98, trips: 5210, car: 'BYD Chazor', color: 'Qora', plate: '01 Z 010 YM', phone: '+998977001122' },
+  { id: 'd4', name: 'Bobur', gender: 'm', rating: 4.88, trips: 960, car: 'Kia K5', color: "Ko'k", plate: '10 B 321 TA', phone: '+998946667788' },
 ];
 
 export const RIDE_OPTIONS = [

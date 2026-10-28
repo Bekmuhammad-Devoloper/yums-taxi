@@ -150,6 +150,17 @@ export function Avatar({ name, size = 48, bg, uri, fallback }: { name: string; s
   );
 }
 
+/** Jinsiga mos standart rasm (profil rasmi yuklanmaganda) */
+export const DEFAULT_PERSON = { m: require('@/assets/people/default-m.webp'), f: require('@/assets/people/default-f.webp') };
+/** Haydovchilar uchun standart rasm (rulda o'tirgan holatda) */
+export const DEFAULT_DRIVER = { m: require('@/assets/people/driver-m.webp'), f: require('@/assets/people/driver-f.webp') };
+
+/** Odam rasmi: yuklangan surat, bo'lmasa jinsiga mos standart rasm; jinsi noma'lum bo'lsa — bosh harflar */
+export function PersonAvatar({ name, photo, gender, size = 48, driver }: { name: string; photo?: string; gender?: 'm' | 'f'; size?: number; driver?: boolean }) {
+  const defaults = driver ? DEFAULT_DRIVER : DEFAULT_PERSON;
+  return <Avatar name={name} size={size} uri={photo} fallback={gender ? defaults[gender] : undefined} />;
+}
+
 /**
  * Rasmni kesmasdan to'liq ko'rsatadi: bo'sh qolgan joyni shu rasmning xira nusxasi to'ldiradi.
  * Yozuvli bannerlar chetidan kesilib qolmasligi uchun.
