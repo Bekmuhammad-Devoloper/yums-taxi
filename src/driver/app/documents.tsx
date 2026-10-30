@@ -7,6 +7,7 @@ import { DocForm, DocViewer, STATUS, StatusChip } from '@/driver/components/doc-
 import { DOC_KINDS, DOC_META, type DocKind } from '@/driver/lib/docs';
 import { useDriver } from '@/driver/lib/driver-store';
 import { useStore } from '@/lib/store';
+import { tr } from '@/lib/i18n';
 
 export default function Documents() {
   const { colors: c } = useStore();
@@ -23,15 +24,15 @@ export default function Documents() {
   };
 
   return (
-    <Screen title="Hujjatlar" subtitle={`${approved} / ${DOC_KINDS.length} tasdiqlangan`}>
+    <Screen title={tr('Hujjatlar')} subtitle={tr('{approved} / {length} tasdiqlangan', { approved, length: DOC_KINDS.length })}>
       <Card style={{ gap: 10 }}>
         <Row>
           <View style={[styles.big, { backgroundColor: d.docsApproved ? c.okSoft : c.brandSoft }]}>
             <Ionicons name={d.docsApproved ? 'shield-checkmark' : 'document-text'} size={24} color={d.docsApproved ? c.ok : c.brandDeep} />
           </View>
           <View style={{ flex: 1 }}>
-            <Txt v="h3">{d.docsApproved ? 'Barcha hujjatlar tasdiqlangan' : 'Liniyaga chiqish uchun hujjatlar kerak'}</Txt>
-            <Txt v="small" muted>{d.docsApproved ? 'Buyurtmalarni qabul qilishingiz mumkin' : "To'rtta hujjat ham tekshiruvdan o'tishi kerak"}</Txt>
+            <Txt v="h3">{d.docsApproved ? tr('Barcha hujjatlar tasdiqlangan') : tr('Liniyaga chiqish uchun hujjatlar kerak')}</Txt>
+            <Txt v="small" muted>{d.docsApproved ? tr('Buyurtmalarni qabul qilishingiz mumkin') : tr("To'rtta hujjat ham tekshiruvdan o'tishi kerak")}</Txt>
           </View>
         </Row>
         <Progress value={approved / DOC_KINDS.length} color={d.docsApproved ? c.ok : c.brand} />
@@ -43,16 +44,16 @@ export default function Documents() {
           const meta = DOC_META[k];
           const st = STATUS[doc.status];
           return (
-            <Pressable key={k} onPress={() => open(k)} accessibilityLabel={meta.title}
+            <Pressable key={k} onPress={() => open(k)} accessibilityLabel={tr(meta.title)}
               style={({ pressed }) => [styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }, pressed && { backgroundColor: c.surface2 }]}>
               {/* belgini bosganda ham hujjat ochiladi */}
-              <Pressable onPress={() => open(k)} accessibilityLabel={`${meta.title}ni ochish`} style={[styles.icon, { backgroundColor: st.bg }]}>
+              <Pressable onPress={() => open(k)} accessibilityLabel={tr('{title}ni ochish', { title: tr(meta.title) })} style={[styles.icon, { backgroundColor: st.bg }]}>
                 <Ionicons name={meta.icon} size={20} color={st.color} />
               </Pressable>
               <View style={{ flex: 1, gap: 2 }}>
-                <Txt v="h3" numberOfLines={1}>{meta.title}</Txt>
+                <Txt v="h3" numberOfLines={1}>{tr(meta.title)}</Txt>
                 <Txt v="tiny" muted numberOfLines={1}>
-                  {doc.status === 'missing' ? 'Bosib yuklang' : [doc.number, doc.expires ? `${doc.expires} gacha` : doc.categories].filter(Boolean).join(' · ')}
+                  {doc.status === 'missing' ? tr('Bosib yuklang') : [doc.number, doc.expires ? tr('{date} gacha', { date: doc.expires }) : doc.categories].filter(Boolean).join(' · ')}
                 </Txt>
               </View>
               <StatusChip status={doc.status} />
@@ -62,13 +63,14 @@ export default function Documents() {
       </Card>
 
       {anyMissing && (
-        <Button title="Namuna hujjatlar bilan to'ldirish (demo)" icon="flash" kind="ghost" onPress={d.fillDemoDocs} />
+        <Button title={tr("Namuna hujjatlar bilan to'ldirish (demo)")} icon="flash" kind="ghost" onPress={d.fillDemoDocs} />
       )}
 
       <View style={[styles.tip, { backgroundColor: c.accentSoft }]}>
         <Ionicons name="lock-closed" size={18} color={c.accent} />
         <Txt v="small" color={c.accent} style={{ flex: 1, lineHeight: 19 }}>
-          Hujjatlar faqat tekshiruv uchun ishlatiladi va yo&apos;lovchilarga ko&apos;rsatilmaydi. Rasm aniq, butun va o&apos;qiladigan bo&apos;lsin.
+          
+          {tr("Hujjatlar faqat tekshiruv uchun ishlatiladi va yo'lovchilarga ko'rsatilmaydi. Rasm aniq, butun va o'qiladigan bo'lsin.")}
         </Txt>
       </View>
 

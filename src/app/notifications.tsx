@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { EmptyState, Screen, Txt } from '@/components/ui';
 import { ago, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
+import { tr } from '@/lib/i18n';
 
 export default function Notifications() {
   const { colors: c } = useStore();
@@ -15,8 +16,8 @@ export default function Notifications() {
   useEffect(() => () => markNoticesRead(), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <Screen title="Bildirishnomalar">
-      {p.notices.length === 0 && <EmptyState icon="notifications-off-outline" title="Bildirishnomalar yo'q" />}
+    <Screen title={tr('Bildirishnomalar')}>
+      {p.notices.length === 0 && <EmptyState icon="notifications-off-outline" title={tr("Bildirishnomalar yo'q")} />}
       {p.notices.map(n => (
         <Pressable
           key={n.id}

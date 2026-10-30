@@ -52,7 +52,7 @@ function analyse(leads: Lead[], drivers: AdminDriver[], now: number): Info[] {
     if (!lead.car) issues.push("Avtomobil ko'rsatilmagan");
     else if (!car) issues.push(`«${lead.car}» katalogda yo'q — sinfini qo'ng'iroqda aniqlang`);
     if (lead.car && !fit.now.length) {
-      const year = tariffChecks('start', lead.car, lead.year, { docsApproved: true, rating: 5, trips: 0, activity: 100, deliveryTerms: true }).find(ch => ch.label.startsWith('Ishlab'));
+      const year = tariffChecks('start', lead.car, lead.year, { docsApproved: true, rating: 5, trips: 0, activity: 100, deliveryTerms: true }).find(ch => ch.id === 'year');
       issues.push(year && !year.ok ? `${lead.year ?? '—'}-yil: 2008-yildan eski avtomobil yo'lovchi tashishga qabul qilinmaydi` : 'Avtomobil hech bir yo\'lovchi tarifiga mos emas');
     }
     const driver = byPhone.get(phoneKey(lead.phone));

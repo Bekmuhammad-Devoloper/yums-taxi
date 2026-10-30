@@ -11,6 +11,7 @@ import { FLAGS } from '@/lib/flags';
 import { nameGender } from '@/lib/registry';
 import { haptic, useColors, useStore } from '@/lib/store';
 import { F, radius, shadow } from '@/lib/theme';
+import { tr, flipRTL, isDirectional } from '@/lib/i18n';
 
 export type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -83,7 +84,7 @@ export function IconButton({ name, onPress, style, badge, size = 46, color }: { 
     <Pressable
       onPress={() => { haptic.tap(); onPress?.(); }}
       style={({ pressed }) => [{ width: size, height: size, borderRadius: size / 2.8, backgroundColor: c.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: c.line, alignItems: 'center', justifyContent: 'center', transform: [{ scale: pressed ? 0.94 : 1 }] }, shadow(c, 0.35), style]}>
-      <Ionicons name={name} size={21} color={color ?? c.text} />
+      <Ionicons name={name} size={21} color={color ?? c.text} style={isDirectional(name) ? flipRTL() : undefined} />
       {badge && <View style={{ position: 'absolute', top: 10, right: 11, width: 9, height: 9, borderRadius: 5, backgroundColor: c.danger, borderWidth: 2, borderColor: c.surface }} />}
     </Pressable>
   );
@@ -116,7 +117,7 @@ export function ListItem({ icon, art, title, sub, onPress, right, iconBg, iconCo
         <Txt v="h3" color={danger ? c.danger : undefined} numberOfLines={1}>{title}</Txt>
         {sub ? <Txt v="small" muted numberOfLines={1}>{sub}</Txt> : null}
       </View>
-      {right ?? (onPress ? <Ionicons name="chevron-forward" size={18} color={c.faint} /> : null)}
+      {right ?? (onPress ? <Ionicons name="chevron-forward" size={18} color={c.faint} style={flipRTL()} /> : null)}
     </Pressable>
   );
 }
@@ -229,7 +230,7 @@ export function BrandMark({ size = 40, style }: { size?: number; style?: StylePr
 
 /** To'liq logo: emblema + YUMS yozuvi */
 export function BrandLogo({ width = 220, style }: { width?: number; style?: StyleProp<ViewStyle> }) {
-  return <Image source={LOGO_FULL} style={[{ width, height: width * 1.003 }, style as object]} contentFit="contain" accessibilityLabel="YUMS — O'rgimchak Taxi" />;
+  return <Image source={LOGO_FULL} style={[{ width, height: width * 1.003 }, style as object]} contentFit="contain" accessibilityLabel={tr("YUMS — O'rgimchak Taxi")} />;
 }
 
 /** Mamlakat bayrog'i — haqiqiy rasm (barcha platformalarda bir xil ko'rinadi) */
@@ -287,7 +288,7 @@ export function SectionHeader({ title, action, onAction, style }: { title: strin
       {action ? (
         <Pressable onPress={() => { haptic.tap(); onAction?.(); }} hitSlop={10} style={styles.headerLink}>
           <Txt v="small" color={c.accent} style={{ fontFamily: F.bold }}>{action}</Txt>
-          <Ionicons name="chevron-forward" size={14} color={c.accent} />
+          <Ionicons name="chevron-forward" size={14} color={c.accent} style={flipRTL()} />
         </Pressable>
       ) : null}
     </Row>
@@ -324,7 +325,7 @@ const VERIFIED = require('@/assets/images/verified.png');
 
 /** Tasdiqlangan belgisi — Instagram uslubidagi ko'k to'lqinsimon nishon */
 export function Verified({ size = 15 }: { size?: number }) {
-  return <Image source={VERIFIED} style={{ width: size + 1, height: size + 1 }} contentFit="contain" accessibilityLabel="Tasdiqlangan" />;
+  return <Image source={VERIFIED} style={{ width: size + 1, height: size + 1 }} contentFit="contain" accessibilityLabel={tr('Tasdiqlangan')} />;
 }
 
 export function Field({ label, hint, error, style, inputStyle, prefix, ...rest }: TextInputProps & { label?: string; hint?: string; error?: string; prefix?: string; inputStyle?: StyleProp<TextStyle> }) {
@@ -391,7 +392,8 @@ export function Segmented<T extends string>({ items, value, onChange, style }: {
       {items.map(it => {
         const on = it.id === value;
         return (
-          <Pressable key={it.id} onPress={() => { haptic.tap(); onChange(it.id); }} style={[styles.segItem, on && [{ backgroundColor: dark ? c.surface3 : c.surface }, shadow(c, dark ? 0 : 0.4)]]}>
+          <Pressable key={it.id} onPress={() => { haptic.tap(); onChange(it.id); }} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={it.label}
+            style={[styles.segItem, on && [{ backgroundColor: dark ? c.surface3 : c.surface }, shadow(c, dark ? 0 : 0.4)]]}>
             <Text style={{ color: on ? c.text : c.muted, fontFamily: on ? F.bold : F.semi, fontSize: 13.5 }} numberOfLines={1}>{it.label}</Text>
             {it.badge ? <View style={[styles.segBadge, { backgroundColor: c.danger }]}><Text style={styles.segBadgeText}>{it.badge}</Text></View> : null}
           </Pressable>
@@ -547,7 +549,7 @@ export function ActionSheet({ visible, onClose, header, groups }: { visible: boo
                         <Txt v="h3" color={a.danger ? c.danger : undefined} numberOfLines={1}>{a.title}</Txt>
                         {a.sub ? <Txt v="small" muted numberOfLines={1}>{a.sub}</Txt> : null}
                       </View>
-                      {!a.danger && <Ionicons name="chevron-forward" size={17} color={tint === c.text ? c.faint : alpha(tint, 0.7)} />}
+                      {!a.danger && <Ionicons name="chevron-forward" size={17} color={tint === c.text ? c.faint : alpha(tint, 0.7)} style={flipRTL()} />}
                     </Pressable>
                   </View>
                 );
@@ -555,7 +557,7 @@ export function ActionSheet({ visible, onClose, header, groups }: { visible: boo
             </View>
           ))}
           <Pressable onPress={onClose} style={({ pressed }) => [styles.actCancel, { backgroundColor: pressed ? c.surface2 : c.surface, borderColor: c.line }]}>
-            <Txt v="h3">Bekor qilish</Txt>
+            <Txt v="h3">{tr('Bekor qilish')}</Txt>
           </Pressable>
         </Pressable>
       </Pressable>

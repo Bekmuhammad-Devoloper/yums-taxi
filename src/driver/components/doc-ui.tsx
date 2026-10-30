@@ -12,6 +12,7 @@ import { fmtDate as fmtTime } from '@/lib/format';
 import { pickImage } from '@/lib/media';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
+import { tr } from '@/lib/i18n';
 
 import { DocCard, STATUS, StatusChip } from './doc-card';
 
@@ -31,46 +32,46 @@ export function DocViewer({ doc, visible, onClose, onEdit }: { doc: DriverDoc | 
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
         <Row style={styles.viewerHead}>
-          <Pressable onPress={onClose} hitSlop={10} accessibilityLabel="Yopish" style={[styles.close, { backgroundColor: c.surface2 }]}><Ionicons name="close" size={20} color={c.text} /></Pressable>
+          <Pressable onPress={onClose} hitSlop={10} accessibilityLabel={tr('Yopish')} style={[styles.close, { backgroundColor: c.surface2 }]}><Ionicons name="close" size={20} color={c.text} /></Pressable>
           <View style={{ flex: 1 }}>
-            <Txt v="h2" numberOfLines={1}>{meta.title}</Txt>
-            <Txt v="small" muted>{doc.number || 'Raqam kiritilmagan'}</Txt>
+            <Txt v="h2" numberOfLines={1}>{tr(meta.title)}</Txt>
+            <Txt v="small" muted>{doc.number || tr('Raqam kiritilmagan')}</Txt>
           </View>
           <StatusChip status={doc.status} />
         </Row>
         <ScrollView contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: insets.bottom + 24 }}>
-          {meta.back ? <Segmented<'front' | 'back'> items={[{ id: 'front', label: 'Old tomoni' }, { id: 'back', label: 'Orqa tomoni' }]} value={side} onChange={setSide} /> : null}
+          {meta.back ? <Segmented<'front' | 'back'> items={[{ id: 'front', label: tr('Old tomoni') }, { id: 'back', label: tr('Orqa tomoni') }]} value={side} onChange={setSide} /> : null}
           <DocCard doc={doc} profile={profile} side={meta.back ? side : 'front'} />
           {doc.status === 'rejected' && doc.note ? (
             <View style={[styles.note, { backgroundColor: STATUS.rejected.bg }]}><Ionicons name="alert-circle" size={18} color={STATUS.rejected.color} /><Txt v="small" color={STATUS.rejected.color} style={{ flex: 1 }}>{doc.note}</Txt></View>
           ) : null}
           {doc.status === 'review' ? (
-            <View style={[styles.note, { backgroundColor: STATUS.review.bg }]}><Ionicons name="time" size={18} color={STATUS.review.color} /><Txt v="small" color={STATUS.review.color} style={{ flex: 1 }}>Moderator tekshirmoqda — odatda bir necha daqiqa</Txt></View>
+            <View style={[styles.note, { backgroundColor: STATUS.review.bg }]}><Ionicons name="time" size={18} color={STATUS.review.color} /><Txt v="small" color={STATUS.review.color} style={{ flex: 1 }}>{tr('Moderator tekshirmoqda — odatda bir necha daqiqa')}</Txt></View>
           ) : null}
           <View style={[styles.info, { backgroundColor: c.surface, borderColor: c.line }]}>
-            <InfoRow label={meta.numberLabel} value={doc.number} />
-            {doc.categories ? <InfoRow label="Toifalar" value={doc.categories} /> : null}
-            <InfoRow label="Berilgan sana" value={doc.issued} />
-            {meta.expires ? <InfoRow label="Amal qilish muddati" value={doc.expires} /> : null}
-            {doc.submittedAt ? <InfoRow label="Yuborilgan" value={fmtTime(doc.submittedAt)} /> : null}
-            {doc.checkedAt ? <InfoRow label="Tekshirilgan" value={fmtTime(doc.checkedAt)} /> : null}
+            <InfoRow label={tr(meta.numberLabel)} value={doc.number} />
+            {doc.categories ? <InfoRow label={tr('Toifalar')} value={doc.categories} /> : null}
+            <InfoRow label={tr('Berilgan sana')} value={doc.issued} />
+            {meta.expires ? <InfoRow label={tr('Amal qilish muddati')} value={doc.expires} /> : null}
+            {doc.submittedAt ? <InfoRow label={tr('Yuborilgan')} value={fmtTime(doc.submittedAt)} /> : null}
+            {doc.checkedAt ? <InfoRow label={tr('Tekshirilgan')} value={fmtTime(doc.checkedAt)} /> : null}
           </View>
           {photos.length ? (
             <View style={{ gap: 8 }}>
-              <Txt v="small" muted style={{ fontFamily: F.bold }}>Yuklangan rasmlar</Txt>
+              <Txt v="small" muted style={{ fontFamily: F.bold }}>{tr('Yuklangan rasmlar')}</Txt>
               <Row gap={10}>
                 {photos.map((p, i) => (
-                  <Pressable key={i} onPress={() => setZoom(p)} style={{ flex: 1 }} accessibilityLabel="Rasmni kattalashtirish">
+                  <Pressable key={i} onPress={() => setZoom(p)} style={{ flex: 1 }} accessibilityLabel={tr('Rasmni kattalashtirish')}>
                     <Image source={{ uri: p }} style={styles.thumb} contentFit="cover" />
                   </Pressable>
                 ))}
               </Row>
             </View>
           ) : null}
-          <Button title={doc.status === 'rejected' ? 'Qayta yuklash' : 'Tahrirlash'} icon="create-outline" kind={doc.status === 'rejected' ? 'brand' : 'ghost'} onPress={onEdit} />
+          <Button title={doc.status === 'rejected' ? tr('Qayta yuklash') : tr('Tahrirlash')} icon="create-outline" kind={doc.status === 'rejected' ? 'brand' : 'ghost'} onPress={onEdit} />
         </ScrollView>
         <Modal visible={!!zoom} transparent animationType="fade" onRequestClose={() => setZoom(null)}>
-          <Pressable style={styles.zoomBg} onPress={() => setZoom(null)} accessibilityLabel="Yopish">
+          <Pressable style={styles.zoomBg} onPress={() => setZoom(null)} accessibilityLabel={tr('Yopish')}>
             {zoom ? <Image source={{ uri: zoom }} style={{ width: '100%', height: '80%' }} contentFit="contain" /> : null}
           </Pressable>
         </Modal>
@@ -108,16 +109,16 @@ export function DocForm({ initial, visible, onClose }: { initial: DriverDoc | nu
     const r = await pickImage('document', source);
     setBusy(null);
     if (r.ok) set({ [which]: r.uri });
-    else if (r.reason === 'denied') toast("Kameraga ruxsat berilmadi", 'camera');
-    else if (r.reason === 'error') toast("Rasmni yuklab bo'lmadi", 'alert-circle');
+    else if (r.reason === 'denied') toast(tr('Kameraga ruxsat berilmadi'), 'camera');
+    else if (r.reason === 'error') toast(tr("Rasmni yuklab bo'lmadi"), 'alert-circle');
   };
 
   const submit = () => {
     setTried(true);
-    if (Object.keys(err).length) { toast("Maydonlarni to'g'ri to'ldiring", 'alert-circle'); return; }
+    if (Object.keys(err).length) { toast(tr("Maydonlarni to'g'ri to'ldiring"), 'alert-circle'); return; }
     submitDoc(d);
     onClose();
-    toast('Hujjat tekshiruvga yuborildi', 'paper-plane');
+    toast(tr('Hujjat tekshiruvga yuborildi'), 'paper-plane');
   };
 
   const slot = (which: 'front' | 'back', label: string) => {
@@ -127,12 +128,12 @@ export function DocForm({ initial, visible, onClose }: { initial: DriverDoc | nu
         <Txt v="tiny" muted style={{ fontFamily: F.bold }}>{label}</Txt>
         <View style={[styles.slot, { backgroundColor: c.surface2, borderColor: tried && err[which] ? c.danger : c.line }]}>
           {v && v !== SAMPLE ? <Image source={{ uri: v }} style={StyleSheet.absoluteFill} contentFit="cover" />
-            : v === SAMPLE ? <View style={styles.slotEmpty}><Ionicons name="document-text" size={26} color={c.ok} /><Txt v="tiny" color={c.ok}>Namuna</Txt></View>
-            : <View style={styles.slotEmpty}><Ionicons name={busy === which ? 'hourglass' : 'camera-outline'} size={26} color={c.faint} /><Txt v="tiny" faint>Rasm yo&apos;q</Txt></View>}
+            : v === SAMPLE ? <View style={styles.slotEmpty}><Ionicons name="document-text" size={26} color={c.ok} /><Txt v="tiny" color={c.ok}>{tr('Namuna')}</Txt></View>
+            : <View style={styles.slotEmpty}><Ionicons name={busy === which ? 'hourglass' : 'camera-outline'} size={26} color={c.faint} /><Txt v="tiny" faint>{tr("Rasm yo'q")}</Txt></View>}
         </View>
         <Row gap={6}>
-          <Pressable onPress={() => pick(which, 'camera')} style={[styles.slotBtn, { backgroundColor: c.surface2 }]} accessibilityLabel={`${label}: kamera`}><Ionicons name="camera" size={16} color={c.text} /></Pressable>
-          <Pressable onPress={() => pick(which, 'library')} style={[styles.slotBtn, { backgroundColor: c.surface2, flex: 1 }]} accessibilityLabel={`${label}: galereya`}><Ionicons name="images" size={16} color={c.text} /><Txt v="tiny" style={{ fontFamily: F.bold }}>Galereya</Txt></Pressable>
+          <Pressable onPress={() => pick(which, 'camera')} style={[styles.slotBtn, { backgroundColor: c.surface2 }]} accessibilityLabel={tr('{label}: kamera', { label })}><Ionicons name="camera" size={16} color={c.text} /></Pressable>
+          <Pressable onPress={() => pick(which, 'library')} style={[styles.slotBtn, { backgroundColor: c.surface2, flex: 1 }]} accessibilityLabel={tr('{label}: galereya', { label })}><Ionicons name="images" size={16} color={c.text} /><Txt v="tiny" style={{ fontFamily: F.bold }}>{tr('Galereya')}</Txt></Pressable>
         </Row>
         {tried && err[which] ? <Txt v="tiny" color={c.danger}>{err[which]}</Txt> : null}
       </View>
@@ -140,16 +141,16 @@ export function DocForm({ initial, visible, onClose }: { initial: DriverDoc | nu
   };
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={meta.title} footer={<Button title="Tekshiruvga yuborish" icon="paper-plane" onPress={submit} style={{ marginTop: 12 }} />}>
-      <Txt v="small" muted>{meta.hint}</Txt>
-      <Field label={meta.numberLabel} placeholder={meta.placeholder} autoCapitalize="characters" value={d.number} onChangeText={v => set({ number: fmtDocNumber(v) })} error={tried ? err.number : ''} inputStyle={{ fontFamily: F.heavy, letterSpacing: 1 }} />
+    <Sheet visible={visible} onClose={onClose} title={tr(meta.title)} footer={<Button title={tr('Tekshiruvga yuborish')} icon="paper-plane" onPress={submit} style={{ marginTop: 12 }} />}>
+      <Txt v="small" muted>{tr(meta.hint)}</Txt>
+      <Field label={tr(meta.numberLabel)} placeholder={meta.placeholder} autoCapitalize="characters" value={d.number} onChangeText={v => set({ number: fmtDocNumber(v) })} error={tried ? err.number : ''} inputStyle={{ fontFamily: F.heavy, letterSpacing: 1 }} />
       <Row gap={10} style={{ alignItems: 'flex-start' }}>
-        <Field style={{ flex: 1 }} label="Berilgan sana" placeholder="KK.OO.YYYY" keyboardType="number-pad" value={d.issued ?? ''} onChangeText={v => set({ issued: fmtDate(v) })} error={tried ? err.issued : ''} />
-        {meta.expires ? <Field style={{ flex: 1 }} label="Amal qiladi" placeholder="KK.OO.YYYY" keyboardType="number-pad" value={d.expires ?? ''} onChangeText={v => set({ expires: fmtDate(v) })} error={tried ? err.expires : ''} /> : null}
+        <Field style={{ flex: 1 }} label={tr('Berilgan sana')} placeholder={tr('KK.OO.YYYY')} keyboardType="number-pad" value={d.issued ?? ''} onChangeText={v => set({ issued: fmtDate(v) })} error={tried ? err.issued : ''} />
+        {meta.expires ? <Field style={{ flex: 1 }} label={tr('Amal qiladi')} placeholder={tr('KK.OO.YYYY')} keyboardType="number-pad" value={d.expires ?? ''} onChangeText={v => set({ expires: fmtDate(v) })} error={tried ? err.expires : ''} /> : null}
       </Row>
       {meta.categories ? (
         <View style={{ gap: 6 }}>
-          <Txt v="small" muted style={{ fontFamily: F.bold }}>Toifalar</Txt>
+          <Txt v="small" muted style={{ fontFamily: F.bold }}>{tr('Toifalar')}</Txt>
           <Row gap={8} style={{ flexWrap: 'wrap' }}>
             {CATEGORIES.map(cat => {
               const list = (d.categories ?? '').split(/[\s,]+/).filter(Boolean);
@@ -161,8 +162,8 @@ export function DocForm({ initial, visible, onClose }: { initial: DriverDoc | nu
         </View>
       ) : null}
       <Row gap={10} style={{ alignItems: 'flex-start' }}>
-        {slot('front', 'Old tomoni')}
-        {meta.back ? slot('back', 'Orqa tomoni') : <View style={{ flex: 1 }} />}
+        {slot('front', tr('Old tomoni'))}
+        {meta.back ? slot('back', tr('Orqa tomoni')) : <View style={{ flex: 1 }} />}
       </Row>
     </Sheet>
   );

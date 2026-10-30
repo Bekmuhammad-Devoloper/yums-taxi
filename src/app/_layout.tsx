@@ -26,7 +26,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
 }
 
 function Root() {
-  const { ready, dark, colors } = useStore();
+  const { ready, dark, colors, lang } = useStore();
   const [fontsLoaded, fontError] = useFonts({ Unbounded_700Bold, Onest_500Medium, Onest_600SemiBold, Onest_700Bold, Onest_800ExtraBold, Caveat_700Bold, ShareTechMono_400Regular });
   // Shrift yuklanmasa ham ilova tizim shrifti bilan ochiladi
   const loaded = ready && (fontsLoaded || !!fontError);
@@ -41,7 +41,8 @@ function Root() {
     <ThemeProvider value={dark ? DarkTheme : DefaultTheme}>
       <StatusBar style={dark ? 'light' : 'dark'} />
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'slide_from_right' }}>
+        {/* til almashganda ekranlar qayta chiziladi (barcha matnlar yangi tilda) */}
+        <Stack key={lang} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'slide_from_right' }}>
           <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
           <Stack.Screen name="login" options={{ animation: 'fade', gestureEnabled: false }} />
           <Stack.Screen name="taxi" options={{ animation: 'fade_from_bottom' }} />

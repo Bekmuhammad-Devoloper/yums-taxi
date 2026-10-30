@@ -51,6 +51,12 @@
           "photosPermission": "YUMS profil rasmini tanlash uchun galereyangizga ruxsat so'raydi.",
           "cameraPermission": "YUMS profil rasmini olish uchun kameradan foydalanadi."
         }
+      ],
+      [
+        "expo-localization",
+        {
+          "supportedLocales": ["uz", "ru", "en", "tg", "ar"]
+        }
       ]
     ],
     "experiments": {

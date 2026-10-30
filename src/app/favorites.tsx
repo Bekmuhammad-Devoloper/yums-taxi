@@ -6,14 +6,15 @@ import { CompanyCard, InvestorCard, MarketCard, ProjectCard, SpecialistCard } fr
 import { Chip, EmptyState, Row, Screen, type IconName } from '@/components/ui';
 import { useContactInvestor } from '@/lib/actions';
 import { usePlatform } from '@/lib/platform';
+import { tr, tx } from '@/lib/i18n';
 
 type Tab = 'project' | 'company' | 'specialist' | 'market' | 'investor';
 const TABS: { id: Tab; label: string; icon: IconName }[] = [
-  { id: 'project', label: 'Loyihalar', icon: 'rocket-outline' },
-  { id: 'company', label: 'Kompaniyalar', icon: 'business-outline' },
-  { id: 'specialist', label: 'Mutaxassislar', icon: 'code-slash-outline' },
-  { id: 'market', label: 'Bozor', icon: 'storefront-outline' },
-  { id: 'investor', label: 'Investorlar', icon: 'trending-up-outline' },
+  { id: 'project', label: tx('Loyihalar'), icon: 'rocket-outline' },
+  { id: 'company', label: tx('Kompaniyalar'), icon: 'business-outline' },
+  { id: 'specialist', label: tx('Mutaxassislar'), icon: 'code-slash-outline' },
+  { id: 'market', label: tx('Bozor'), icon: 'storefront-outline' },
+  { id: 'investor', label: tx('Investorlar'), icon: 'trending-up-outline' },
 ];
 
 export default function Favorites() {
@@ -34,13 +35,13 @@ export default function Favorites() {
   for (let i = 0; i < market.length; i += 2) rows.push(market.slice(i, i + 2));
 
   return (
-    <Screen title="Saqlanganlar">
+    <Screen title={tr('Saqlanganlar')}>
       <View style={{ marginHorizontal: -16 }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
-          {TABS.map(x => <Chip key={x.id} label={count(x.id) ? `${x.label} · ${count(x.id)}` : x.label} icon={x.icon} active={tab === x.id} onPress={() => setTab(x.id)} />)}
+          {TABS.map(x => <Chip key={x.id} label={count(x.id) ? `${tr(x.label)} · ${count(x.id)}` : tr(x.label)} icon={x.icon} active={tab === x.id} onPress={() => setTab(x.id)} />)}
         </ScrollView>
       </View>
-      {empty && <EmptyState icon="bookmark-outline" title="Hali hech narsa saqlanmagan" sub="Kartadagi saqlash belgisini bosib, keyinroq ko'rish uchun saqlang" action="Qidiruvga o'tish" onAction={() => router.push('/world')} />}
+      {empty && <EmptyState icon="bookmark-outline" title={tr('Hali hech narsa saqlanmagan')} sub={tr("Kartadagi saqlash belgisini bosib, keyinroq ko'rish uchun saqlang")} action={tr("Qidiruvga o'tish")} onAction={() => router.push('/world')} />}
       {tab === 'project' && projects.map(x => <ProjectCard key={x.id} p={x} />)}
       {tab === 'company' && companies.map(x => <CompanyCard key={x.id} co={x} />)}
       {tab === 'specialist' && specialists.map(x => <SpecialistCard key={x.id} sp={x} />)}

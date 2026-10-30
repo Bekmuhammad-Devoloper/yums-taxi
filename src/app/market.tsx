@@ -15,6 +15,7 @@ import { SECTION_ART } from '@/lib/section-art';
 import { SECTOR_ART } from '@/lib/sector-art';
 import { haptic, useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
+import { flipRTL } from '@/lib/i18n';
 
 type Sort = 'popular' | 'cheap' | 'expensive' | 'rating' | 'new';
 const SORTS: { id: Sort; label: string; icon: IconName }[] = [
@@ -158,7 +159,7 @@ function Storefront() {
             <Txt v="h3">Sotuvchi kabineti</Txt>
             <Txt v="small" muted>Mening e'lonlarim · {p.myMarket.length}</Txt>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={c.faint} />
+          <Ionicons name="chevron-forward" size={18} color={c.faint} style={flipRTL()} />
         </Pressable>
         <Txt v="tiny" faint style={{ textAlign: 'center', paddingHorizontal: 24 }}>Faqat qonuniy va ruxsat etilgan tovar va xizmatlar. Taqiqlangan e'lonlar o'chiriladi.</Txt>
       </ScrollView>
@@ -204,7 +205,7 @@ function Promo({ colors, kicker, title, art, onPress }: { colors: [string, strin
         <View style={{ flex: 1, gap: 6 }}>
           <Text style={styles.promoKicker}>{kicker}</Text>
           <Text style={styles.promoTitle}>{title}</Text>
-          <View style={styles.promoCta}><Text style={styles.promoCtaText}>Ko'rish</Text><Ionicons name="arrow-forward" size={13} color="#0E1525" /></View>
+          <View style={styles.promoCta}><Text style={styles.promoCtaText}>Ko'rish</Text><Ionicons name="arrow-forward" size={13} color="#0E1525" style={flipRTL()} /></View>
         </View>
         {art ? <Image source={art} style={styles.promoArt} contentFit="contain" /> : null}
       </LinearGradient>

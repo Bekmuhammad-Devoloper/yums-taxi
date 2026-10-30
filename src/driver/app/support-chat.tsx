@@ -9,11 +9,12 @@ import { useDriver } from '@/driver/lib/driver-store';
 import { autoAnswer } from '@/driver/lib/support';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
+import { tr, tx, trPlace } from '@/lib/i18n';
 
 type Msg = { id: string; from: 'me' | 'op'; text: string; at: string };
 const KEY = 'yd:supportChat';
 const OPERATOR = 'Malika';
-const TOPICS = ["Pul kartaga tushmadi", 'Hujjat tekshiruvi', 'Tarif nega yopiq?', 'Mijoz chiqmadi', 'Ilovada xatolik'];
+const TOPICS = [tx('Pul kartaga tushmadi'), tx('Hujjat tekshiruvi'), tx('Tarif nega yopiq?'), tx('Mijoz chiqmadi'), tx('Ilovada xatolik')];
 const hhmm = (iso: string) => { const d = new Date(iso); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 const msg = (from: Msg['from'], text: string): Msg => ({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), from, text, at: new Date().toISOString() });
 
@@ -32,7 +33,9 @@ export default function SupportChat() {
     AsyncStorage.getItem(KEY).then(v => {
       const saved: Msg[] = v ? JSON.parse(v) : [];
       const name = d.profile?.name.split(' ')[0] ?? '';
-      setMsgs(saved.length ? saved : [msg('op', `Assalomu alaykum${name ? `, ${name}` : ''}! Men ${OPERATOR}, YUMS haydovchilar yordam xizmati. Savolingizni yozing yoki pastdagi mavzulardan birini tanlang.`)]);
+      setMsgs(saved.length ? saved : [msg('op', name
+        ? tr('Assalomu alaykum, {name}! Men {operator}, YUMS haydovchilar yordam xizmati. Savolingizni yozing yoki pastdagi mavzulardan birini tanlang.', { name, operator: OPERATOR })
+        : tr('Assalomu alaykum! Men {operator}, YUMS haydovchilar yordam xizmati. Savolingizni yozing yoki pastdagi mavzulardan birini tanlang.', { operator: OPERATOR }))]);
     }).catch(() => {});
     const list = timers.current;
     return () => list.forEach(clearTimeout);
@@ -42,7 +45,8 @@ export default function SupportChat() {
 
   const save = (n: Msg[]) => { AsyncStorage.setItem(KEY, JSON.stringify(n.slice(-100))).catch(() => {}); return n; };
 
-  const send = (t: string) => {
+  /** query — avtomatik javob qidiriladigan matn (mavzu tugmasida o'zbekcha asl matn) */
+  const send = (t: string, query = t) => {
     const body = t.trim();
     if (!body) return;
     setText('');
@@ -50,18 +54,18 @@ export default function SupportChat() {
     timers.current.push(setTimeout(() => setTyping(true), 600));
     timers.current.push(setTimeout(() => {
       setTyping(false);
-      const f = autoAnswer(body);
-      const tripNote = d.trip ? ` Joriy buyurtmangiz (${d.trip.order.pickup.title} → ${d.trip.order.destination.title}) ham ko'rib turibman.` : '';
+      const f = autoAnswer(query);
+      const tripNote = d.trip ? ' ' + tr("Joriy buyurtmangiz ({from} → {to}) ham ko'rib turibman.", { from: trPlace(d.trip.order.pickup.title), to: trPlace(d.trip.order.destination.title) }) : '';
       const reply = f
-        ? `${f.a}${tripNote}\n\nYana savol bo'lsa, yozing.`
-        : `Rahmat, murojaatingiz qabul qilindi (№${Math.floor(100000 + Math.random() * 900000)}).${tripNote} Mutaxassis 5 daqiqa ichida shu chatda javob beradi.`;
+        ? `${f.a}${tripNote}\n\n${tr("Yana savol bo'lsa, yozing.")}`
+        : `${tr('Rahmat, murojaatingiz qabul qilindi (№{n}).', { n: Math.floor(100000 + Math.random() * 900000) })}${tripNote} ${tr('Mutaxassis 5 daqiqa ichida shu chatda javob beradi.')}`;
       setMsgs(m => save([...m, msg('op', reply)]));
     }, 1900));
   };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Screen title={OPERATOR} subtitle="YUMS qo'llab-quvvatlash · onlayn" scroll={false}>
+      <Screen title={OPERATOR} subtitle={tr("YUMS qo'llab-quvvatlash · onlayn")} scroll={false}>
         <ScrollView ref={scroll} onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: true })} contentContainerStyle={{ padding: 16, gap: 10 }}>
           {msgs.map(m => (
             <Row key={m.id} gap={8} style={{ alignItems: 'flex-end', justifyContent: m.from === 'me' ? 'flex-end' : 'flex-start' }}>
@@ -75,17 +79,17 @@ export default function SupportChat() {
           {typing && (
             <Row gap={8}>
               <PersonAvatar name={OPERATOR} gender="f" size={30} />
-              <View style={[styles.bubble, { backgroundColor: c.surface }]}><Txt v="small" muted>{OPERATOR} yozmoqda…</Txt></View>
+              <View style={[styles.bubble, { backgroundColor: c.surface }]}><Txt v="small" muted>{tr('{OPERATOR} yozmoqda…', { OPERATOR })}</Txt></View>
             </Row>
           )}
         </ScrollView>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingBottom: 8 }} style={{ flexGrow: 0 }}>
-          {TOPICS.map(t => <Chip key={t} label={t} onPress={() => send(t)} />)}
+          {TOPICS.map(t => <Chip key={t} label={tr(t)} onPress={() => send(tr(t), t)} />)}
         </ScrollView>
         <Row gap={8} style={[styles.inputRow, { paddingBottom: insets.bottom + 10, borderTopColor: c.line, backgroundColor: c.bg }]}>
-          <TextInput value={text} onChangeText={setText} placeholder="Xabar yozing…" placeholderTextColor={c.faint} multiline
-            style={[styles.input, { backgroundColor: c.surface2, color: c.text }]} onSubmitEditing={() => send(text)} accessibilityLabel="Xabar" />
-          <Pressable onPress={() => send(text)} disabled={!text.trim()} accessibilityLabel="Yuborish"
+          <TextInput value={text} onChangeText={setText} placeholder={tr('Xabar yozing…')} placeholderTextColor={c.faint} multiline
+            style={[styles.input, { backgroundColor: c.surface2, color: c.text }]} onSubmitEditing={() => send(text)} accessibilityLabel={tr('Xabar')} />
+          <Pressable onPress={() => send(text)} disabled={!text.trim()} accessibilityLabel={tr('Yuborish')}
             style={[styles.send, { backgroundColor: text.trim() ? c.brand : c.surface2 }]}>
             <Ionicons name="arrow-up" size={20} color={text.trim() ? c.brandText : c.faint} />
           </Pressable>

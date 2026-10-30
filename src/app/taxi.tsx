@@ -13,6 +13,7 @@ import { addressOf, distanceKm } from '@/lib/geo';
 import { trackPrecise, type Fix } from '@/lib/locate';
 import { useStore } from '@/lib/store';
 import { F, shadow } from '@/lib/theme';
+import { tr } from '@/lib/i18n';
 
 export default function Taxi() {
   const s = useStore();
@@ -163,7 +164,7 @@ export default function Taxi() {
         <View pointerEvents="none" style={styles.pinWrap}>
           <Animated.View style={{ alignItems: 'center', transform: [{ translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [0, -14] }) }] }}>
             <View style={[styles.pinLabel, { backgroundColor: '#0F1E3D' }]}>
-              <Text style={styles.pinLabelText}>{order.pickup ? '3 daq' : '…'}</Text>
+              <Text style={styles.pinLabelText}>{order.pickup ? tr('3 daq') : '…'}</Text>
             </View>
             <View style={[styles.pinHead, { borderColor: '#0F1E3D' }]}><View style={styles.pinDot} /></View>
             <View style={styles.pinStick} />
@@ -181,7 +182,7 @@ export default function Taxi() {
         )}
         <View style={[styles.brand, { backgroundColor: c.surface }, shadow(c)]}>
           <BrandMark size={34} style={{ borderRadius: 17 }} />
-          <Text style={[styles.brandText, { color: c.text }]}>YUMS <Text style={{ color: '#E0A800' }}>Taxi</Text></Text>
+          <Text style={[styles.brandText, { color: c.text }]}>YUMS <Text style={{ color: '#E0A800' }}>{tr('Taxi')}</Text></Text>
         </View>
         {inTrip ? (
           <IconButton name="shield-checkmark" color={c.ok} onPress={() => router.push('/safety')} />
@@ -212,7 +213,7 @@ export default function Taxi() {
       {!granted && idle && order.pickup && (
         <View pointerEvents="none" style={[styles.hint, { top: insets.top + 74, backgroundColor: c.surface }, shadow(c)]}>
           <Ionicons name="navigate-circle-outline" size={18} color={c.muted} />
-          <Text style={{ color: c.muted, fontSize: 12.5, fontFamily: F.semi }}>Xaritani surib olish nuqtasini tanlang</Text>
+          <Text style={{ color: c.muted, fontSize: 12.5, fontFamily: F.semi }}>{tr('Xaritani surib olish nuqtasini tanlang')}</Text>
         </View>
       )}
     </View>

@@ -6,11 +6,12 @@ import { ACTIVITY, useDriver } from '@/driver/lib/driver-store';
 import { activityColor } from '@/driver/lib/theme';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
+import { tr, tx } from '@/lib/i18n';
 
 const LEVELS = [
-  { from: 70, title: 'Yuqori', text: "Buyurtmalar birinchi navbatda sizga taklif qilinadi" },
-  { from: 40, title: "O'rtacha", text: 'Buyurtmalar odatdagidek keladi' },
-  { from: 0, title: 'Past', text: "Buyurtmalar kamroq va kechroq keladi" },
+  { from: 70, title: tx('Yuqori'), text: tx('Buyurtmalar birinchi navbatda sizga taklif qilinadi') },
+  { from: 40, title: tx("O'rtacha"), text: tx('Buyurtmalar odatdagidek keladi') },
+  { from: 0, title: tx('Past'), text: tx('Buyurtmalar kamroq va kechroq keladi') },
 ];
 
 export default function Quality() {
@@ -23,33 +24,33 @@ export default function Quality() {
   const maxN = Math.max(1, ...dist.map(x => x.n));
 
   return (
-    <Screen title="Faollik va reyting">
+    <Screen title={tr('Faollik va reyting')}>
       <Card style={{ alignItems: 'center', gap: 6, paddingVertical: 22 }}>
         <View style={[styles.ring, { borderColor: col }]}>
           <Text style={[styles.big, { color: col }]}>{d.activity}</Text>
-          <Txt v="tiny" muted>100 dan</Txt>
+          <Txt v="tiny" muted>{tr('100 dan')}</Txt>
         </View>
-        <Txt v="h2" style={{ marginTop: 6 }}>Faollik: {level.title}</Txt>
-        <Txt v="small" muted style={{ textAlign: 'center' }}>{level.text}</Txt>
+        <Txt v="h2" style={{ marginTop: 6 }}>{tr('Faollik: {title}', { title: tr(level.title) })}</Txt>
+        <Txt v="small" muted style={{ textAlign: 'center' }}>{tr(level.text)}</Txt>
       </Card>
 
       <Card style={{ gap: 12 }}>
-        <Txt v="h3">Faollik qanday o&apos;zgaradi</Txt>
-        <Rule icon="checkmark-circle" color="#12A66A" text="Buyurtmani qabul qilish" value={`+${ACTIVITY.accept}`} />
+        <Txt v="h3">{tr("Faollik qanday o'zgaradi")}</Txt>
+        <Rule icon="checkmark-circle" color="#12A66A" text={tr('Buyurtmani qabul qilish')} value={`+${ACTIVITY.accept}`} />
         <Divider />
-        <Rule icon="remove-circle" color="#D97706" text="Rad etish" value={String(ACTIVITY.decline)} />
+        <Rule icon="remove-circle" color="#D97706" text={tr('Rad etish')} value={String(ACTIVITY.decline)} />
         <Divider />
-        <Rule icon="time" color="#D97706" text="Taklifni o'tkazib yuborish" value={String(ACTIVITY.missed)} />
+        <Rule icon="time" color="#D97706" text={tr("Taklifni o'tkazib yuborish")} value={String(ACTIVITY.missed)} />
         <Divider />
-        <Rule icon="close-circle" color="#E5484D" text="Qabul qilingan buyurtmani bekor qilish" value={String(ACTIVITY.cancel)} />
+        <Rule icon="close-circle" color="#E5484D" text={tr('Qabul qilingan buyurtmani bekor qilish')} value={String(ACTIVITY.cancel)} />
       </Card>
 
       <Card style={{ gap: 10 }}>
         <Row style={{ justifyContent: 'space-between' }}>
-          <Txt v="h3">Reyting</Txt>
+          <Txt v="h3">{tr('Reyting')}</Txt>
           <Txt v="h2">★ {d.rating.toFixed(2)}</Txt>
         </Row>
-        <Txt v="small" muted>So&apos;nggi {rated.length || 0} ta baho asosida</Txt>
+        <Txt v="small" muted>{tr("So'nggi {length} ta baho asosida", { length: rated.length || 0 })}</Txt>
         {dist.map(x => (
           <Row key={x.s} gap={10}>
             <Txt v="small" style={{ width: 26, fontFamily: F.bold }}>{x.s}★</Txt>
@@ -61,7 +62,7 @@ export default function Quality() {
 
       <View style={[styles.tip, { backgroundColor: c.accentSoft }]}>
         <Ionicons name="bulb" size={20} color={c.accent} />
-        <Txt v="small" color={c.accent} style={{ flex: 1, lineHeight: 19 }}>Yuqori talab (to&apos;q sariq) hududlarida buyurtmalar tezroq keladi va narx koeffitsienti bilan hisoblanadi.</Txt>
+        <Txt v="small" color={c.accent} style={{ flex: 1, lineHeight: 19 }}>{tr("Yuqori talab (to'q sariq) hududlarida buyurtmalar tezroq keladi va narx koeffitsienti bilan hisoblanadi.")}</Txt>
       </View>
     </Screen>
   );

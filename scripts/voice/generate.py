@@ -138,7 +138,7 @@ def write_map(phrases):
         '// Har bir til uchun mavjud ovozli kliplar (assets/voice/<til>/<kalit>.mp3).',
         "import type { PhraseKey, VoiceLang } from './voice';",
         '',
-        'export const CLIPS: Record<VoiceLang, Partial<Record<PhraseKey, number>>> = {',
+        'export const CLIPS: Partial<Record<VoiceLang, Partial<Record<PhraseKey, number>>>> = {',
     ]
     for lang in LANGS:
         lines.append(f'  {lang}: {{')

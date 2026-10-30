@@ -1,6 +1,7 @@
 // Ichki navigator: marshrut bo'ylab keyingi burilish, unga masofa va qolgan yo'l.
 import type { LatLng } from '@/lib/data';
 import { bearing, distanceKm } from '@/lib/geo';
+import { tr, tx } from '@/lib/i18n';
 
 export type ManeuverKind = 'left' | 'right' | 'sharpLeft' | 'sharpRight' | 'uturn' | 'straight' | 'arrive';
 /** at — burilish nuqtasining marshrutdagi tartib raqami (ovozli xabar bir marta aytilishi uchun) */
@@ -47,14 +48,15 @@ export function nextManeuver(path: LatLng[], pos: LatLng): Maneuver {
   return { kind: left < 0.05 ? 'arrive' : 'straight', distM: Math.round(left * 1000), leftKm: left, at: -1 };
 }
 
-export const fmtDist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(m >= 10000 ? 0 : 1)} km` : `${Math.max(10, Math.round(m / 10) * 10)} m`);
+export const fmtDist = (m: number) => (m >= 1000 ? tr('{km} km', { km: (m / 1000).toFixed(m >= 10000 ? 0 : 1) }) : tr('{m} m', { m: Math.max(10, Math.round(m / 10) * 10) }));
 
+/** Manevr matni (ekranda tr() bilan) */
 export const MANEUVER_TEXT: Record<ManeuverKind, string> = {
-  left: 'chapga buriling',
-  right: "o'ngga buriling",
-  sharpLeft: 'keskin chapga',
-  sharpRight: "keskin o'ngga",
-  uturn: 'orqaga qayriling',
-  straight: "to'g'riga yuring",
-  arrive: 'manzilga yetdingiz',
+  left: tx('chapga buriling'),
+  right: tx("o'ngga buriling"),
+  sharpLeft: tx('keskin chapga'),
+  sharpRight: tx("keskin o'ngga"),
+  uturn: tx('orqaga qayriling'),
+  straight: tx("to'g'riga yuring"),
+  arrive: tx('manzilga yetdingiz'),
 };

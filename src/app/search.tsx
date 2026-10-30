@@ -10,9 +10,10 @@ import { PLACES, type Place } from '@/lib/data';
 import { distanceKm } from '@/lib/geo';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
+import { tr, tx, trPlace } from '@/lib/i18n';
 
 type Mode = 'to' | 'from' | 'home' | 'work';
-const TITLES: Record<Mode, string> = { to: 'Qayerga?', from: 'Qayerdan?', home: 'Uy manzili', work: 'Ish manzili' };
+const TITLES: Record<Mode, string> = { to: tx('Qayerga?'), from: tx('Qayerdan?'), home: tx('Uy manzili'), work: tx('Ish manzili') };
 
 export default function Search() {
   const { mode: m } = useLocalSearchParams<{ mode?: Mode }>();
@@ -31,15 +32,15 @@ export default function Search() {
   const choose = (p: Place) => {
     if (mode === 'to') { setDestination(p); pushRecent(p); }
     else if (mode === 'from') setPickup(p);
-    else { savePlace(mode, p); toast(`${mode === 'home' ? 'Uy' : 'Ish'} manzili saqlandi`, 'bookmark'); }
+    else { savePlace(mode, p); toast(mode === 'home' ? tr('Uy manzili saqlandi') : tr('Ish manzili saqlandi'), 'bookmark'); }
     router.back();
   };
 
   const top: { icon: IconName; title: string; sub?: string; onPress: () => void }[] = [];
   if (mode === 'from' || mode === 'to') {
-    if (mode === 'from') top.push({ icon: 'map-outline', title: 'Xaritada tanlash', sub: 'Pinni surib aniq joyni belgilang', onPress: () => router.back() });
-    if (saved.home) top.push({ icon: 'home', title: 'Uy', sub: saved.home.title, onPress: () => choose(saved.home!) });
-    if (saved.work) top.push({ icon: 'briefcase', title: 'Ish', sub: saved.work.title, onPress: () => choose(saved.work!) });
+    if (mode === 'from') top.push({ icon: 'map-outline', title: tr('Xaritada tanlash'), sub: tr('Pinni surib aniq joyni belgilang'), onPress: () => router.back() });
+    if (saved.home) top.push({ icon: 'home', title: tr('Uy'), sub: trPlace(saved.home.title), onPress: () => choose(saved.home!) });
+    if (saved.work) top.push({ icon: 'briefcase', title: tr('Ish'), sub: trPlace(saved.work.title), onPress: () => choose(saved.work!) });
   }
   const showRecent = !q && (mode === 'to' || mode === 'from') && recent.length > 0;
 
@@ -47,14 +48,14 @@ export default function Search() {
     <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 8 }}>
       <View style={styles.head}>
         <IconButton name="close" size={42} onPress={() => router.back()} />
-        <Txt v="h2" style={{ flex: 1 }}>{TITLES[mode]}</Txt>
+        <Txt v="h2" style={{ flex: 1 }}>{tr(TITLES[mode])}</Txt>
       </View>
       <View style={[styles.box, { backgroundColor: c.surface }]}>
         {mode === 'to' && (
           <>
             <Pressable style={styles.field} onPress={() => router.replace('/search?mode=from')}>
               <View style={[styles.dot, { backgroundColor: '#0F1E3D' }]} />
-              <Txt numberOfLines={1} muted style={{ flex: 1 }}>{order.pickup?.title ?? 'Joriy joylashuv'}</Txt>
+              <Txt numberOfLines={1} muted style={{ flex: 1 }}>{order.pickup?.title ?? tr('Joriy joylashuv')}</Txt>
             </Pressable>
             <Divider style={{ marginLeft: 40 }} />
           </>
@@ -65,7 +66,7 @@ export default function Search() {
             value={q}
             onChangeText={setQ}
             autoFocus
-            placeholder="Manzil yoki joy nomi"
+            placeholder={tr('Manzil yoki joy nomi')}
             placeholderTextColor={c.faint}
             style={[styles.input, { color: c.text }]}
             returnKeyType="search"
@@ -84,27 +85,27 @@ export default function Search() {
             {!q && top.map(t => <ListItem key={t.title} icon={t.icon} title={t.title} sub={t.sub} onPress={t.onPress} iconBg={c.brandSoft} />)}
             {showRecent && (
               <>
-                <SectionTitle>So'nggi manzillar</SectionTitle>
-                {recent.map(p => <ListItem key={'r' + p.title} icon="time-outline" title={p.title} sub={p.subtitle} onPress={() => choose(p)} />)}
+                <SectionTitle>{tr("So'nggi manzillar")}</SectionTitle>
+                {recent.map(p => <ListItem key={'r' + p.title} icon="time-outline" title={trPlace(p.title)} sub={trPlace(p.subtitle)} onPress={() => choose(p)} />)}
               </>
             )}
-            <SectionTitle>{q ? 'Natijalar' : 'Mashhur joylar'}</SectionTitle>
+            <SectionTitle>{q ? tr('Natijalar') : tr('Mashhur joylar')}</SectionTitle>
           </View>
         }
         ListEmptyComponent={
           <View style={{ alignItems: 'center', padding: 32, gap: 6 }}>
             <Ionicons name="search-outline" size={36} color={c.faint} />
-            <Txt v="h3">Hech narsa topilmadi</Txt>
-            <Txt v="small" muted style={{ textAlign: 'center' }}>Boshqacha yozib ko'ring yoki xaritada tanlang</Txt>
+            <Txt v="h3">{tr('Hech narsa topilmadi')}</Txt>
+            <Txt v="small" muted style={{ textAlign: 'center' }}>{tr("Boshqacha yozib ko'ring yoki xaritada tanlang")}</Txt>
           </View>
         }
         renderItem={({ item }) => (
           <ListItem
             icon="location-outline"
-            title={item.title}
-            sub={item.subtitle}
+            title={trPlace(item.title)}
+            sub={trPlace(item.subtitle)}
             onPress={() => choose(item)}
-            right={order.pickup ? <Txt v="tiny" faint>{distanceKm(order.pickup, item).toFixed(1)} km</Txt> : undefined}
+            right={order.pickup ? <Txt v="tiny" faint>{tr('{distanceKm} km', { distanceKm: distanceKm(order.pickup, item).toFixed(1) })}</Txt> : undefined}
           />
         )}
       />

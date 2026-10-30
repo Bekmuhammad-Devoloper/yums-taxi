@@ -10,6 +10,7 @@ import { SECTORS } from '@/lib/platform-data';
 import { usePlatform } from '@/lib/platform';
 import { useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
+import { flipRTL } from '@/lib/i18n';
 
 type Tab = 'companies' | 'offers' | 'services';
 
@@ -31,7 +32,7 @@ export default function Business() {
             <Txt v="h3">Kompaniya profilini kengaytiring</Txt>
             <Txt v="small" muted>Xizmatlar katalogi, B2B takliflar va xodimlar — Business tarifida</Txt>
           </View>
-          <Ionicons name="chevron-forward" size={18} color={c.ok} />
+          <Ionicons name="chevron-forward" size={18} color={c.ok} style={flipRTL()} />
         </Pressable>
       )}
 
@@ -72,7 +73,7 @@ export default function Business() {
             <Row gap={8}>
               <Logo name={co.name} color={co.color} size={30} />
               <Txt v="h3" style={{ flex: 1 }} numberOfLines={1}>{co.name}</Txt>
-              <Ionicons name="chevron-forward" size={16} color={c.faint} />
+              <Ionicons name="chevron-forward" size={16} color={c.faint} style={flipRTL()} />
             </Row>
           </Pressable>
           {co.services.map(s => (

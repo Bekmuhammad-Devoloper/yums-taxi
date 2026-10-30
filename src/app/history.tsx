@@ -10,16 +10,17 @@ import { fmtDate } from '@/lib/format';
 import { som } from '@/lib/geo';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
+import { tr, trPlace } from '@/lib/i18n';
 
 export default function History() {
   const { colors: c, rides } = useStore();
   return (
-    <Screen title="Safarlar tarixi">
+    <Screen title={tr('Safarlar tarixi')}>
       {rides.length === 0 && (
         <View style={{ alignItems: 'center', padding: 40, gap: 8 }}>
           <Image source={TARIFF_ART.start} style={{ width: 140, height: 70 }} contentFit="contain" />
-          <Txt v="h2">Hali safarlar yo'q</Txt>
-          <Txt muted style={{ textAlign: 'center' }}>Birinchi safaringiz shu yerda paydo bo'ladi</Txt>
+          <Txt v="h2">{tr("Hali safarlar yo'q")}</Txt>
+          <Txt muted style={{ textAlign: 'center' }}>{tr("Birinchi safaringiz shu yerda paydo bo'ladi")}</Txt>
         </View>
       )}
       {rides.map(r => {
@@ -28,19 +29,19 @@ export default function History() {
         return (
           <Card key={r.id} onPress={() => router.push({ pathname: '/ride/[id]', params: { id: r.id } })}>
             <Row style={{ justifyContent: 'space-between' }}>
-              <Txt v="small" muted>{fmtDate(r.createdAt)} · {t?.name}</Txt>
+              <Txt v="small" muted>{fmtDate(r.createdAt)} · {tr(t?.name ?? '')}</Txt>
               {cancelled
-                ? <Txt v="small" color={c.danger} style={{ fontFamily: F.bold }}>Bekor qilingan</Txt>
+                ? <Txt v="small" color={c.danger} style={{ fontFamily: F.bold }}>{tr('Bekor qilingan')}</Txt>
                 : <Txt v="h3">{som(r.price)}</Txt>}
             </Row>
             <View style={{ marginTop: 10, gap: 8 }}>
               <Row gap={10}>
                 <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#0F1E3D', borderWidth: 2, borderColor: c.surface3 }} />
-                <Txt numberOfLines={1} style={{ flex: 1 }}>{r.from.title}</Txt>
+                <Txt numberOfLines={1} style={{ flex: 1 }}>{trPlace(r.from.title)}</Txt>
               </Row>
               <Row gap={10}>
                 <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: '#FFC800' }} />
-                <Txt numberOfLines={1} style={{ flex: 1 }}>{r.to.title}</Txt>
+                <Txt numberOfLines={1} style={{ flex: 1 }}>{trPlace(r.to.title)}</Txt>
               </Row>
             </View>
             {!cancelled && r.rating ? (

@@ -2,6 +2,7 @@ import * as Location from 'expo-location';
 import { Platform } from 'react-native';
 
 import { PLACES, type LatLng, type Place, type Tariff } from './data';
+import { tr, tx } from './i18n';
 
 const R = 6371;
 const rad = (d: number) => (d * Math.PI) / 180;
@@ -140,8 +141,9 @@ export async function addressOf(p: LatLng): Promise<Place> {
   const n = nearestPlace(p);
   const km = distanceKm(p, n);
   if (km < 0.25) return { ...p, title: n.title, subtitle: n.subtitle };
-  if (km < 1.2) return { ...p, title: `${n.title} yaqinida`, subtitle: `${Math.round(km * 1000)} m · ${n.subtitle ?? 'Toshkent'}` };
-  return { ...p, title: 'Xaritadagi nuqta', subtitle: `${n.title}dan ${km.toFixed(1)} km` };
+  // nomlar o'zbekcha saqlanadi (haydovchi va admin ham ko'radi), ekranda trPlace() bilan tarjima qilinadi
+  if (km < 1.2) return { ...p, title: `${n.title} yaqinida`, subtitle: `${Math.round(km * 1000)} m · ${n.subtitle ?? tx('Toshkent')}` };
+  return { ...p, title: tx('Xaritadagi nuqta'), subtitle: `${n.title}dan ${km.toFixed(1)} km` };
 }
 
 export function priceFor(t: Tariff, km: number, min: number, surge = 1) {
@@ -149,7 +151,8 @@ export function priceFor(t: Tariff, km: number, min: number, surge = 1) {
   return Math.ceil(Math.max(raw, t.minFare) / 500) * 500;
 }
 
-export const som = (n: number) => `${String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')} so'm`;
+/** Pul: «12 500 so'm» (valyuta nomi joriy tilda) */
+export const som = (n: number) => tr("{n} so'm", { n: String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') });
 
 /** Haydovchining boshlang'ich joyi: yo'lovchidan ~1–2 km uzoqda */
 export function nearbyPoint(p: LatLng): LatLng {

@@ -9,15 +9,16 @@ import { Row } from '@/components/ui';
 import { DOC_META, SAMPLE, type DocKind, type DocStatus, type DriverDoc } from '@/driver/lib/docs';
 import type { Driver } from '@/lib/data';
 import { F } from '@/lib/theme';
+import { tr, tx } from '@/lib/i18n';
 
 /** Kartada ko'rsatiladigan egasi va avtomobil ma'lumotlari */
 export type DocOwner = Pick<Driver, 'name'> & Partial<Pick<Driver, 'plate' | 'car' | 'color'>> & { year?: number };
 
 export const STATUS: Record<DocStatus, { label: string; color: string; bg: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  missing: { label: 'Yuklanmagan', color: '#8A93A6', bg: 'rgba(138,147,166,0.14)', icon: 'cloud-upload-outline' },
-  review: { label: 'Tekshirilmoqda', color: '#D97706', bg: 'rgba(217,119,6,0.13)', icon: 'time' },
-  approved: { label: 'Tasdiqlangan', color: '#12A66A', bg: 'rgba(18,166,106,0.13)', icon: 'checkmark-circle' },
-  rejected: { label: 'Rad etildi', color: '#E5484D', bg: 'rgba(229,72,77,0.13)', icon: 'close-circle' },
+  missing: { label: tx('Yuklanmagan'), color: '#8A93A6', bg: 'rgba(138,147,166,0.14)', icon: 'cloud-upload-outline' },
+  review: { label: tx('Tekshirilmoqda'), color: '#D97706', bg: 'rgba(217,119,6,0.13)', icon: 'time' },
+  approved: { label: tx('Tasdiqlangan'), color: '#12A66A', bg: 'rgba(18,166,106,0.13)', icon: 'checkmark-circle' },
+  rejected: { label: tx('Rad etildi'), color: '#E5484D', bg: 'rgba(229,72,77,0.13)', icon: 'close-circle' },
 };
 
 export function StatusChip({ status }: { status: DocStatus }) {
@@ -25,7 +26,7 @@ export function StatusChip({ status }: { status: DocStatus }) {
   return (
     <View style={[styles.chip, { backgroundColor: s.bg }]}>
       <Ionicons name={s.icon} size={13} color={s.color} />
-      <Text style={[styles.chipText, { color: s.color }]}>{s.label}</Text>
+      <Text style={[styles.chipText, { color: s.color }]}>{tr(s.label)}</Text>
     </View>
   );
 }
@@ -45,7 +46,7 @@ export function DocCard({ doc, profile, side = 'front' }: { doc: DriverDoc; prof
   const photo = side === 'front' ? doc.front : doc.back;
   // haydovchi o'zi yuklagan rasm bo'lsa — shu rasm ko'rsatiladi
   if (photo && photo !== SAMPLE) {
-    return <Image source={{ uri: photo }} style={styles.card} contentFit="cover" accessibilityLabel={`${DOC_META[doc.kind].title} — ${side === 'front' ? 'old' : 'orqa'} tomoni`} />;
+    return <Image source={{ uri: photo }} style={styles.card} contentFit="cover" accessibilityLabel={side === 'front' ? tr('{title} — old tomoni', { title: tr(DOC_META[doc.kind].title) }) : tr('{title} — orqa tomoni', { title: tr(DOC_META[doc.kind].title) })} />;
   }
   const f = (n: string, label: string, value?: string, big?: boolean) => (
     <View style={{ flexDirection: 'row', gap: 5, alignItems: 'baseline' }} key={n}>
@@ -60,7 +61,7 @@ export function DocCard({ doc, profile, side = 'front' }: { doc: DriverDoc; prof
     <LinearGradient colors={t.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.card}>
       <View style={styles.flag}><View style={[styles.flagStripe, { backgroundColor: '#1EB5E8' }]} /><View style={[styles.flagStripe, { backgroundColor: '#fff' }]} /><View style={[styles.flagStripe, { backgroundColor: '#2BB34A' }]} /></View>
       <Row gap={8} style={{ alignItems: 'flex-start' }}>
-        <View style={[styles.uz, { borderColor: t.ink }]}><Text style={[styles.uzText, { color: t.ink }]}>UZ</Text></View>
+        <View style={[styles.uz, { borderColor: t.ink }]}><Text style={[styles.uzText, { color: t.ink }]}>{tr('UZ')}</Text></View>
         <View style={{ flex: 1 }}>
           <Text style={[styles.country, { color: t.ink }]}>O&apos;ZBEKISTON RESPUBLIKASI</Text>
           <Text style={[styles.cardTitle, { color: t.ink }]} numberOfLines={1}>{t.title}</Text>

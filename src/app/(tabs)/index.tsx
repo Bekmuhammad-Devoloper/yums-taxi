@@ -13,6 +13,7 @@ import { SECTIONS, SECTORS } from '@/lib/platform-data';
 import { usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
+import { flipRTL } from '@/lib/i18n';
 
 export default function Home() {
   const { colors: c, user, t, lang } = useStore();
@@ -104,7 +105,7 @@ export default function Home() {
                 <Text style={styles.taxiSub} numberOfLines={1}>{t('home.taxiChip')}</Text>
               </View>
             </View>
-            <View style={styles.taxiArrow}><Ionicons name="arrow-forward" size={20} color="#FFC800" /></View>
+            <View style={styles.taxiArrow}><Ionicons name="arrow-forward" size={20} color="#FFC800" style={flipRTL()} /></View>
           </LinearGradient>
         </Pressable>
       </View>
@@ -117,7 +118,7 @@ export default function Home() {
               <Txt v="h3">{p.myVerification?.status === 'pending' ? "Tasdiqlash ko'rib chiqilmoqda" : t('home.verifyTitle')}</Txt>
               <Txt v="small" muted>{p.myVerification?.status === 'pending' ? 'Odatda 24 soat ichida' : t('home.verifySub')}</Txt>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={c.faint} />
+            <Ionicons name="chevron-forward" size={18} color={c.faint} style={flipRTL()} />
           </Pressable>
         </View>
       )}

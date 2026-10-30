@@ -1,21 +1,25 @@
-// Ovozli yo'riqnoma: yangi buyurtma, navigator burilishlari, safar holatlari — o'zbek va rus tilida.
+// Ovozli yo'riqnoma: yangi buyurtma, navigator burilishlari, safar holatlari — ilova tilida (5 til).
 // Asosiy yo'l — oldindan yozilgan ayol ovozi kliplari (assets/voice, scripts/voice/generate.py yaratadi):
-// har qanday telefonda bir xil chiroyli eshitiladi. Til uchun klip bo'lmasa — qurilmaning ayol ovozi,
-// u ham bo'lmasa — ikkinchi tildagi kliplar.
+// har qanday telefonda bir xil chiroyli eshitiladi. Til uchun klip bo'lmasa — qurilmaning (iloji bo'lsa ayol) ovozi,
+// u ham bo'lmasa — zaxira tildagi kliplar yoki ovoz (tojikcha → ruscha, arabcha → inglizcha).
 import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 import * as Speech from 'expo-speech';
+
+import type { Lang } from '@/lib/i18n';
 
 import { CLIPS } from './voice-clips';
 import PHRASES from './voice-phrases.json';
 
-export type VoiceLang = 'uz' | 'ru';
+export type VoiceLang = Lang;
 export type PhraseKey = keyof typeof PHRASES.phrases;
 /** Qaysi manbadan gapiradi: o'z kliplari, qurilma ovozi yoki boshqa tildagi kliplar */
 export type VoiceSource = 'clips' | 'system' | 'fallback';
 
-const LOCALE: Record<VoiceLang, string> = { uz: 'uz-UZ', ru: 'ru-RU' };
+const LOCALE: Record<VoiceLang, string> = { uz: 'uz-UZ', ru: 'ru-RU', en: 'en-US', tg: 'tg-TJ', ar: 'ar-SA' };
+/** Til uchun ovoz topilmasa — shu tilda gapiradi */
+const FALLBACK: Record<VoiceLang, VoiceLang> = { uz: 'ru', ru: 'uz', en: 'ru', tg: 'ru', ar: 'en' };
 // Qurilmalardagi ma'lum ayol ovozlari (iOS, Android, Windows/Edge, Chrome)
-const FEMALE = /madina|milena|katya|alena|svetlana|dariya|irina|anna|elena|yuliya|tatyana|ekaterina|female|google русский/i;
+const FEMALE = /madina|milena|katya|alena|svetlana|dariya|irina|anna|elena|yuliya|tatyana|ekaterina|samantha|karen|serena|zira|jenny|aria|laila|mariam|hoda|salma|zariyah|female|google русский/i;
 
 let enabled = true;
 let lang: VoiceLang = 'uz';
@@ -29,7 +33,8 @@ let gen = 0;
 let guard: ReturnType<typeof setTimeout> | undefined;
 let player: AudioPlayer | null = null;
 
-const hasClips = (l: VoiceLang) => Object.keys(CLIPS[l]).length > 0;
+const clipsOf = (l: VoiceLang): Partial<Record<PhraseKey, number>> => CLIPS[l] ?? {};
+const hasClips = (l: VoiceLang) => Object.keys(clipsOf(l)).length > 0;
 
 function ensurePlayer() {
   if (player) return player;
@@ -102,6 +107,7 @@ export const setVoiceEnabled = (v: boolean) => {
 export const setVoiceLang = (l: VoiceLang) => {
   lang = l;
   detect(l);
+  detect(FALLBACK[l]);
 };
 
 export function stopVoice() {
@@ -117,12 +123,15 @@ export function stopVoice() {
 export function say(key: PhraseKey, urgent = false) {
   if (!enabled) return;
   if (urgent) stopVoice();
-  const other: VoiceLang = lang === 'uz' ? 'ru' : 'uz';
-  const own = CLIPS[lang][key];
+  const other = FALLBACK[lang];
+  const own = clipsOf(lang)[key];
   const sys = systemVoice[lang];
+  const otherClip = clipsOf(other)[key];
+  const otherSys = systemVoice[other];
   const item: Item = own != null ? { clip: own }
     : sys ? { text: PHRASES.phrases[key][lang], locale: LOCALE[lang], voice: sys }
-    : CLIPS[other][key] != null ? { clip: CLIPS[other][key] }
+    : otherClip != null ? { clip: otherClip }
+    : otherSys ? { text: PHRASES.phrases[key][other], locale: LOCALE[other], voice: otherSys }
     : { text: PHRASES.phrases[key][lang], locale: LOCALE[lang] };
   queue.push(item);
   pump();

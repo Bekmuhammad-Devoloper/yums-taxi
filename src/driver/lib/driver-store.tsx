@@ -9,10 +9,11 @@ import { Platform, Vibration } from 'react-native';
 import { toast } from '@/components/toast';
 import { DEFAULT_CENTER, PLACES, TARIFFS, type Driver, type LatLng, type Place } from '@/lib/data';
 import { DispatchClient, DISPATCH_URL, type ConnState, type DocSync, type OrderOffer } from '@/lib/dispatch';
-import { bearing, distanceKm, fetchRoute, nearbyPoint, pathLength, pointAt, priceFor } from '@/lib/geo';
+import { bearing, distanceKm, fetchRoute, nearbyPoint, pathLength, pointAt, priceFor, som } from '@/lib/geo';
 import { nameGender } from '@/lib/registry';
 import { commissionOf, surgeLevel, zoneRing, type RemoteConfig } from '@/lib/remote-config';
-import { haptic } from '@/lib/store';
+import { getLang, isLang, onLangChange, tr, tx } from '@/lib/i18n';
+import { haptic, useStore } from '@/lib/store';
 
 import { demandSlot, demandZones, surgeAt, type DemandZone } from './demand';
 import { DOC_KINDS, DOC_META, emptyDoc, reviewDoc, sampleDoc, type DocKind, type DriverDoc } from './docs';
@@ -157,7 +158,8 @@ const PASSENGERS: { name: string; gender: 'm' | 'f' }[] = [
   { name: 'Aziza', gender: 'f' }, { name: 'Bekzod', gender: 'm' }, { name: 'Dilshod', gender: 'm' }, { name: 'Madina', gender: 'f' },
   { name: 'Sherzod', gender: 'm' }, { name: 'Nigora', gender: 'f' }, { name: 'Javohir', gender: 'm' }, { name: 'Kamola', gender: 'f' },
 ];
-const COMMENTS = ['Podyezd oldida kutaman', "Bolalar o'rindig'i kerak emas", 'Yukim bor, bagaj kerak', "Tezroq bo'ling, iltimos"];
+// demo izohlar (ekranda tr() bilan — yo'lovchi tilida yozilgan izoh o'zgarmaydi)
+const COMMENTS = [tx('Podyezd oldida kutaman'), tx("Bolalar o'rindig'i kerak emas"), tx('Yukim bor, bagaj kerak'), tx("Tezroq bo'ling, iltimos")];
 const APPROACH_KMH = 32;
 const RIDE_KMH = 38;
 const DEMO_SPEEDUP = 6; // demo: real vaqtdan tezroq — sinab ko'rish uchun
@@ -237,7 +239,10 @@ export function DriverProvider({ children }: { children: ReactNode }) {
         if (e[K.homeUses]?.date === dayKey()) setHomeUses(e[K.homeUses]);
         if (e[K.navApp]) setNavAppState(e[K.navApp]);
         if (typeof e[K.voice] === 'boolean') { setVoiceState(e[K.voice]); setVoiceEnabled(e[K.voice]); }
-        if (e[K.voiceLang] === 'uz' || e[K.voiceLang] === 'ru') { setVoiceLangState(e[K.voiceLang]); setVoiceLang(e[K.voiceLang]); }
+        // ovoz tili: saqlangani, bo'lmasa ilova tili
+        const vl: VoiceLang = isLang(e[K.voiceLang]) ? e[K.voiceLang] : getLang();
+        setVoiceLangState(vl);
+        setVoiceLang(vl);
         const loadedDocs: Docs = { ...emptyDocs(), ...(e[K.docs] ?? {}) };
         setDocs(loadedDocs);
         const docsOk = DOC_KINDS.every(k => loadedDocs[k].status === 'approved');
@@ -310,9 +315,9 @@ export function DriverProvider({ children }: { children: ReactNode }) {
       if (cur[k].status !== 'review') return;
       const r = reviewDoc(cur[k]);
       updateDocs(c => ({ ...c, [k]: { ...c[k], ...r, checkedAt: new Date().toISOString() } }));
-      toast(r.status === 'approved' ? `${DOC_META[k].short} tasdiqlandi` : `${DOC_META[k].short} rad etildi: ${r.note}`, r.status === 'approved' ? 'checkmark-circle' : 'close-circle');
+      toast(r.status === 'approved' ? tr('{short} tasdiqlandi', { short: tr(DOC_META[k].short) }) : tr('{short} rad etildi: {note}', { short: tr(DOC_META[k].short), note: r.note }), r.status === 'approved' ? 'checkmark-circle' : 'close-circle');
       if (r.status === 'approved' && DOC_KINDS.every(x => x === k || cur[x].status === 'approved')) {
-        setTimeout(() => toast('Hujjatlar tasdiqlandi — liniyaga chiqishingiz mumkin', 'shield-checkmark'), 1600);
+        setTimeout(() => toast(tr('Hujjatlar tasdiqlandi — liniyaga chiqishingiz mumkin'), 'shield-checkmark'), 1600);
       }
     }, Math.max(0, new Date(docs[k].submittedAt ?? 0).getTime() + REVIEW_MS - Date.now())));
     return () => timers.forEach(clearTimeout);
@@ -331,17 +336,28 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     for (const k of DOC_KINDS) client?.send({ t: 'doc', doc: all[k] });
   }, [updateDocs, client]);
 
+  // foydalanuvchi ilova tilini almashtirsa — ovozli yo'riqnoma ham shu tilda gapiradi
+  useEffect(() => onLangChange((l, user) => {
+    if (!user) return;
+    setVoiceLangState(l);
+    setVoiceLang(l);
+    persist(K.voiceLang, l);
+  }), []);
+
   /* ---------- Tariflar: shartlar bajarilganda yoqiladi ---------- */
   const rating = useMemo(() => {
     const st = earnings.filter(e => e.stars).slice(0, 50);
     return st.length ? st.reduce((s, e) => s + (e.stars ?? 0), 0) / st.length : profile?.rating ?? 5;
   }, [earnings, profile]);
 
+  // shartlar matni joriy tilda (til almashganda qayta hisoblanadi)
+  const { lang } = useStore();
   const tariffState = useMemo<TariffState[]>(() => TARIFFS.map(t => {
+    void lang;
     const checks = tariffChecks(t.id, profile?.car, profile?.year, { docsApproved, rating, trips: profile?.trips ?? 0, activity, deliveryTerms: !!profile?.deliveryTerms });
     const ok = checks.every(c => c.ok);
     return { id: t.id, checks, eligible: ok, enabled: ok && !!profile?.tariffs.includes(t.id) };
-  }), [profile, docsApproved, rating, activity]);
+  }), [profile, docsApproved, rating, activity, lang]);
   const activeKey = tariffState.filter(t => t.enabled).map(t => t.id).join(',');
   const activeTariffs = useMemo(() => (activeKey ? activeKey.split(',') : []), [activeKey]);
   const activeRef = useRef(activeTariffs);
@@ -468,7 +484,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
             pendingAccept.current = null;
             if (tripRef.current?.order.id === m.orderId) setTrip(null);
             if (nextRef.current?.id === m.orderId) setNext(null);
-            toast("Buyurtma boshqa haydovchiga o'tdi", 'alert-circle');
+            toast(tr("Buyurtma boshqa haydovchiga o'tdi"), 'alert-circle');
           }
           break;
         case 'assigned':
@@ -484,13 +500,13 @@ export function DriverProvider({ children }: { children: ReactNode }) {
           if (tripRef.current?.order.id === m.orderId) {
             haptic.error();
             say('passengerCancelled', true);
-            toast("Yo'lovchi buyurtmani bekor qildi", 'close-circle');
+            toast(tr("Yo'lovchi buyurtmani bekor qildi"), 'close-circle');
             const nx = nextRef.current;
             setTrip(null);
             if (nx) { setNext(null); startTrip(nx); }
           } else if (nextRef.current?.id === m.orderId) {
             setNext(null);
-            toast('Keyingi buyurtma bekor qilindi', 'close-circle');
+            toast(tr('Keyingi buyurtma bekor qilindi'), 'close-circle');
           }
           break;
         case 'rated':
@@ -509,13 +525,13 @@ export function DriverProvider({ children }: { children: ReactNode }) {
           if (prev.status === m.status && prev.note === m.note) break;
           updateDocs(c => ({ ...c, [m.kind]: { ...c[m.kind], status: m.status, note: m.note, checkedAt: m.checkedAt } }));
           if (m.status === 'approved') {
-            toast(`${DOC_META[m.kind].short} tasdiqlandi`, 'checkmark-circle');
+            toast(tr('{short} tasdiqlandi', { short: tr(DOC_META[m.kind].short) }), 'checkmark-circle');
             if (DOC_KINDS.every(x => x === m.kind || docsRef.current[x].status === 'approved')) {
-              setTimeout(() => toast('Hujjatlar tasdiqlandi — liniyaga chiqishingiz mumkin', 'shield-checkmark'), 1600);
+              setTimeout(() => toast(tr('Hujjatlar tasdiqlandi — liniyaga chiqishingiz mumkin'), 'shield-checkmark'), 1600);
             }
           } else if (m.status === 'rejected') {
             haptic.error();
-            toast(`${DOC_META[m.kind].short} rad etildi: ${m.note ?? ''}`, 'close-circle');
+            toast(tr('{short} rad etildi: {note}', { short: tr(DOC_META[m.kind].short), note: m.note ?? '' }), 'close-circle');
             if (!tripRef.current) goOfflineRef.current();
           }
           break;
@@ -528,7 +544,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
         case 'blocked':
           if (blockedRef.current?.reason !== m.reason) {
             haptic.error();
-            toast(`Hisobingiz bloklandi: ${m.reason}`, 'lock-closed');
+            toast(tr('Hisobingiz bloklandi: {reason}', { reason: m.reason }), 'lock-closed');
             setBlocked({ reason: m.reason });
             persist(K.blocked, { reason: m.reason });
           }
@@ -536,7 +552,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
           break;
         case 'unblocked':
           if (blockedRef.current) {
-            toast('Hisobingiz blokdan chiqarildi — liniyaga chiqishingiz mumkin', 'lock-open');
+            toast(tr('Hisobingiz blokdan chiqarildi — liniyaga chiqishingiz mumkin'), 'lock-open');
             setBlocked(null);
             persist(K.blocked, null);
           }
@@ -561,7 +577,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   const makeDemoOrder = useCallback(async (from: LatLng): Promise<{ order: OrderOffer; km: number } | null> => {
     if (!profile) return null;
     const pickupPt = nearbyPoint(from);
-    const pickup = { ...pickupPt, title: nearestTitle(pickupPt), subtitle: 'Toshkent' };
+    const pickup = { ...pickupPt, title: nearestTitle(pickupPt), subtitle: tr('Toshkent') };
     const near = homeDest ? PLACES.filter(p => distanceKm(p, homeDest) < 3) : [];
     const dest = homeDest ? (near.length && Math.random() < 0.5 ? near[Math.floor(Math.random() * near.length)] : homeDest) : PLACES[Math.floor(Math.random() * PLACES.length)];
     if (distanceKm(pickup, dest) < 1) return null;
@@ -621,7 +637,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
       setOffer(null);
       bumpActivity(ACTIVITY.missed);
       say('missed');
-      toast(`Buyurtma o'tkazib yuborildi · faollik ${ACTIVITY.missed}`, 'time-outline');
+      toast(tr("Buyurtma o'tkazib yuborildi · faollik {missed}", { missed: ACTIVITY.missed }), 'time-outline');
     }, Math.max(0, offer.expiresAt - Date.now()));
     return () => clearTimeout(t);
   }, [offer, live, client, bumpActivity]);
@@ -650,7 +666,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     if (live) client?.send({ t: 'decline', orderId: o.order.id });
     setOffer(null);
     bumpActivity(ACTIVITY.decline);
-    toast(`Buyurtma rad etildi · faollik ${ACTIVITY.decline}`, 'remove-circle-outline');
+    toast(tr('Buyurtma rad etildi · faollik {decline}', { decline: ACTIVITY.decline }), 'remove-circle-outline');
   }, [live, client, bumpActivity]);
 
   const arrived = useCallback(() => {
@@ -724,7 +740,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     if (!t) return;
     if (live) client?.send({ t: 'cancel', orderId: t.order.id });
     bumpActivity(ACTIVITY.cancel);
-    toast(`Buyurtma bekor qilindi · faollik ${ACTIVITY.cancel}`, 'close-circle-outline');
+    toast(tr('Buyurtma bekor qilindi · faollik {cancel}', { cancel: ACTIVITY.cancel }), 'close-circle-outline');
     goNext();
   }, [live, client, bumpActivity, goNext]);
 
@@ -737,11 +753,11 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     if (fee > 0) {
       addEarning({
         id: t.order.id, at: new Date().toISOString(), price: 0, waitFee: fee, fee: Math.round(fee * commissionRef.current), tip: 0, km: 0, min: 0,
-        from: t.order.pickup.title, to: 'Mijoz chiqmadi', payment: 'card', tariffId: t.order.tariffId, noShow: true,
+        from: t.order.pickup.title, to: tx('Mijoz chiqmadi'), payment: 'card', tariffId: t.order.tariffId, noShow: true,
       });
     }
     say('noShow');
-    toast(fee > 0 ? `Mijoz chiqmadi · kompensatsiya ${fee.toLocaleString('ru-RU')} so'm` : 'Mijoz chiqmadi · buyurtma yopildi', 'person-remove');
+    toast(fee > 0 ? tr('Mijoz chiqmadi · kompensatsiya {sum}', { sum: som(fee) }) : tr('Mijoz chiqmadi · buyurtma yopildi'), 'person-remove');
     goNext();
   }, [live, client, addEarning, goNext]);
 
@@ -751,14 +767,14 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     if (live) client?.send({ t: 'cancel', orderId: nx.id });
     setNext(null);
     bumpActivity(ACTIVITY.cancel);
-    toast(`Keyingi buyurtma bekor qilindi · faollik ${ACTIVITY.cancel}`, 'close-circle-outline');
+    toast(tr('Keyingi buyurtma bekor qilindi · faollik {cancel}', { cancel: ACTIVITY.cancel }), 'close-circle-outline');
   }, [live, client, bumpActivity]);
 
   const setOnline = useCallback((v: boolean) => {
     haptic.tap();
-    if (v && blockedRef.current) { toast(`Hisobingiz bloklangan: ${blockedRef.current.reason}`, 'lock-closed'); return; }
-    if (v && !docsApproved) { toast('Avval hujjatlaringiz tasdiqlanishi kerak', 'document-text'); return; }
-    if (v && !activeRef.current.length) { toast('Kamida bitta tarifni yoqing', 'car'); return; }
+    if (v && blockedRef.current) { toast(tr('Hisobingiz bloklangan: {reason}', { reason: blockedRef.current.reason }), 'lock-closed'); return; }
+    if (v && !docsApproved) { toast(tr('Avval hujjatlaringiz tasdiqlanishi kerak'), 'document-text'); return; }
+    if (v && !activeRef.current.length) { toast(tr('Kamida bitta tarifni yoqing'), 'car'); return; }
     setOnlineState(v);
     const now = Date.now();
     if (v) {
@@ -811,7 +827,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   const setTariffEnabled = (id: string, on: boolean) => {
     const st = tariffState.find(t => t.id === id);
     if (!profile || !st || (on && !st.eligible)) return false;
-    if (!on && activeTariffs.length === 1 && activeTariffs[0] === id && online) { toast("Liniyada kamida bitta tarif yoqilgan bo'lishi kerak", 'alert-circle'); return false; }
+    if (!on && activeTariffs.length === 1 && activeTariffs[0] === id && online) { toast(tr("Liniyada kamida bitta tarif yoqilgan bo'lishi kerak"), 'alert-circle'); return false; }
     const tariffs = on ? [...new Set([...profile.tariffs, id])] : profile.tariffs.filter(x => x !== id);
     setProfile(cur => { if (!cur) return cur; const n = { ...cur, tariffs }; persist(K.profile, n); return n; });
     return true;
@@ -821,9 +837,9 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     if (!profile || (profile.car === car && profile.year === year)) return;
     setProfile(cur => { if (!cur) return cur; const n = { ...cur, car, year }; persist(K.profile, n); return n; });
     if (docs.techPassport.status !== 'missing') {
-      updateDocs(cur => ({ ...cur, techPassport: { ...cur.techPassport, status: 'rejected', note: "Avtomobil o'zgardi — yangi texnik pasportni yuklang" } }));
+      updateDocs(cur => ({ ...cur, techPassport: { ...cur.techPassport, status: 'rejected', note: tr("Avtomobil o'zgardi — yangi texnik pasportni yuklang") } }));
       if (online) setOnline(false);
-      toast('Yangi avtomobil uchun texnik pasportni yuklang', 'document-text');
+      toast(tr('Yangi avtomobil uchun texnik pasportni yuklang'), 'document-text');
     }
   };
 

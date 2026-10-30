@@ -1,6 +1,8 @@
 // Tariflar talablari (Yandex Pro kabi): har bir tarif o'z shartlari bajarilgandagina yoqiladi.
 // Shartlar: hujjatlar tasdiqlangan, avtomobil sinfi va yili, reyting, safarlar soni, faollik.
 
+import { tr, tx } from '@/lib/i18n';
+
 export type CarClass = 'economy' | 'comfort' | 'business' | 'minivan' | 'cargo';
 export type CarModel = { brand: string; model: string; cls: CarClass; seats: number };
 
@@ -44,7 +46,8 @@ export const CAR_MODELS: CarModel[] = [
   { brand: 'Chevrolet', model: 'Labo', cls: 'cargo', seats: 2 },
 ];
 
-export const CLASS_NAME: Record<CarClass, string> = { economy: 'Ekonom', comfort: 'Komfort', business: 'Biznes', minivan: 'Miniven', cargo: 'Yuk' };
+/** Sinf nomlari (ekranda tr() bilan) */
+export const CLASS_NAME: Record<CarClass, string> = { economy: tx('Ekonom'), comfort: tx('Komfort'), business: tx('Biznes'), minivan: tx('Miniven'), cargo: tx('Yuk') };
 export const carTitle = (m: CarModel) => `${m.brand} ${m.model}`;
 
 /** Profildagi avtomobil nomidan katalog yozuvini topish (eski profillar uchun ham) */
@@ -58,7 +61,7 @@ export function findCar(name: string | undefined): CarModel | undefined {
 
 export type Stats = { docsApproved: boolean; rating: number; trips: number; activity: number; deliveryTerms: boolean };
 /** fix — shartni bajarish uchun qayerga borish kerak */
-export type Check = { label: string; ok: boolean; now?: string; fix?: 'documents' | 'car' | 'terms' };
+export type Check = { id: 'docs' | 'class' | 'year' | 'seats' | 'rating' | 'trips' | 'activity' | 'terms'; label: string; ok: boolean; now?: string; fix?: 'documents' | 'car' | 'terms' };
 
 /** Tarif uchun mos avtomobil sinflari */
 export const CLASS_OK: Record<string, CarClass[]> = {
@@ -83,21 +86,22 @@ export function tariffChecks(tariffId: string, carName: string | undefined, year
   const car = findCar(carName);
   const classes = CLASS_OK[tariffId] ?? [];
   const checks: Check[] = [
-    { label: "Hujjatlar tasdiqlangan", ok: s.docsApproved, fix: 'documents' },
+    { id: 'docs', label: tr('Hujjatlar tasdiqlangan'), ok: s.docsApproved, fix: 'documents' },
     {
-      label: `Avtomobil sinfi: ${[...new Set(classes.map(c => CLASS_NAME[c]))].join(' / ')}`,
+      id: 'class',
+      label: tr('Avtomobil sinfi: {classes}', { classes: [...new Set(classes.map(c => tr(CLASS_NAME[c])))].join(' / ') }),
       ok: !!car && classes.includes(car.cls),
-      now: car ? `${carTitle(car)} — ${CLASS_NAME[car.cls]}` : (carName ? `${carName} — katalogda yo'q` : 'tanlanmagan'),
+      now: car ? `${carTitle(car)} — ${tr(CLASS_NAME[car.cls])}` : (carName ? tr("{car} — katalogda yo'q", { car: carName }) : tr('tanlanmagan')),
       fix: 'car',
     },
-    { label: `Ishlab chiqarilgan yili: ${MIN_YEAR[tariffId]} va yangiroq`, ok: !!year && year >= MIN_YEAR[tariffId], now: year ? String(year) : "ko'rsatilmagan", fix: 'car' },
+    { id: 'year', label: tr('Ishlab chiqarilgan yili: {year} va yangiroq', { year: MIN_YEAR[tariffId] }), ok: !!year && year >= MIN_YEAR[tariffId], now: year ? String(year) : tr("ko'rsatilmagan"), fix: 'car' },
   ];
   const x = EXTRA[tariffId] ?? {};
-  if (x.seats) checks.push({ label: `Kamida ${x.seats} o'rindiq`, ok: !!car && car.seats >= x.seats, now: car ? `${car.seats} ta` : '—', fix: 'car' });
-  if (x.rating) checks.push({ label: `Reyting ${x.rating.toFixed(2)} dan yuqori`, ok: s.rating >= x.rating, now: s.rating.toFixed(2) });
-  if (x.trips) checks.push({ label: `Kamida ${x.trips} ta safar`, ok: s.trips >= x.trips, now: `${s.trips} ta` });
-  if (x.activity) checks.push({ label: `Faollik ${x.activity} dan yuqori`, ok: s.activity >= x.activity, now: String(s.activity) });
-  if (x.terms) checks.push({ label: 'Yetkazish qoidalari qabul qilingan', ok: s.deliveryTerms, fix: 'terms' });
+  if (x.seats) checks.push({ id: 'seats', label: tr("Kamida {seats} o'rindiq", { seats: x.seats }), ok: !!car && car.seats >= x.seats, now: car ? tr('{n} ta', { n: car.seats }) : '—', fix: 'car' });
+  if (x.rating) checks.push({ id: 'rating', label: tr('Reyting {rating} dan yuqori', { rating: x.rating.toFixed(2) }), ok: s.rating >= x.rating, now: s.rating.toFixed(2) });
+  if (x.trips) checks.push({ id: 'trips', label: tr('Kamida {trips} ta safar', { trips: x.trips }), ok: s.trips >= x.trips, now: tr('{n} ta', { n: s.trips }) });
+  if (x.activity) checks.push({ id: 'activity', label: tr('Faollik {activity} dan yuqori', { activity: x.activity }), ok: s.activity >= x.activity, now: String(s.activity) });
+  if (x.terms) checks.push({ id: 'terms', label: tr('Yetkazish qoidalari qabul qilingan'), ok: s.deliveryTerms, fix: 'terms' });
   return checks;
 }
 

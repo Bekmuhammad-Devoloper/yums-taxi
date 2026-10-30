@@ -9,7 +9,7 @@ import { DRIVERS, SEED_RIDES, type Card, type Driver, type LatLng, type PaymentI
 import { DispatchClient, DISPATCH_URL, type ConnState, type FleetCar } from './dispatch';
 import { distanceKm, fetchRoute, nearbyPoint, pathLength, pointAt, priceFor, type RouteInfo } from './geo';
 import { tariffOf, zoneSurgeAt, type RemoteConfig } from './remote-config';
-import { DICTS, type Lang, type TKey } from './i18n';
+import { deviceLang, isLang, reloadForDirection, setAppLang, t as translate, tr, type Lang } from './i18n';
 import { pinflGender } from './registry';
 import { palette, type Colors } from './theme';
 
@@ -107,7 +107,8 @@ type Ctx = {
   deleteAccount: () => void;
   lang: Lang;
   setLang: (l: Lang) => void;
-  t: (k: TKey) => string;
+  /** Tarjima (til almashganda yangi funksiya — komponentlar qayta chiziladi) */
+  t: typeof translate;
   order: Order;
   setPickup: (p: Place) => void;
   setDestination: (p: Place | null) => void;
@@ -219,7 +220,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         if (m[K.saved]) setSaved(m[K.saved]);
         if (m[K.cards]) setCards(m[K.cards]);
         if (m[K.theme]) setThemeState(m[K.theme]);
-        if (m[K.lang] && m[K.lang] in DICTS) setLangState(m[K.lang]);
+        // Til: saqlangani, bo'lmasa qurilma tili. Telefonda yozuv yo'nalishi mos kelmasa (arab tili) — bir marta qayta yuklanadi
+        const l: Lang = isLang(m[K.lang]) ? m[K.lang] : deviceLang();
+        if (setAppLang(l)) reloadForDirection();
+        setLangState(l);
         if (m[K.payment]) setPaymentState(m[K.payment]);
         if (m[K.recent]) setRecent(m[K.recent]);
         if (typeof m[K.balance] === 'number') setBalance(m[K.balance]);
@@ -289,7 +293,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       switch (m.t) {
         case 'accepted': {
           haptic.success();
-          if (m.chain) toast('Haydovchi joriy safarini yakunlab, sizga yo\'l oladi', 'car');
+          if (m.chain) toast(tr("Haydovchi joriy safarini yakunlab, sizga yo'l oladi"), 'car');
           const pos = m.pos ?? o.pickup!;
           setOrder(x => ({ ...x, phase: 'accepted', driver: m.driver, driverPos: pos, driverPath: undefined, progress: 0, etaMin: Math.max(1, Math.round(distanceKm(pos, x.pickup!) / 0.45)) }));
           // haydovchining olib ketish nuqtasigacha yo'li (xaritada punktir)
@@ -320,23 +324,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           break;
         case 'driverCancelled':
           haptic.error();
-          toast('Haydovchi bekor qildi — yangi haydovchi qidirilmoqda', 'refresh-circle');
+          toast(tr('Haydovchi bekor qildi — yangi haydovchi qidirilmoqda'), 'refresh-circle');
           setOrder(x => ({ ...x, phase: 'searching', driver: undefined, driverPos: undefined, driverPath: undefined, progress: 0 }));
           break;
         case 'noDriver':
           haptic.error();
-          toast("Hozir bo'sh haydovchi topilmadi — birozdan so'ng urinib ko'ring", 'alert-circle');
+          toast(tr("Hozir bo'sh haydovchi topilmadi — birozdan so'ng urinib ko'ring"), 'alert-circle');
           setOrder(x => ({ ...x, phase: 'choosing', liveId: undefined }));
           break;
         case 'noShow':
           // haydovchi kutdi, yo'lovchi chiqmadi — buyurtma yopildi
           haptic.error();
-          toast('Haydovchi sizni kutdi, lekin chiqmadingiz — buyurtma yopildi', 'person-remove');
+          toast(tr('Haydovchi sizni kutdi, lekin chiqmadingiz — buyurtma yopildi'), 'person-remove');
           setOrder(x => ({ ...x, phase: x.destination ? 'choosing' : 'idle', driver: undefined, driverPos: undefined, driverPath: undefined, progress: 0, liveId: undefined }));
           break;
         case 'adminCancelled':
           haptic.error();
-          toast("Buyurtma operator tomonidan bekor qilindi — qo'llab-quvvatlash xizmatiga yozishingiz mumkin", 'information-circle');
+          toast(tr("Buyurtma operator tomonidan bekor qilindi — qo'llab-quvvatlash xizmatiga yozishingiz mumkin"), 'information-circle');
           setOrder(x => ({ ...x, phase: x.destination ? 'choosing' : 'idle', driver: undefined, driverPos: undefined, driverPath: undefined, progress: 0, liveId: undefined }));
           break;
       }
@@ -368,7 +372,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         id, pickup: o.pickup, destination: o.destination,
         route: { km: o.route.km, min: o.route.min, coords: o.route.coords.filter((_, i, a) => i % Math.max(1, Math.floor(a.length / 120)) === 0 || i === a.length - 1) },
         tariffId: o.tariffId, price: finalPriceRef.current, surge: surgeRef.current > 1 ? surgeRef.current : undefined, payment: paymentRef.current, options: o.options, comment: o.comment,
-        passenger: { name: u?.name ?? 'Yo\'lovchi', phone: u?.phone, rating: u?.rating ?? 5, photo: u?.avatar, gender: pinflGender(u?.pinfl) }, createdAt: new Date().toISOString(),
+        passenger: { name: u?.name ?? tr("Yo'lovchi"), phone: u?.phone, rating: u?.rating ?? 5, photo: u?.avatar, gender: pinflGender(u?.pinfl) }, createdAt: new Date().toISOString(),
       } });
       setOrder(x => ({ ...x, phase: 'searching', progress: 0, liveId: id }));
       return;
@@ -472,8 +476,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setUser(null); AsyncStorage.removeItem(K.user).catch(() => {});
     },
     lang,
-    setLang: l => { setLangState(l); persist(K.lang, l); },
-    t: k => DICTS[lang][k] ?? DICTS.uz[k] ?? k,
+    setLang: l => {
+      const reload = setAppLang(l, true);
+      setLangState(l);
+      // yo'nalish o'zgarsa (arab tili) — til saqlangach ilova qayta yuklanadi
+      AsyncStorage.setItem(K.lang, JSON.stringify(l)).catch(() => {}).finally(() => { if (reload) reloadForDirection(); });
+    },
+    t: (k, vars) => translate(k, vars),
     order, setPickup, setDestination,
     setTariff: id => { haptic.tap(); setOrder(o => ({ ...o, tariffId: id })); },
     toggleOption: id => setOrder(o => ({ ...o, options: o.options.includes(id) ? o.options.filter(x => x !== id) : [...o.options, id] })),

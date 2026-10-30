@@ -7,6 +7,7 @@ import { BrandLogo, Card, Row, Screen, SectionHeader, Txt } from '@/components/u
 import { SECTIONS, SECTORS } from '@/lib/platform-data';
 import { haptic, useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
+import { flipRTL } from '@/lib/i18n';
 
 const GOALS = [
   "Dunyo bo'yicha loyihalarni joylashtirish va qidirish imkoniyatini yaratish",
@@ -60,7 +61,7 @@ export default function About() {
             <Txt v="h3">YUMS {s.name}</Txt>
             <SectionDesc id={s.id} />
           </View>
-          <Ionicons name="chevron-forward" size={18} color={c.faint} />
+          <Ionicons name="chevron-forward" size={18} color={c.faint} style={flipRTL()} />
         </Pressable>
       ))}
 

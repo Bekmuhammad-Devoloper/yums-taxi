@@ -2,6 +2,7 @@
 // Hujjat yuborilgach «Tekshirilmoqda», so'ng «Tasdiqlangan» yoki sabab bilan «Rad etildi».
 
 import type Ionicons from '@expo/vector-icons/Ionicons';
+import { tr, tx } from '@/lib/i18n';
 
 export type DocKind = 'license' | 'techPassport' | 'taxiLicense' | 'osago';
 export type DocStatus = 'missing' | 'review' | 'approved' | 'rejected';
@@ -41,24 +42,24 @@ export const DOC_KINDS: DocKind[] = ['license', 'techPassport', 'taxiLicense', '
 
 export const DOC_META: Record<DocKind, Meta> = {
   license: {
-    title: 'Haydovchilik guvohnomasi', short: 'Guvohnoma', icon: 'card', numberLabel: 'Seriya va raqam', placeholder: 'AF 1234567',
+    title: tx('Haydovchilik guvohnomasi'), short: tx('Guvohnoma'), icon: 'card', numberLabel: tx('Seriya va raqam'), placeholder: 'AF 1234567',
     pattern: /^[A-Z]{2} \d{7}$/, expires: true, back: true, categories: true,
-    hint: "Old va orqa tomoni aniq ko'rinsin, yorug'lik aks etmasin",
+    hint: tx("Old va orqa tomoni aniq ko'rinsin, yorug'lik aks etmasin"),
   },
   techPassport: {
-    title: 'Texnik pasport', short: 'Tex. pasport', icon: 'document-text', numberLabel: 'Seriya va raqam', placeholder: 'AAF 1234567',
+    title: tx('Texnik pasport'), short: tx('Tex. pasport'), icon: 'document-text', numberLabel: tx('Seriya va raqam'), placeholder: 'AAF 1234567',
     pattern: /^[A-Z]{3} \d{7}$/, expires: false, back: true,
-    hint: 'Avtomobil profilingizdagi davlat raqami bilan bir xil bo\'lishi kerak',
+    hint: tx("Avtomobil profilingizdagi davlat raqami bilan bir xil bo'lishi kerak"),
   },
   taxiLicense: {
-    title: 'Taksi litsenziyasi', short: 'Litsenziya', icon: 'ribbon', numberLabel: 'Litsenziya raqami', placeholder: 'TL 1234567',
+    title: tx('Taksi litsenziyasi'), short: tx('Litsenziya'), icon: 'ribbon', numberLabel: tx('Litsenziya raqami'), placeholder: 'TL 1234567',
     pattern: /^[A-Z]{2,3} \d{6,7}$/, expires: true, back: false,
-    hint: "Transport vazirligi bergan amaldagi litsenziya",
+    hint: tx('Transport vazirligi bergan amaldagi litsenziya'),
   },
   osago: {
-    title: "OSAGO sug'urtasi", short: 'OSAGO', icon: 'shield-checkmark', numberLabel: 'Polis raqami', placeholder: 'EAA 1234567',
+    title: tx("OSAGO sug'urtasi"), short: tx('OSAGO'), icon: 'shield-checkmark', numberLabel: tx('Polis raqami'), placeholder: 'EAA 1234567',
     pattern: /^[A-Z]{2,4} \d{6,8}$/, expires: true, back: false,
-    hint: "Polis amal qilish muddati tugamagan bo'lishi kerak",
+    hint: tx("Polis amal qilish muddati tugamagan bo'lishi kerak"),
   },
 };
 
@@ -88,24 +89,24 @@ export const parseDate = (s?: string) => {
 export function validateDoc(d: DriverDoc, now = new Date()): Partial<Record<'number' | 'issued' | 'expires' | 'categories' | 'front' | 'back', string>> {
   const meta = DOC_META[d.kind];
   const e: Partial<Record<'number' | 'issued' | 'expires' | 'categories' | 'front' | 'back', string>> = {};
-  if (!meta.pattern.test(d.number)) e.number = `Masalan: ${meta.placeholder}`;
+  if (!meta.pattern.test(d.number)) e.number = tr('Masalan: {example}', { example: meta.placeholder });
   const issued = parseDate(d.issued);
-  if (!issued || issued > now) e.issued = "Berilgan sanani to'g'ri kiriting (KK.OO.YYYY)";
+  if (!issued || issued > now) e.issued = tr("Berilgan sanani to'g'ri kiriting (KK.OO.YYYY)");
   if (meta.expires) {
     const exp = parseDate(d.expires);
-    if (!exp) e.expires = 'Amal qilish muddatini kiriting (KK.OO.YYYY)';
-    else if (issued && exp <= issued) e.expires = 'Muddat berilgan sanadan keyin bo\'lishi kerak';
+    if (!exp) e.expires = tr('Amal qilish muddatini kiriting (KK.OO.YYYY)');
+    else if (issued && exp <= issued) e.expires = tr("Muddat berilgan sanadan keyin bo'lishi kerak");
   }
-  if (meta.categories && !/\bB\b/.test(d.categories ?? '')) e.categories = 'Taksi uchun kamida «B» toifasi kerak';
-  if (!d.front) e.front = 'Old tomoni rasmini yuklang';
-  if (meta.back && !d.back) e.back = 'Orqa tomoni rasmini yuklang';
+  if (meta.categories && !/\bB\b/.test(d.categories ?? '')) e.categories = tr('Taksi uchun kamida «B» toifasi kerak');
+  if (!d.front) e.front = tr('Old tomoni rasmini yuklang');
+  if (meta.back && !d.back) e.back = tr('Orqa tomoni rasmini yuklang');
   return e;
 }
 
 /** Moderator tekshiruvi (demo): muddati o'tgan hujjat rad etiladi */
 export function reviewDoc(d: DriverDoc, now = new Date()): Pick<DriverDoc, 'status' | 'note'> {
   const exp = parseDate(d.expires);
-  if (DOC_META[d.kind].expires && exp && exp < now) return { status: 'rejected', note: "Hujjat muddati o'tgan — yangisini yuklang" };
+  if (DOC_META[d.kind].expires && exp && exp < now) return { status: 'rejected', note: tr("Hujjat muddati o'tgan — yangisini yuklang") };
   return { status: 'approved', note: undefined };
 }
 

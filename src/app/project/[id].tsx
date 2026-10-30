@@ -15,6 +15,7 @@ import { LANGUAGES, SEEKS, STAGES } from '@/lib/platform-data';
 import { ago, budget, countryOf, fileSize, flagged, sectorOf, short, usePlatform } from '@/lib/platform';
 import { useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
+import { flipRTL } from '@/lib/i18n';
 
 export default function ProjectScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -146,7 +147,7 @@ export default function ProjectScreen() {
                   <Row gap={4}><Txt numberOfLines={1} style={styles.handName}>{pr.ownerName}</Txt>{pr.ownerVerified && <Verified />}</Row>
                   <Txt muted style={styles.handSub}>{pr.ownerKind === 'company' ? 'Kompaniya' : 'Jismoniy shaxs'} · {ago(pr.createdAt)}</Txt>
                 </View>
-                {company && <Ionicons name="chevron-forward" size={18} color={c.faint} />}
+                {company && <Ionicons name="chevron-forward" size={18} color={c.faint} style={flipRTL()} />}
               </Row>
             </Pressable>
             <Txt style={styles.handBody}>{pr.summary}</Txt>

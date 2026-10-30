@@ -1,13 +1,26 @@
-// Platforma qobig'i uchun ko'p tilli matnlar (o'zbek, rus, ingliz).
-// Foydalanuvchi kiritgan kontent (loyiha, e'lon) tarjima qilinmaydi — u muallif tilida qoladi.
+// Ko'p tilli matnlar: o'zbek (asosiy), rus, ingliz, tojik va arab (o'ngdan chapga) tillari.
+// Ikki xil kalit: platforma qobig'i uchun nomli kalitlar — t('tab.home'), qolgan barcha matnlar uchun
+// o'zbekcha matnning o'zi — tr("Liniyaga chiqish"); tarjimalar src/lib/locales jadvallarida.
+// Tarjima topilmasa o'zbekcha matn ko'rsatiladi. Foydalanuvchi kiritgan kontent (loyiha, e'lon, chat) tarjima qilinmaydi.
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { reloadAppAsync } from 'expo';
+import { getLocales } from 'expo-localization';
+import { I18nManager, Platform } from 'react-native';
 
-export type Lang = 'uz' | 'ru' | 'en';
+import { PHRASES } from './locales';
 
-export const LANGS: { id: Lang; label: string; flag: string }[] = [
-  { id: 'uz', label: "O'zbekcha", flag: '🇺🇿' },
-  { id: 'ru', label: 'Русский', flag: '🇷🇺' },
-  { id: 'en', label: 'English', flag: '🇬🇧' },
+export type Lang = 'uz' | 'ru' | 'en' | 'tg' | 'ar';
+
+/** country — bayroq rasmi (src/lib/flags.ts) */
+export const LANGS: { id: Lang; label: string; country: string; locale: string; rtl?: boolean }[] = [
+  { id: 'uz', label: "O'zbekcha", country: 'UZ', locale: 'uz-UZ' },
+  { id: 'ru', label: 'Русский', country: 'RU', locale: 'ru-RU' },
+  { id: 'en', label: 'English', country: 'GB', locale: 'en-GB' },
+  { id: 'tg', label: 'Тоҷикӣ', country: 'TJ', locale: 'tg-TJ' },
+  { id: 'ar', label: 'العربية', country: 'SA', locale: 'ar', rtl: true },
 ];
+const LANG_IDS = LANGS.map(l => l.id);
+export const isLang = (v: unknown): v is Lang => typeof v === 'string' && (LANG_IDS as string[]).includes(v);
 
 const uz = {
   'tab.home': 'Asosiy',
@@ -309,4 +322,312 @@ const en: Dict = {
   'common.report': 'Report',
 };
 
-export const DICTS: Record<Lang, Dict> = { uz, ru, en };
+
+const tg: Dict = {
+  'tab.home': 'Асосӣ',
+  'home.kicker': 'YUMS · ПЛАТФОРМАИ РАҚАМИИ БАЙНАЛМИЛАЛӢ',
+  'home.statProjects': 'лоиҳа',
+  'home.statCountries': 'кишвар',
+  'home.statSectors': 'соҳа',
+  'home.taxiTitle': 'Ба куҷо меравем?',
+  'home.taxiEta': 'дар 3 дақиқа',
+  'home.taxiChip': 'Ронанда наздик · 3 дақ',
+  'tab.world': 'Ҷустуҷӯ',
+  'tab.create': 'Лоиҳа',
+  'tab.connect': 'Паёмҳо',
+  'tab.profile': 'Кабинет',
+
+  'home.hello': 'Салом',
+  'home.tagline': 'Лоиҳаҳои ҷаҳон дар як платформа',
+  'home.search': 'Лоиҳа, ширкат, мутахассис…',
+  'home.sections': 'Бахшҳо',
+  'home.services': 'Хизматрасониҳо',
+  'home.sectors': 'Соҳаҳо',
+  'home.featured': 'Лоиҳаҳои тавсияшуда',
+  'home.new': 'Лоиҳаҳои нав',
+  'home.experts': 'Мутахассисон',
+  'home.companies': 'Ширкатҳо',
+  'home.all': 'Ҳама',
+  'home.ad': 'Реклама',
+  'home.createTitle': 'Идея доред?',
+  'home.createSub': 'Лоиҳаро ҷойгир кунед — сармоягузорон, шарикон ва мутахассисон шуморо меёбанд',
+  'home.createBtn': 'Эҷоди лоиҳа',
+  'home.verifyTitle': 'Профилатонро тасдиқ кунед',
+  'home.verifySub': 'Ба профилҳои тасдиқшуда 4 маротиба бештар бовар мекунанд',
+
+  'sec.project': 'Ҷойгиркунӣ ва ҷустуҷӯи лоиҳаҳо',
+  'sec.business': 'Ширкатҳо, хизматҳо, B2B',
+  'sec.invest': 'Сармоягузорон ва маблағгузорӣ',
+  'sec.market': 'Молҳо ва маҳсулоти рақамӣ',
+  'sec.technology': 'Барномасоз, муҳандис, дизайнер',
+  'sec.connect': 'Паёмҳо, вохӯриҳо, ҳуҷҷатҳо',
+  'sec.world': 'Ҷустуҷӯ аз рӯи кишвар ва забон',
+  'sec.taxi': 'Даъвати такси ва расонидан',
+
+  'world.title': 'YUMS World',
+  'world.placeholder': 'Ҷустуҷӯ…',
+  'world.filters': 'Филтрҳо',
+  'world.results': 'натиҷа',
+  'world.reset': 'Тоза кардан',
+  'world.apply': 'Нишон додан',
+  'world.sector': 'Соҳа',
+  'world.country': 'Кишвар',
+  'world.language': 'Забон',
+  'world.stage': 'Марҳила',
+  'world.sort': 'Мураттабсозӣ',
+  'world.empty': 'Ҳеҷ чиз ёфт нашуд',
+  'world.emptySub': 'Филтрҳоро тағйир диҳед',
+
+  'type.projects': 'Лоиҳаҳо',
+  'type.companies': 'Ширкатҳо',
+  'type.specialists': 'Мутахассисон',
+  'type.market': 'Бозор',
+  'type.investors': 'Сармоягузорон',
+
+  'connect.title': 'YUMS Connect',
+  'connect.chats': 'Чатҳо',
+  'connect.requests': 'Дархостҳо',
+  'connect.meetings': 'Вохӯриҳо',
+
+  'profile.title': 'Кабинети шахсӣ',
+  'profile.myProjects': 'Лоиҳаҳои ман',
+  'profile.favorites': 'Захирашудаҳо',
+  'profile.notifications': 'Огоҳиномаҳо',
+  'profile.plan': 'Тарифҳо ва реклама',
+  'profile.verify': 'Тасдиқи профил',
+  'profile.security': 'Амният ва нусхаи эҳтиётӣ',
+  'profile.moderation': 'Панели модератсия',
+  'profile.settings': 'Танзимот',
+  'profile.legal': 'Ҳуҷҷатҳои ҳуқуқӣ',
+  'profile.about': 'Дар бораи платформа',
+  'profile.support': 'Дастгирӣ',
+  'profile.logout': 'Баромадан',
+  'profile.edit': 'Таҳрири профил',
+  'profile.taxi': 'YUMS Taxi',
+
+  'settings.title': 'Танзимот',
+  'settings.appearance': 'Намуди зоҳирӣ',
+  'settings.language': 'Забон',
+  'settings.system': 'Системавӣ',
+  'settings.light': 'Равшан',
+  'settings.dark': 'Торик',
+  'settings.notifications': 'Огоҳиномаҳо',
+  'settings.account': 'Ҳисоб',
+
+  'common.save': 'Нигоҳ доштан',
+  'common.cancel': 'Бекор кардан',
+  'common.send': 'Фиристодан',
+  'common.verified': 'Тасдиқшуда',
+  'common.write': 'Навиштан',
+  'common.report': 'Шикоят кардан',
+};
+
+const ar: Dict = {
+  'tab.home': 'الرئيسية',
+  'home.kicker': 'YUMS · منصة رقمية دولية',
+  'home.statProjects': 'مشروع',
+  'home.statCountries': 'دولة',
+  'home.statSectors': 'قطاع',
+  'home.taxiTitle': 'إلى أين؟',
+  'home.taxiEta': 'خلال 3 دقائق',
+  'home.taxiChip': 'سائق قريب · 3 د',
+  'tab.world': 'بحث',
+  'tab.create': 'مشروع',
+  'tab.connect': 'الرسائل',
+  'tab.profile': 'حسابي',
+
+  'home.hello': 'مرحبًا',
+  'home.tagline': 'مشاريع العالم في منصة واحدة',
+  'home.search': 'مشروع، شركة، متخصص…',
+  'home.sections': 'الأقسام',
+  'home.services': 'الخدمات',
+  'home.sectors': 'القطاعات',
+  'home.featured': 'مشاريع مميزة',
+  'home.new': 'مشاريع جديدة',
+  'home.experts': 'المتخصصون',
+  'home.companies': 'الشركات',
+  'home.all': 'الكل',
+  'home.ad': 'إعلان',
+  'home.createTitle': 'لديك فكرة؟',
+  'home.createSub': 'انشر مشروعك — سيجدك المستثمرون والشركاء والخبراء',
+  'home.createBtn': 'إنشاء مشروع',
+  'home.verifyTitle': 'وثّق ملفك الشخصي',
+  'home.verifySub': 'الملفات الموثّقة تحظى بثقة أكبر بأربع مرات',
+
+  'sec.project': 'نشر المشاريع والبحث عنها',
+  'sec.business': 'الشركات والخدمات و B2B',
+  'sec.invest': 'المستثمرون والتمويل',
+  'sec.market': 'السلع والمنتجات الرقمية',
+  'sec.technology': 'مطورون ومهندسون ومصممون',
+  'sec.connect': 'الرسائل والاجتماعات والمستندات',
+  'sec.world': 'البحث حسب الدولة واللغة',
+  'sec.taxi': 'طلب سيارة أجرة والتوصيل',
+
+  'world.title': 'YUMS World',
+  'world.placeholder': 'بحث…',
+  'world.filters': 'عوامل التصفية',
+  'world.results': 'نتيجة',
+  'world.reset': 'إعادة تعيين',
+  'world.apply': 'عرض',
+  'world.sector': 'القطاع',
+  'world.country': 'الدولة',
+  'world.language': 'اللغة',
+  'world.stage': 'المرحلة',
+  'world.sort': 'الترتيب',
+  'world.empty': 'لم يتم العثور على شيء',
+  'world.emptySub': 'جرّب تغيير عوامل التصفية',
+
+  'type.projects': 'المشاريع',
+  'type.companies': 'الشركات',
+  'type.specialists': 'المتخصصون',
+  'type.market': 'السوق',
+  'type.investors': 'المستثمرون',
+
+  'connect.title': 'YUMS Connect',
+  'connect.chats': 'المحادثات',
+  'connect.requests': 'الطلبات',
+  'connect.meetings': 'الاجتماعات',
+
+  'profile.title': 'حسابي',
+  'profile.myProjects': 'مشاريعي',
+  'profile.favorites': 'المحفوظات',
+  'profile.notifications': 'الإشعارات',
+  'profile.plan': 'الباقات والإعلانات',
+  'profile.verify': 'توثيق الملف الشخصي',
+  'profile.security': 'الأمان والنسخ الاحتياطي',
+  'profile.moderation': 'لوحة الإشراف',
+  'profile.settings': 'الإعدادات',
+  'profile.legal': 'المستندات القانونية',
+  'profile.about': 'عن المنصة',
+  'profile.support': 'الدعم',
+  'profile.logout': 'تسجيل الخروج',
+  'profile.edit': 'تعديل الملف الشخصي',
+  'profile.taxi': 'YUMS Taxi',
+
+  'settings.title': 'الإعدادات',
+  'settings.appearance': 'المظهر',
+  'settings.language': 'اللغة',
+  'settings.system': 'النظام',
+  'settings.light': 'فاتح',
+  'settings.dark': 'داكن',
+  'settings.notifications': 'الإشعارات',
+  'settings.account': 'الحساب',
+
+  'common.save': 'حفظ',
+  'common.cancel': 'إلغاء',
+  'common.send': 'إرسال',
+  'common.verified': 'موثّق',
+  'common.write': 'مراسلة',
+  'common.report': 'إبلاغ',
+};
+
+export const DICTS: Record<Lang, Dict> = { uz, ru, en, tg, ar };
+
+/* ---------- Joriy til ---------- */
+
+let current: Lang = 'uz';
+/** user — foydalanuvchi o'zi almashtirdi (ilova ochilishida tiklanganda false) */
+const listeners = new Set<(l: Lang, user: boolean) => void>();
+
+export const getLang = () => current;
+export const isRTL = (l: Lang = current) => !!LANGS.find(x => x.id === l)?.rtl;
+/** Sana, son va ovoz uchun til kodi (masalan, ru-RU) */
+export const localeOf = (l: Lang = current) => LANGS.find(x => x.id === l)!.locale;
+export const onLangChange = (f: (l: Lang, user: boolean) => void) => { listeners.add(f); return () => { listeners.delete(f); }; };
+
+/** Qurilma tili (ilova birinchi ochilganda) — qo'llab-quvvatlanmasa o'zbekcha */
+export function deviceLang(): Lang {
+  try {
+    for (const loc of getLocales()) if (isLang(loc.languageCode)) return loc.languageCode;
+  } catch {
+    // til aniqlanmadi
+  }
+  return 'uz';
+}
+
+/**
+ * Ilova tilini o'rnatish. Vebda yozuv yo'nalishi darhol almashadi; telefonda arab tiliga (yoki undan) o'tilganda
+ * yo'nalish ilova qayta yuklanganda qo'llanadi — shuning uchun true qaytsa, ilova qayta yuklanadi.
+ */
+export function setAppLang(l: Lang, user = false): boolean {
+  current = l;
+  const rtl = isRTL(l);
+  if (Platform.OS === 'web') {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = l;
+      document.documentElement.dir = rtl ? 'rtl' : 'ltr';
+    }
+  } else if (I18nManager.isRTL !== rtl) {
+    I18nManager.allowRTL(rtl);
+    I18nManager.forceRTL(rtl);
+    listeners.forEach(f => f(l, user));
+    return true;
+  }
+  listeners.forEach(f => f(l, user));
+  return false;
+}
+
+const RELOAD_KEY = 'yums:dir-reload';
+/** Yo'nalish o'zgarganda ilovani qayta yuklash (telefonda). Qayta yuklash yordam bermasa — takrorlanmaydi */
+export async function reloadForDirection() {
+  try {
+    const last = Number(await AsyncStorage.getItem(RELOAD_KEY));
+    if (Date.now() - last < 15000) return;
+    await AsyncStorage.setItem(RELOAD_KEY, String(Date.now()));
+    await reloadAppAsync('language direction');
+  } catch {
+    // qayta yuklab bo'lmadi — yo'nalish keyingi ochilishda qo'llanadi
+  }
+}
+
+const COL: Record<Exclude<Lang, 'uz'>, number> = { ru: 0, en: 1, tg: 2, ar: 3 };
+
+/**
+ * Ilova matni: o'zbekcha matnning o'zi kalit; {nom} o'rniga qiymat qo'yiladi.
+ * Masalan: tr('{n} ta buyurtma', { n: 3 }).
+ */
+export function tr(text: string, vars?: Record<string, string | number | null | undefined>): string {
+  let s = text;
+  if (current !== 'uz') {
+    const row = PHRASES[text];
+    if (row?.[COL[current]]) s = row[COL[current]];
+  }
+  return vars ? s.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k] ?? '') : m)) : s;
+}
+
+/** O'ngdan chapga tillarda yo'nalish belgilari (strelka, chevron) aks ettiriladi */
+export const flipRTL = () => (isRTL() ? { transform: [{ scaleX: -1 }] } : undefined);
+/** Ionicons nomi yo'nalishli belgimi (chevron-back, arrow-forward…) */
+export const isDirectional = (name: string) => /^(chevron|arrow)-(back|forward)/.test(name);
+
+/** «A → B» yo'nalishi (arab tilida o'ngdan chapga o'qiladi — strelka ham teskari) */
+export const route = (from: string, to: string) => (isRTL() ? `${from} ← ${to}` : `${from} → ${to}`);
+
+/** Joy nomi: ma'lum joylar tarjima qilinadi, «… yaqinida» ko'rinishidagilari ham */
+export function trPlace(title?: string | null): string {
+  if (!title) return '';
+  let m = title.match(/^(.+) yaqinida$/);
+  if (m) return tr('{place} yaqinida', { place: tr(m[1]) });
+  m = title.match(/^(.+)dan ([\d.]+) km$/);
+  if (m) return tr('{place}dan {km} km', { place: tr(m[1]), km: m[2] });
+  m = title.match(/^(\d+) m · (.+)$/);
+  if (m) return tr('{m} m · {place}', { m: m[1], place: tr(m[2]) });
+  return tr(title);
+}
+
+/**
+ * «Keyinroq tarjima qilinadi» belgisi: modul darajasidagi ro'yxatlar (yorliqlar, holatlar) uchun.
+ * Matn o'zgarmaydi — ekranda tr(qiymat) bilan chiqariladi; tekshiruv skripti esa uni tarjima jadvalidan izlaydi.
+ */
+export const tx = <S extends string>(text: S): S => text;
+
+/** Platforma qobig'i kaliti yoki o'zbekcha matn */
+export function t(key: TKey | (string & {}), vars?: Record<string, string | number | null | undefined>): string {
+  const d = DICTS[current] as Record<string, string>;
+  if (key in DICTS.uz) {
+    const s = d[key] ?? (DICTS.uz as Record<string, string>)[key];
+    return vars ? s.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k] ?? '') : m)) : s;
+  }
+  return tr(key, vars);
+}
+

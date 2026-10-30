@@ -6,6 +6,7 @@ import { Row, SearchBar, Sheet, Txt } from '@/components/ui';
 import { CAR_MODELS, CLASS_NAME, carTitle, type CarClass, type CarModel } from '@/driver/lib/requirements';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
+import { tr } from '@/lib/i18n';
 
 const ORDER: CarClass[] = ['economy', 'comfort', 'business', 'minivan', 'cargo'];
 
@@ -15,14 +16,14 @@ export function CarPicker({ visible, onClose, value, onPick }: { visible: boolea
   const [q, setQ] = useState('');
   const list = CAR_MODELS.filter(m => carTitle(m).toLowerCase().includes(q.trim().toLowerCase()));
   return (
-    <Sheet visible={visible} onClose={onClose} title="Avtomobil modeli">
-      <SearchBar value={q} onChangeText={setQ} placeholder="Masalan: Cobalt" />
+    <Sheet visible={visible} onClose={onClose} title={tr('Avtomobil modeli')}>
+      <SearchBar value={q} onChangeText={setQ} placeholder={tr('Masalan: Cobalt')} />
       {ORDER.map(cls => {
         const items = list.filter(m => m.cls === cls);
         if (!items.length) return null;
         return (
           <View key={cls} style={{ gap: 6 }}>
-            <Txt v="tiny" muted style={styles.caps}>{CLASS_NAME[cls]}</Txt>
+            <Txt v="tiny" muted style={styles.caps}>{tr(CLASS_NAME[cls])}</Txt>
             {items.map(m => {
               const on = value === carTitle(m);
               return (
@@ -31,7 +32,7 @@ export function CarPicker({ visible, onClose, value, onPick }: { visible: boolea
                   <Row gap={10} style={{ flex: 1 }}>
                     <Ionicons name={cls === 'minivan' ? 'bus-outline' : cls === 'cargo' ? 'cube-outline' : 'car-sport-outline'} size={18} color={c.muted} />
                     <Txt v="h3" style={{ flex: 1 }}>{carTitle(m)}</Txt>
-                    <Txt v="tiny" muted>{m.seats} o&apos;rin</Txt>
+                    <Txt v="tiny" muted>{tr("{seats} o'rin", { seats: m.seats })}</Txt>
                   </Row>
                   {on ? <Ionicons name="checkmark-circle" size={20} color={c.brandDeep} /> : null}
                 </Pressable>
@@ -40,7 +41,7 @@ export function CarPicker({ visible, onClose, value, onPick }: { visible: boolea
           </View>
         );
       })}
-      {!list.length && <Txt v="small" muted>Topilmadi. Katalogda bo&apos;lmagan avtomobil uchun yordam markaziga yozing.</Txt>}
+      {!list.length && <Txt v="small" muted>{tr("Topilmadi. Katalogda bo'lmagan avtomobil uchun yordam markaziga yozing.")}</Txt>}
     </Sheet>
   );
 }

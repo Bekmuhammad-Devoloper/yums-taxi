@@ -11,6 +11,7 @@ import { CAR_TOP } from '@/lib/cars';
 import type { LatLng } from '@/lib/data';
 import { bearing } from '@/lib/geo';
 import { useStore } from '@/lib/store';
+import { tr, tx } from '@/lib/i18n';
 
 import type { TaxiMapProps } from './taxi-map';
 
@@ -21,7 +22,7 @@ export const TILES = {
   dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
 };
 export const ATTRIBUTION = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>';
-export const OFFLINE_ATTRIBUTION = 'Sxematik xarita · xarita serveri bilan aloqa yo\'q';
+export const OFFLINE_ATTRIBUTION = tx("Sxematik xarita · xarita serveri bilan aloqa yo'q");
 
 const ll = (p: LatLng): L.LatLngTuple => [p.latitude, p.longitude];
 export const assetUri = (m: unknown) => (typeof m === 'object' && m && 'uri' in m ? String((m as { uri: string }).uri) : String(m));
@@ -362,8 +363,9 @@ export default function TaxiMap(props: TaxiMapProps) {
     el.style.setProperty('--ym-land', PALETTE[theme].land);
     if (offline) {
       const off = makeOfflineLayer(theme).addTo(m);
-      m.attributionControl?.addAttribution(OFFLINE_ATTRIBUTION);
-      return () => { off.remove(); m.attributionControl?.removeAttribution(OFFLINE_ATTRIBUTION); };
+      const attr = tr(OFFLINE_ATTRIBUTION);
+      m.attributionControl?.addAttribution(attr);
+      return () => { off.remove(); m.attributionControl?.removeAttribution(attr); };
     }
     const tiles = L.tileLayer(TILES[theme], { subdomains: 'abcd', maxZoom: 19, detectRetina: true, attribution: ATTRIBUTION, crossOrigin: true });
     let loaded = false, errors = 0;

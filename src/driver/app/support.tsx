@@ -5,9 +5,10 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Card, Divider, Row, Screen, SearchBar, Txt } from '@/components/ui';
 import { useDriver } from '@/driver/lib/driver-store';
-import { FAQ, SUPPORT_PHONE, callNumber, openTelegram } from '@/driver/lib/support';
+import { faqGroups, SUPPORT_PHONE, callNumber, openTelegram } from '@/driver/lib/support';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
+import { tr, trPlace, route, flipRTL } from '@/lib/i18n';
 
 const go = (path: string) => router.push(path as never);
 
@@ -17,39 +18,39 @@ export default function Support() {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState<string | null>(null);
   const query = q.trim().toLowerCase();
-  const groups = FAQ.map(g => ({ ...g, items: g.items.filter(f => !query || (f.q + ' ' + f.a).toLowerCase().includes(query)) })).filter(g => g.items.length);
+  const groups = faqGroups().map(g => ({ ...g, items: g.items.filter(f => !query || (f.q + ' ' + f.a).toLowerCase().includes(query)) })).filter(g => g.items.length);
 
   return (
-    <Screen title="Yordam markazi" subtitle="24/7 · o'rtacha javob 2 daqiqa">
+    <Screen title={tr('Yordam markazi')} subtitle={tr("24/7 · o'rtacha javob 2 daqiqa")}>
       <View style={[styles.hero, { backgroundColor: '#0F1E3D' }]}>
         <Row>
           <View style={styles.heroIcon}><Ionicons name="headset" size={26} color="#FFC800" /></View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.heroTitle}>Qanday yordam bera olamiz?</Text>
-            <Txt v="small" color="rgba(255,255,255,0.7)">Haydovchilar uchun alohida yordam xizmati</Txt>
+            <Text style={styles.heroTitle}>{tr('Qanday yordam bera olamiz?')}</Text>
+            <Txt v="small" color="rgba(255,255,255,0.7)">{tr('Haydovchilar uchun alohida yordam xizmati')}</Txt>
           </View>
         </Row>
         <Row gap={8} style={{ marginTop: 14 }}>
-          <Action icon="chatbubbles" label="Chat" onPress={() => go('/support-chat')} primary />
-          <Action icon="call" label="Qo'ng'iroq" onPress={() => callNumber(SUPPORT_PHONE)} />
+          <Action icon="chatbubbles" label={tr('Chat')} onPress={() => go('/support-chat')} primary />
+          <Action icon="call" label={tr("Qo'ng'iroq")} onPress={() => callNumber(SUPPORT_PHONE)} />
           <Action icon="paper-plane" label="Telegram" onPress={openTelegram} />
         </Row>
       </View>
 
       {d.trip && (
-        <Pressable onPress={() => go('/support-chat')} accessibilityLabel="Joriy buyurtma bo'yicha yozish">
+        <Pressable onPress={() => go('/support-chat')} accessibilityLabel={tr("Joriy buyurtma bo'yicha yozish")}>
           <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
             <View style={[styles.icon, { backgroundColor: c.brandSoft }]}><Ionicons name="car" size={20} color={c.brandDeep} /></View>
             <View style={{ flex: 1 }}>
-              <Txt v="h3">Joriy buyurtma bo&apos;yicha</Txt>
-              <Txt v="small" muted numberOfLines={1}>{d.trip.order.pickup.title} → {d.trip.order.destination.title}</Txt>
+              <Txt v="h3">{tr("Joriy buyurtma bo'yicha")}</Txt>
+              <Txt v="small" muted numberOfLines={1}>{route(trPlace(d.trip.order.pickup.title), trPlace(d.trip.order.destination.title))}</Txt>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={c.faint} />
+            <Ionicons name="chevron-forward" size={18} color={c.faint} style={flipRTL()} />
           </Card>
         </Pressable>
       )}
 
-      <SearchBar value={q} onChangeText={setQ} placeholder="Savolingizni yozing" />
+      <SearchBar value={q} onChangeText={setQ} placeholder={tr('Savolingizni yozing')} />
 
       {groups.map(g => (
         <Card key={g.title} style={{ paddingVertical: 6, paddingHorizontal: 4 }}>
@@ -74,17 +75,17 @@ export default function Support() {
       ))}
       {!groups.length && (
         <Card style={{ alignItems: 'center', gap: 8 }}>
-          <Txt v="h3">Javob topilmadi</Txt>
-          <Txt v="small" muted style={{ textAlign: 'center' }}>Savolingizni chatda yozing — operator javob beradi</Txt>
-          <Pressable onPress={() => go('/support-chat')} style={[styles.pill, { backgroundColor: c.brand }]}><Txt v="small" color={c.brandText} style={{ fontFamily: F.heavy }}>Chatga yozish</Txt></Pressable>
+          <Txt v="h3">{tr('Javob topilmadi')}</Txt>
+          <Txt v="small" muted style={{ textAlign: 'center' }}>{tr('Savolingizni chatda yozing — operator javob beradi')}</Txt>
+          <Pressable onPress={() => go('/support-chat')} style={[styles.pill, { backgroundColor: c.brand }]}><Txt v="small" color={c.brandText} style={{ fontFamily: F.heavy }}>{tr('Chatga yozish')}</Txt></Pressable>
         </Card>
       )}
 
-      <Pressable onPress={() => callNumber('112')} accessibilityLabel="Favqulodda yordam 112" style={[styles.sos, { backgroundColor: c.dangerSoft }]}>
+      <Pressable onPress={() => callNumber('112')} accessibilityLabel={tr('Favqulodda yordam 112')} style={[styles.sos, { backgroundColor: c.dangerSoft }]}>
         <Ionicons name="warning" size={22} color={c.danger} />
         <View style={{ flex: 1 }}>
-          <Txt v="h3" color={c.danger}>Favqulodda yordam · 112</Txt>
-          <Txt v="small" color={c.danger}>Avariya, xavfli vaziyat yoki sog&apos;liq bilan bog&apos;liq holatda</Txt>
+          <Txt v="h3" color={c.danger}>{tr('Favqulodda yordam · 112')}</Txt>
+          <Txt v="small" color={c.danger}>{tr("Avariya, xavfli vaziyat yoki sog'liq bilan bog'liq holatda")}</Txt>
         </View>
       </Pressable>
     </Screen>
