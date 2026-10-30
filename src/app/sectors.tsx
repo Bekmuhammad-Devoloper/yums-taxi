@@ -7,12 +7,13 @@ import { SECTORS } from '@/lib/platform-data';
 import { usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { radius, shadow } from '@/lib/theme';
+import { tr } from '@/lib/i18n';
 
 export default function Sectors() {
-  const { colors: c, lang } = useStore();
+  const { colors: c } = useStore();
   const p = usePlatform();
   return (
-    <Screen title="Sohalar" subtitle={`${SECTORS.length} ta yo'nalish · faoliyat qonunchilikka muvofiq tekshiriladi`}>
+    <Screen title={tr('Sohalar')} subtitle={tr("{length} ta yo'nalish · faoliyat qonunchilikka muvofiq tekshiriladi", { length: SECTORS.length })}>
       <View style={styles.grid}>
         {SECTORS.map(s => {
           const n = p.publicProjects.filter(x => x.sector === s.id).length;
@@ -23,9 +24,9 @@ export default function Sectors() {
               style={({ pressed }) => [styles.card, { backgroundColor: c.surface, transform: [{ scale: pressed ? 0.97 : 1 }] }, shadow(c, 0.4)]}>
               <Row style={{ justifyContent: 'space-between' }}>
                 <SectorIcon id={s.id} size={46} />
-                {n > 0 && <Txt v="tiny" faint>{n} loyiha</Txt>}
+                {n > 0 && <Txt v="tiny" faint>{tr('{n} loyiha', { n })}</Txt>}
               </Row>
-              <Txt v="h3" numberOfLines={2} style={{ fontSize: 14.5 }}>{lang === 'ru' ? s.ru : lang === 'en' ? s.en : s.name}</Txt>
+              <Txt v="h3" numberOfLines={2} style={{ fontSize: 14.5 }}>{s.name}</Txt>
               <Txt v="tiny" faint numberOfLines={3} style={{ lineHeight: 15 }}>{s.examples}</Txt>
             </Pressable>
           );

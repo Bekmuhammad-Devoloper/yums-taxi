@@ -12,6 +12,7 @@ import { PLANS, PRO_SERVICES, type Plan } from '@/lib/platform-data';
 import { usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
+import { tr } from '@/lib/i18n';
 
 const BOOST_PRICE = 5;
 
@@ -35,27 +36,27 @@ export default function Plans() {
     haptic.success();
     if (buying === 'boost' && boostProject) {
       p.boostProject(boostProject.id);
-      toast(`«${boostProject.title}» 7 kunga TOPga chiqarildi`, 'flash');
+      toast(tr('«{title}» 7 kunga TOPga chiqarildi', { title: boostProject.title }), 'flash');
       setBuying(null);
       router.back();
       return;
     }
-    if (plan) { p.setPlan(plan.id, period === 'year'); toast(`${plan.name} tarifi faollashtirildi`, 'diamond'); }
+    if (plan) { p.setPlan(plan.id, period === 'year'); toast(tr('{name} tarifi faollashtirildi', { name: plan.name }), 'diamond'); }
     setBuying(null);
   };
 
   return (
-    <Screen title="Tariflar va reklama" subtitle="Bepul boshlang — kerak bo'lganda kengaytiring">
+    <Screen title={tr('Tariflar va reklama')} subtitle={tr("Bepul boshlang — kerak bo'lganda kengaytiring")}>
       {boostProject && (
         <Card style={{ gap: 10, borderWidth: 2, borderColor: c.brand }}>
-          <Row gap={8}><Ionicons name="flash" size={20} color={c.brandDeep} /><Txt v="h3" style={{ flex: 1 }}>TOPga chiqarish</Txt><Txt v="h2">${BOOST_PRICE}</Txt></Row>
-          <Txt v="small" muted>«{boostProject.title}» 7 kun davomida bosh sahifa va qidiruvda birinchi ko'rsatiladi.</Txt>
-          <Button title={`$${BOOST_PRICE} to'lash`} icon="card" onPress={() => setBuying('boost')} />
-          <Txt v="tiny" faint>Pro tarifida oyiga 2 ta, Business tarifida 5 ta bepul TOP.</Txt>
+          <Row gap={8}><Ionicons name="flash" size={20} color={c.brandDeep} /><Txt v="h3" style={{ flex: 1 }}>{tr('TOPga chiqarish')}</Txt><Txt v="h2">${BOOST_PRICE}</Txt></Row>
+          <Txt v="small" muted>{tr("«{title}» 7 kun davomida bosh sahifa va qidiruvda birinchi ko'rsatiladi.", { title: boostProject.title })}</Txt>
+          <Button title={tr("${BOOST_PRICE} to'lash", { BOOST_PRICE })} icon="card" onPress={() => setBuying('boost')} />
+          <Txt v="tiny" faint>{tr('Pro tarifida oyiga 2 ta, Business tarifida 5 ta bepul TOP.')}</Txt>
         </Card>
       )}
 
-      <Segmented value={period} onChange={setPeriod} items={[{ id: 'month', label: 'Oylik' }, { id: 'year', label: 'Yillik · −17%' }]} />
+      <Segmented value={period} onChange={setPeriod} items={[{ id: 'month', label: tr('Oylik') }, { id: 'year', label: tr('Yillik · −17%') }]} />
 
       {PLANS.map(pl => {
         const current = p.plan === pl.id;
@@ -67,28 +68,28 @@ export default function Plans() {
                 <View style={[styles.planIco, { backgroundColor: pl.color }]}><Ionicons name={pl.id === 'free' ? 'leaf' : pl.id === 'pro' ? 'rocket' : 'business'} size={18} color="#fff" /></View>
                 <Txt v="h2">{pl.name}</Txt>
               </Row>
-              {current ? <Badge label="Joriy tarif" tone="ok" icon="checkmark" /> : pl.id === 'pro' ? <Badge label="Mashhur" tone="brand" /> : null}
+              {current ? <Badge label={tr('Joriy tarif')} tone="ok" icon="checkmark" /> : pl.id === 'pro' ? <Badge label={tr('Mashhur')} tone="brand" /> : null}
             </Row>
-            <Txt v="title">{price ? `$${price}` : 'Bepul'}<Txt v="small" muted>{price ? (period === 'year' ? ' / yil' : ' / oy') : ''}</Txt></Txt>
+            <Txt v="title">{price ? `$${price}` : tr('Bepul')}<Txt v="small" muted>{price ? (period === 'year' ? tr(' / yil') : tr(' / oy')) : ''}</Txt></Txt>
             <View style={{ gap: 8 }}>
               {pl.perks.map(x => <Row key={x} gap={8}><Ionicons name="checkmark-circle" size={18} color={pl.color} /><Txt v="small" style={{ flex: 1 }}>{x}</Txt></Row>)}
             </View>
-            {!current && <Button title={pl.id === 'free' ? "Free'ga qaytish" : `${pl.name}ga o'tish`} kind={pl.id === 'free' ? 'ghost' : 'dark'} onPress={() => {
+            {!current && <Button title={pl.id === 'free' ? tr("Free'ga qaytish") : tr("{name}ga o'tish", { name: pl.name })} kind={pl.id === 'free' ? 'ghost' : 'dark'} onPress={() => {
               if (pl.id !== 'free') { setBuying(pl.id); return; }
               p.setPlan('free', false);
-              toast('Free tarifiga qaytdingiz', 'leaf');
+              toast(tr('Free tarifiga qaytdingiz'), 'leaf');
             }} />}
-            {current && p.planUntil && <Txt v="tiny" faint>Amal qiladi: {new Date(p.planUntil).toLocaleDateString()} gacha · TOP kreditlari: {p.boostCredits}</Txt>}
+            {current && p.planUntil && <Txt v="tiny" faint>{tr('Amal qiladi: {v2} gacha · TOP kreditlari: {boostCredits}', { v2: new Date(p.planUntil).toLocaleDateString(), boostCredits: p.boostCredits })}</Txt>}
           </Card>
         );
       })}
 
-      <SectionHeader title="Reklama" />
+      <SectionHeader title={tr('Reklama')} />
       <View style={[styles.ad, { backgroundColor: '#0F1E3D' }]}>
-        <Text style={styles.adKicker}>YUMS ADS</Text>
-        <Text style={styles.adTitle}>Kompaniyangizni 86 mamlakatdagi auditoriyaga ko'rsating</Text>
-        <Text style={styles.adSub}>Bosh sahifa banneri, qidiruv natijalari va soha sahifalari. Faqat tekshirilgan reklama beruvchilar.</Text>
-        <Button title={p.isVerified ? 'Reklama kampaniyasi yaratish' : 'Avval profilni tasdiqlang'} icon={p.isVerified ? 'megaphone' : 'shield-checkmark'} style={{ marginTop: 10 }}
+        <Text style={styles.adKicker}>{tr('YUMS ADS')}</Text>
+        <Text style={styles.adTitle}>{tr("Kompaniyangizni 86 mamlakatdagi auditoriyaga ko'rsating")}</Text>
+        <Text style={styles.adSub}>{tr('Bosh sahifa banneri, qidiruv natijalari va soha sahifalari. Faqat tekshirilgan reklama beruvchilar.')}</Text>
+        <Button title={p.isVerified ? tr('Reklama kampaniyasi yaratish') : tr('Avval profilni tasdiqlang')} icon={p.isVerified ? 'megaphone' : 'shield-checkmark'} style={{ marginTop: 10 }}
           onPress={() => (p.isVerified ? setAdOpen(true) : router.push('/verify'))} />
       </View>
       {p.ads.map(a => (
@@ -101,44 +102,44 @@ export default function Plans() {
                 <Ionicons name="megaphone-outline" size={20} color={c.muted} />
               </View>
             )}
-            <View style={{ flex: 1 }}><Txt v="h3" numberOfLines={1}>{a.title}</Txt><Txt v="small" muted>${a.budget} byudjet</Txt></View>
-            <Badge label={a.status === 'active' ? 'Faol' : "Ko'rib chiqilmoqda"} tone={a.status === 'active' ? 'ok' : 'warn'} />
+            <View style={{ flex: 1 }}><Txt v="h3" numberOfLines={1}>{a.title}</Txt><Txt v="small" muted>{tr('${budget} byudjet', { budget: a.budget })}</Txt></View>
+            <Badge label={a.status === 'active' ? tr('Faol') : tr("Ko'rib chiqilmoqda")} tone={a.status === 'active' ? 'ok' : 'warn'} />
           </Row>
         </Card>
       ))}
 
-      <SectionHeader title="Professional xizmatlar" />
+      <SectionHeader title={tr('Professional xizmatlar')} />
       <Card style={{ padding: 6 }}>
         {PRO_SERVICES.map(s => (
-          <ListItem key={s.id} icon={s.icon} title={s.title} sub={`${s.price} · ${s.desc}`} onPress={() => start({ peerId: 'support', peerName: "YUMS qo'llab-quvvatlash", peerKind: 'support', peerVerified: true }, { subject: s.title })} />
+          <ListItem key={s.id} icon={s.icon} title={s.title} sub={`${s.price} · ${s.desc}`} onPress={() => start({ peerId: 'support', peerName: tr("YUMS qo'llab-quvvatlash"), peerKind: 'support', peerVerified: true }, { subject: s.title })} />
         ))}
       </Card>
 
       <Card style={{ gap: 6 }}>
-        <Row gap={8}><Ionicons name="swap-horizontal" size={18} color={c.ok} /><Txt v="h3">Savdo komissiyasi</Txt></Row>
-        <Txt v="small" muted style={{ lineHeight: 19 }}>YUMS Market orqali tuzilgan bitimlardan 3% komissiya — faqat qonuniy to'lov va shartnoma asosida. Loyiha va e'lon joylashtirish har doim bepul.</Txt>
+        <Row gap={8}><Ionicons name="swap-horizontal" size={18} color={c.ok} /><Txt v="h3">{tr('Savdo komissiyasi')}</Txt></Row>
+        <Txt v="small" muted style={{ lineHeight: 19 }}>{tr("YUMS Market orqali tuzilgan bitimlardan 3% komissiya — faqat qonuniy to'lov va shartnoma asosida. Loyiha va e'lon joylashtirish har doim bepul.")}</Txt>
       </Card>
 
-      <Sheet visible={!!buying} onClose={() => setBuying(null)} title="To'lov" footer={<Button title={`$${amount} to'lash`} icon="lock-closed" onPress={pay} />}>
+      <Sheet visible={!!buying} onClose={() => setBuying(null)} title={tr("To'lov")} footer={<Button title={tr("${amount} to'lash", { amount })} icon="lock-closed" onPress={pay} />}>
         <Card style={{ backgroundColor: c.surface2, gap: 4 }}>
-          <Txt v="small" muted>{buying === 'boost' ? 'TOPga chiqarish · 7 kun' : `${plan?.name} · ${period === 'year' ? '12 oy' : '1 oy'}`}</Txt>
+          <Txt v="small" muted>{buying === 'boost' ? tr('TOPga chiqarish · 7 kun') : `${plan?.name} · ${tr('{n} oy', { n: period === 'year' ? 12 : 1 })}`}</Txt>
           <Txt v="h1">${amount}</Txt>
         </Card>
         <Row gap={8}>
-          <Chip label="Visa / Mastercard" icon="card-outline" active />
-          <Chip label="Uzcard / Humo" icon="card-outline" />
+          <Chip label={tr('Visa / Mastercard')} icon="card-outline" active />
+          <Chip label={tr('Uzcard / Humo')} icon="card-outline" />
         </Row>
-        <Txt v="tiny" faint>Demo rejim: haqiqiy to'lov olinmaydi. Ishga tushirishda to'lovlar litsenziyalangan to'lov provayderi orqali qabul qilinadi.</Txt>
+        <Txt v="tiny" faint>{tr("Demo rejim: haqiqiy to'lov olinmaydi. Ishga tushirishda to'lovlar litsenziyalangan to'lov provayderi orqali qabul qilinadi.")}</Txt>
       </Sheet>
 
-      <Sheet visible={adOpen} onClose={() => setAdOpen(false)} title="Reklama kampaniyasi" footer={
-        <Button title="Moderatsiyaga yuborish" icon="send" disabled={adTitle.trim().length < 4} onPress={() => { p.createAd(adTitle.trim(), adBudget, adImage); setAdOpen(false); setAdTitle(''); setAdImage(undefined); toast('Reklama tekshiruvga yuborildi', 'megaphone'); }} />
+      <Sheet visible={adOpen} onClose={() => setAdOpen(false)} title={tr('Reklama kampaniyasi')} footer={
+        <Button title={tr('Moderatsiyaga yuborish')} icon="send" disabled={adTitle.trim().length < 4} onPress={() => { p.createAd(adTitle.trim(), adBudget, adImage); setAdOpen(false); setAdTitle(''); setAdImage(undefined); toast(tr('Reklama tekshiruvga yuborildi'), 'megaphone'); }} />
       }>
-        <ImageSlot kind="banner" label="Reklama banneri" value={adImage} onChange={setAdImage} />
-        <Field label="Reklama sarlavhasi" value={adTitle} onChangeText={setAdTitle} placeholder="Masalan: Xalqaro yuk tashish — 12 kunda" maxLength={60} />
-        <Txt v="small" muted style={{ fontFamily: F.bold }}>Byudjet</Txt>
+        <ImageSlot kind="banner" label={tr('Reklama banneri')} value={adImage} onChange={setAdImage} />
+        <Field label={tr('Reklama sarlavhasi')} value={adTitle} onChangeText={setAdTitle} placeholder={tr('Masalan: Xalqaro yuk tashish — 12 kunda')} maxLength={60} />
+        <Txt v="small" muted style={{ fontFamily: F.bold }}>{tr('Byudjet')}</Txt>
         <Row gap={8}>{[50, 150, 500, 1000].map(b => <Chip key={b} label={`$${b}`} active={adBudget === b} onPress={() => setAdBudget(b)} />)}</Row>
-        <Txt v="tiny" faint>Taxminan {adBudget * 120} ko'rsatish. Banner bosh sahifada 2:1 o'lchamda, «Reklama» belgisi bilan ko'rsatiladi.</Txt>
+        <Txt v="tiny" faint>{tr("Taxminan {adBudget} ko'rsatish. Banner bosh sahifada 2:1 o'lchamda, «Reklama» belgisi bilan ko'rsatiladi.", { adBudget: adBudget * 120 })}</Txt>
       </Sheet>
     </Screen>
   );

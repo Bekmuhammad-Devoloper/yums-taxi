@@ -15,15 +15,15 @@ import { SECTION_ART } from '@/lib/section-art';
 import { SECTOR_ART } from '@/lib/sector-art';
 import { haptic, useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
-import { flipRTL } from '@/lib/i18n';
+import { flipRTL, tr } from '@/lib/i18n';
 
 type Sort = 'popular' | 'cheap' | 'expensive' | 'rating' | 'new';
 const SORTS: { id: Sort; label: string; icon: IconName }[] = [
-  { id: 'popular', label: 'Ommabop', icon: 'flame-outline' },
-  { id: 'cheap', label: 'Avval arzonlari', icon: 'arrow-down-outline' },
-  { id: 'expensive', label: 'Avval qimmatlari', icon: 'arrow-up-outline' },
-  { id: 'rating', label: 'Yuqori baholangan', icon: 'star-outline' },
-  { id: 'new', label: 'Yangilari', icon: 'time-outline' },
+  { id: 'popular', get label() { return tr('Ommabop'); }, icon: 'flame-outline' },
+  { id: 'cheap', get label() { return tr('Avval arzonlari'); }, icon: 'arrow-down-outline' },
+  { id: 'expensive', get label() { return tr('Avval qimmatlari'); }, icon: 'arrow-up-outline' },
+  { id: 'rating', get label() { return tr('Yuqori baholangan'); }, icon: 'star-outline' },
+  { id: 'new', get label() { return tr('Yangilari'); }, icon: 'time-outline' },
 ];
 
 const sorter: Record<Sort, (a: MarketItem, b: MarketItem) => number> = {
@@ -74,13 +74,13 @@ function Storefront() {
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       {/* Yuqori panel: orqaga, qidiruv, savat */}
       <View style={[styles.top, { paddingTop: insets.top + 8, backgroundColor: c.bg }]}>
-        <NavButton icon="chevron-back" label="Orqaga" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+        <NavButton icon="chevron-back" label={tr('Orqaga')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         <View style={[styles.search, { backgroundColor: c.surface, borderColor: c.brand }]}>
           <Ionicons name="search" size={18} color={c.muted} />
           <TextInput
             value={q}
             onChangeText={setQ}
-            placeholder="YUMS Market'da qidirish"
+            placeholder={tr("YUMS Market'da qidirish")}
             placeholderTextColor={c.faint}
             returnKeyType="search"
             style={[styles.searchInput, { color: c.text }]}
@@ -93,7 +93,7 @@ function Storefront() {
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 40, gap: 16 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {/* Kategoriyalar */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cats}>
-          <CatTile label="Hammasi" art={SECTION_ART.market} active={!sector} onPress={() => setSector(null)} />
+          <CatTile label={tr('Hammasi')} art={SECTION_ART.market} active={!sector} onPress={() => setSector(null)} />
           {sectors.map(s => (
             <CatTile key={s.id} label={s.name.split(' ')[0]} art={SECTOR_ART[s.id]} active={sector === s.id} onPress={() => setSector(sector === s.id ? null : s.id)} />
           ))}
@@ -104,22 +104,22 @@ function Storefront() {
           <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={300 + 10} decelerationRate="fast" contentContainerStyle={{ gap: 10, paddingHorizontal: 16 }}>
             <Promo
               colors={['#F2295B', '#FF7A45']}
-              kicker="CHEGIRMALAR"
-              title={'−30% gacha\nhaftaning eng yaxshisi'}
+              kicker={tr('CHEGIRMALAR')}
+              title={tr('−30% gacha\nhaftaning eng yaxshisi')}
               art={SECTOR_ART.ecommerce}
               onPress={() => { setSale(true); setSort('cheap'); }}
             />
             <Promo
               colors={['#0E9F6E', '#0B7A55']}
-              kicker="XAVFSIZ BITIM"
-              title={'Tekshirilgan sotuvchilar\nva shartnoma bilan'}
+              kicker={tr('XAVFSIZ BITIM')}
+              title={tr('Tekshirilgan sotuvchilar\nva shartnoma bilan')}
               art={SECTOR_ART.insurance}
               onPress={() => setVerified(true)}
             />
             <Promo
               colors={['#1B1F2A', '#3A2F00']}
-              kicker="SOTUVCHILAR UCHUN"
-              title={"E'lon joylashtirish —\nbepul, 86 mamlakat"}
+              kicker={tr('SOTUVCHILAR UCHUN')}
+              title={tr("E'lon joylashtirish —\nbepul, 86 mamlakat")}
               art={SECTOR_ART.startup}
               onPress={() => router.push('/market/new')}
             />
@@ -130,13 +130,13 @@ function Storefront() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
           <Pill icon={sortItem.icon} label={sortItem.label} chevron onPress={() => setSortOpen(true)} />
           {MARKET_KINDS.map(k => <Pill key={k.id} icon={k.icon} label={k.name} active={kind === k.id} onPress={() => setKind(kind === k.id ? null : k.id)} />)}
-          <Pill icon="pricetag-outline" label="Chegirmali" active={sale} onPress={() => setSale(v => !v)} />
-          <Pill icon="shield-checkmark-outline" label="Tasdiqlangan" active={verified} onPress={() => setVerified(v => !v)} />
+          <Pill icon="pricetag-outline" label={tr('Chegirmali')} active={sale} onPress={() => setSale(v => !v)} />
+          <Pill icon="shield-checkmark-outline" label={tr('Tasdiqlangan')} active={verified} onPress={() => setVerified(v => !v)} />
         </ScrollView>
 
         <Row style={{ justifyContent: 'space-between', paddingHorizontal: 16, marginBottom: -4 }}>
-          <Txt v="h2">{sector ? sectorOf(sector).name : q ? 'Qidiruv natijalari' : 'Siz uchun'}</Txt>
-          <Txt v="small" faint>{items.length} ta</Txt>
+          <Txt v="h2">{sector ? sectorOf(sector).name : q ? tr('Qidiruv natijalari') : tr('Siz uchun')}</Txt>
+          <Txt v="small" faint>{tr('{length} ta', { length: items.length })}</Txt>
         </Row>
 
         <View style={{ paddingHorizontal: 16, gap: 22 }}>
@@ -147,7 +147,7 @@ function Storefront() {
             </Row>
           ))}
           {!items.length && (
-            <EmptyState icon="search-outline" title="Hech narsa topilmadi" sub="Filtrlarni o'zgartirib ko'ring" action="Filtrlarni tozalash"
+            <EmptyState icon="search-outline" title={tr('Hech narsa topilmadi')} sub={tr("Filtrlarni o'zgartirib ko'ring")} action={tr('Filtrlarni tozalash')}
               onAction={() => { setQ(''); setSector(null); setKind(null); setVerified(false); setSale(false); }} />
           )}
         </View>
@@ -156,19 +156,19 @@ function Storefront() {
         <Pressable onPress={() => router.push({ pathname: '/market', params: { tab: 'mine' } })} style={({ pressed }) => [styles.seller, { backgroundColor: c.surface, borderColor: c.line, opacity: pressed ? 0.85 : 1 }]}>
           <View style={[styles.sellerIco, { backgroundColor: dark ? c.brandSoft : '#FFF6D1' }]}><Ionicons name="storefront" size={20} color={c.brandDeep} /></View>
           <View style={{ flex: 1 }}>
-            <Txt v="h3">Sotuvchi kabineti</Txt>
-            <Txt v="small" muted>Mening e'lonlarim · {p.myMarket.length}</Txt>
+            <Txt v="h3">{tr('Sotuvchi kabineti')}</Txt>
+            <Txt v="small" muted>{tr("Mening e'lonlarim · {length}", { length: p.myMarket.length })}</Txt>
           </View>
           <Ionicons name="chevron-forward" size={18} color={c.faint} style={flipRTL()} />
         </Pressable>
-        <Txt v="tiny" faint style={{ textAlign: 'center', paddingHorizontal: 24 }}>Faqat qonuniy va ruxsat etilgan tovar va xizmatlar. Taqiqlangan e'lonlar o'chiriladi.</Txt>
+        <Txt v="tiny" faint style={{ textAlign: 'center', paddingHorizontal: 24 }}>{tr("Faqat qonuniy va ruxsat etilgan tovar va xizmatlar. Taqiqlangan e'lonlar o'chiriladi.")}</Txt>
       </ScrollView>
 
       <ActionSheet
         visible={sortOpen}
         onClose={() => setSortOpen(false)}
-        header={<><Ionicons name="swap-vertical" size={22} color={c.text} /><Txt v="h3">Saralash</Txt></>}
-        groups={[SORTS.map(s => ({ key: s.id, icon: s.icon, title: s.label, sub: s.id === sort ? 'Tanlangan' : undefined, color: s.id === sort ? c.ok : c.accent, onPress: () => { setSort(s.id); setSortOpen(false); } }))]}
+        header={<><Ionicons name="swap-vertical" size={22} color={c.text} /><Txt v="h3">{tr('Saralash')}</Txt></>}
+        groups={[SORTS.map(s => ({ key: s.id, icon: s.icon, title: s.label, sub: s.id === sort ? tr('Tanlangan') : undefined, color: s.id === sort ? c.ok : c.accent, onPress: () => { setSort(s.id); setSortOpen(false); } }))]}
       />
     </View>
   );
@@ -178,7 +178,7 @@ function CartIcon() {
   const { colors: c } = useStore();
   const { cartCount } = usePlatform();
   return (
-    <Pressable onPress={() => { haptic.tap(); router.push('/cart'); }} accessibilityLabel={`Savat, ${cartCount} ta`} hitSlop={6}
+    <Pressable onPress={() => { haptic.tap(); router.push('/cart'); }} accessibilityLabel={tr('Savat, {cartCount} ta', { cartCount })} hitSlop={6}
       style={({ pressed }) => [styles.cartIcon, { backgroundColor: c.surface, borderColor: c.line, transform: [{ scale: pressed ? 0.92 : 1 }] }]}>
       <Ionicons name="cart-outline" size={22} color={c.text} />
       {cartCount > 0 && <View style={[styles.cartBadge, { borderColor: c.bg }]}><Text style={styles.cartBadgeText}>{cartCount > 99 ? '99+' : cartCount}</Text></View>}
@@ -205,7 +205,7 @@ function Promo({ colors, kicker, title, art, onPress }: { colors: [string, strin
         <View style={{ flex: 1, gap: 6 }}>
           <Text style={styles.promoKicker}>{kicker}</Text>
           <Text style={styles.promoTitle}>{title}</Text>
-          <View style={styles.promoCta}><Text style={styles.promoCtaText}>Ko'rish</Text><Ionicons name="arrow-forward" size={13} color="#0E1525" style={flipRTL()} /></View>
+          <View style={styles.promoCta}><Text style={styles.promoCtaText}>{tr("Ko'rish")}</Text><Ionicons name="arrow-forward" size={13} color="#0E1525" style={flipRTL()} /></View>
         </View>
         {art ? <Image source={art} style={styles.promoArt} contentFit="contain" /> : null}
       </LinearGradient>
@@ -229,13 +229,13 @@ function Pill({ icon, label, active, chevron, onPress }: { icon: IconName; label
 function MyListings() {
   const p = usePlatform();
   return (
-    <Screen title="Mening e'lonlarim" subtitle="YUMS Market · sotuvchi kabineti">
+    <Screen title={tr("Mening e'lonlarim")} subtitle={tr('YUMS Market · sotuvchi kabineti')}>
       <Pressable onPress={() => router.push('/market/new')}>
         <LinearGradient colors={['#FFD84D', '#FFC800']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.newAd}>
           <Ionicons name="add-circle" size={26} color="#0E1525" />
           <View style={{ flex: 1 }}>
-            <Text style={styles.newAdTitle}>Yangi e'lon joylashtirish</Text>
-            <Text style={styles.newAdSub}>Bepul · moderatsiyadan so'ng 86 mamlakatda ko'rinadi</Text>
+            <Text style={styles.newAdTitle}>{tr("Yangi e'lon joylashtirish")}</Text>
+            <Text style={styles.newAdSub}>{tr("Bepul · moderatsiyadan so'ng 86 mamlakatda ko'rinadi")}</Text>
           </View>
         </LinearGradient>
       </Pressable>
@@ -245,13 +245,13 @@ function MyListings() {
             <View style={styles.thumb}><MarketVisual m={m} icon={22} /></View>
             <View style={{ flex: 1, gap: 4 }}>
               <Txt v="h3" numberOfLines={1}>{m.title}</Txt>
-              <Txt v="small" muted>{usd(m.price)}{m.unit ? ` / ${m.unit}` : ''}</Txt>
+              <Txt v="small" muted>{usd(m.price)}{m.unit ? ` / ${tr(m.unit)}` : ''}</Txt>
             </View>
             <StatusBadge status={m.status} />
           </Row>
         </Card>
       )) : (
-        <EmptyState icon="pricetags-outline" title="E'lonlaringiz yo'q" sub="Tovar, raqamli mahsulot yoki xizmatingizni butun dunyoga taklif qiling" />
+        <EmptyState icon="pricetags-outline" title={tr("E'lonlaringiz yo'q")} sub={tr('Tovar, raqamli mahsulot yoki xizmatingizni butun dunyoga taklif qiling')} />
       )}
     </Screen>
   );

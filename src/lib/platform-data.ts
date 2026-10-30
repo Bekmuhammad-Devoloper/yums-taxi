@@ -1,7 +1,7 @@
 import type { ComponentProps } from 'react';
 import type Ionicons from '@expo/vector-icons/Ionicons';
 
-import type { TKey } from './i18n';
+import { tr, tx, type TKey } from './i18n';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -213,131 +213,131 @@ export const SECTIONS: Section[] = [
   { id: 'world', name: 'WORLD', icon: 'earth-outline', color: '#4F6BD8', soft: '#E6E9F0', route: '/world', desc: 'sec.world' },
 ];
 
-export type Sector = { id: string; name: string; ru: string; en: string; icon: IconName; color: string; examples: string };
+export type Sector = { id: string; name: string; icon: IconName; color: string; examples: string };
 
 export const SECTORS: Sector[] = [
-  { id: 'it', name: 'Axborot texnologiyalari', ru: 'ИТ', en: 'Information technology', icon: 'laptop-outline', color: '#2457F5', examples: 'Veb-saytlar, dasturlar, mobil ilovalar va IT xizmatlar' },
-  { id: 'ai', name: "Sun'iy intellekt va robototexnika", ru: 'ИИ и робототехника', en: 'AI & robotics', icon: 'hardware-chip-outline', color: '#7A4DF0', examples: 'AI yechimlari, avtomatlashtirish va robotlar' },
-  { id: 'transport', name: 'Transport va taksi', ru: 'Транспорт и такси', en: 'Transport & taxi', icon: 'car-sport-outline', color: '#E0A800', examples: "Taksi platformalari, yo'lovchi va yuk tashish" },
-  { id: 'startup', name: 'Biznes va startaplar', ru: 'Бизнес и стартапы', en: 'Business & startups', icon: 'bulb-outline', color: '#F59E0B', examples: "Yangi kompaniyalar, tadbirkorlik g'oyalari va biznes rejalar" },
-  { id: 'invest', name: 'Investitsiya va hamkorlik', ru: 'Инвестиции и партнёрство', en: 'Investment & partnership', icon: 'trending-up-outline', color: '#0E9F6E', examples: 'Moliyalashtirish takliflari va sherik izlash' },
-  { id: 'manufacturing', name: 'Ishlab chiqarish', ru: 'Производство', en: 'Manufacturing', icon: 'construct-outline', color: '#64748B', examples: 'Zavodlar, fabrikalar va yangi mahsulotlar' },
-  { id: 'ecommerce', name: 'Elektron savdo', ru: 'Электронная торговля', en: 'E-commerce', icon: 'cart-outline', color: '#E5484D', examples: "Internet-do'konlar, tovarlar va raqamli mahsulotlar" },
-  { id: 'realestate', name: "Qurilish va ko'chmas mulk", ru: 'Строительство и недвижимость', en: 'Construction & real estate', icon: 'business-outline', color: '#B45309', examples: 'Qurilish, infratuzilma va mulk loyihalari' },
-  { id: 'agro', name: "Qishloq xo'jaligi", ru: 'Сельское хозяйство', en: 'Agriculture', icon: 'leaf-outline', color: '#16A34A', examples: 'Fermerlik, agrotexnologiya va oziq-ovqat' },
-  { id: 'health', name: "Tibbiyot va sog'liqni saqlash", ru: 'Медицина и здравоохранение', en: 'Healthcare', icon: 'medkit-outline', color: '#DC2626', examples: 'Tibbiy texnologiyalar va xizmatlar' },
-  { id: 'education', name: "Ta'lim", ru: 'Образование', en: 'Education', icon: 'school-outline', color: '#0891B2', examples: "Onlayn kurslar, o'quv platformalari va ta'lim texnologiyalari" },
-  { id: 'tourism', name: 'Turizm', ru: 'Туризм', en: 'Tourism', icon: 'airplane-outline', color: '#0EA5E9', examples: 'Sayohat, mehmonxona va turistik xizmatlar' },
-  { id: 'energy', name: 'Energetika', ru: 'Энергетика', en: 'Energy', icon: 'flash-outline', color: '#EAB308', examples: "Quyosh va boshqa muqobil energiya loyihalari" },
-  { id: 'logistics', name: 'Logistika', ru: 'Логистика', en: 'Logistics', icon: 'cube-outline', color: '#9333EA', examples: 'Ombor, yetkazib berish va xalqaro yuk tashish' },
-  { id: 'design', name: 'Dizayn va media', ru: 'Дизайн и медиа', en: 'Design & media', icon: 'color-palette-outline', color: '#DB2777', examples: 'Grafika, reklama, video va ijodiy xizmatlar' },
-  { id: 'jobs', name: 'Kadrlar va ish', ru: 'Кадры и работа', en: 'Jobs & talent', icon: 'people-outline', color: '#4F46E5', examples: 'Vakansiyalar, mutaxassislar va masofaviy ish' },
-  { id: 'ecology', name: 'Ekologiya', ru: 'Экология', en: 'Ecology', icon: 'earth-outline', color: '#059669', examples: 'Ekologik texnologiyalar va tabiatni muhofaza qilish' },
-  { id: 'charity', name: 'Xayriya va ijtimoiy loyihalar', ru: 'Благотворительность', en: 'Charity & social', icon: 'heart-outline', color: '#F43F5E', examples: 'Jamoatchilik tashabbuslari va ijtimoiy yordam' },
-  { id: 'science', name: 'Ilm-fan va ixtirolar', ru: 'Наука и изобретения', en: 'Science & inventions', icon: 'flask-outline', color: '#6366F1', examples: "Tadqiqotlar, yangi texnologiyalar va patentga oid g'oyalar" },
-  { id: 'eservices', name: 'Elektron xizmatlar', ru: 'Электронные услуги', en: 'Digital services', icon: 'cloud-outline', color: '#0284C7', examples: 'Raqamli xizmatlar va avtomatlashtirilgan tizimlar' },
-  { id: 'finance', name: 'Moliya', ru: 'Финансы', en: 'Finance', icon: 'cash-outline', color: '#15803D', examples: "To'lov tizimlari, fintex va buxgalteriya" },
-  { id: 'legal', name: 'Huquqiy xizmatlar', ru: 'Юридические услуги', en: 'Legal services', icon: 'document-text-outline', color: '#475569', examples: "Yuridik maslahat, shartnomalar va ro'yxatdan o'tkazish" },
-  { id: 'insurance', name: "Sug'urta", ru: 'Страхование', en: 'Insurance', icon: 'shield-checkmark-outline', color: '#0F766E', examples: "Sug'urta mahsulotlari va risklarni boshqarish" },
-  { id: 'telecom', name: 'Telekommunikatsiya', ru: 'Телеком', en: 'Telecom', icon: 'cellular-outline', color: '#1D4ED8', examples: 'Aloqa, internet va tarmoq infratuzilmasi' },
-  { id: 'sport', name: 'Sport', ru: 'Спорт', en: 'Sport', icon: 'football-outline', color: '#EA580C', examples: 'Sport klublari, fitnes va sport texnologiyalari' },
+  { id: 'it', get name() { return tr('Axborot texnologiyalari'); }, icon: 'laptop-outline', color: '#2457F5', get examples() { return tr('Veb-saytlar, dasturlar, mobil ilovalar va IT xizmatlar'); } },
+  { id: 'ai', get name() { return tr("Sun'iy intellekt va robototexnika"); }, icon: 'hardware-chip-outline', color: '#7A4DF0', get examples() { return tr('AI yechimlari, avtomatlashtirish va robotlar'); } },
+  { id: 'transport', get name() { return tr('Transport va taksi'); }, icon: 'car-sport-outline', color: '#E0A800', get examples() { return tr("Taksi platformalari, yo'lovchi va yuk tashish"); } },
+  { id: 'startup', get name() { return tr('Biznes va startaplar'); }, icon: 'bulb-outline', color: '#F59E0B', get examples() { return tr("Yangi kompaniyalar, tadbirkorlik g'oyalari va biznes rejalar"); } },
+  { id: 'invest', get name() { return tr('Investitsiya va hamkorlik'); }, icon: 'trending-up-outline', color: '#0E9F6E', get examples() { return tr('Moliyalashtirish takliflari va sherik izlash'); } },
+  { id: 'manufacturing', get name() { return tr('Ishlab chiqarish'); }, icon: 'construct-outline', color: '#64748B', get examples() { return tr('Zavodlar, fabrikalar va yangi mahsulotlar'); } },
+  { id: 'ecommerce', get name() { return tr('Elektron savdo'); }, icon: 'cart-outline', color: '#E5484D', get examples() { return tr("Internet-do'konlar, tovarlar va raqamli mahsulotlar"); } },
+  { id: 'realestate', get name() { return tr("Qurilish va ko'chmas mulk"); }, icon: 'business-outline', color: '#B45309', get examples() { return tr('Qurilish, infratuzilma va mulk loyihalari'); } },
+  { id: 'agro', get name() { return tr("Qishloq xo'jaligi"); }, icon: 'leaf-outline', color: '#16A34A', get examples() { return tr('Fermerlik, agrotexnologiya va oziq-ovqat'); } },
+  { id: 'health', get name() { return tr("Tibbiyot va sog'liqni saqlash"); }, icon: 'medkit-outline', color: '#DC2626', get examples() { return tr('Tibbiy texnologiyalar va xizmatlar'); } },
+  { id: 'education', get name() { return tr("Ta'lim"); }, icon: 'school-outline', color: '#0891B2', get examples() { return tr("Onlayn kurslar, o'quv platformalari va ta'lim texnologiyalari"); } },
+  { id: 'tourism', get name() { return tr('Turizm'); }, icon: 'airplane-outline', color: '#0EA5E9', get examples() { return tr('Sayohat, mehmonxona va turistik xizmatlar'); } },
+  { id: 'energy', get name() { return tr('Energetika'); }, icon: 'flash-outline', color: '#EAB308', get examples() { return tr("Quyosh va boshqa muqobil energiya loyihalari"); } },
+  { id: 'logistics', get name() { return tr('Logistika'); }, icon: 'cube-outline', color: '#9333EA', get examples() { return tr('Ombor, yetkazib berish va xalqaro yuk tashish'); } },
+  { id: 'design', get name() { return tr('Dizayn va media'); }, icon: 'color-palette-outline', color: '#DB2777', get examples() { return tr('Grafika, reklama, video va ijodiy xizmatlar'); } },
+  { id: 'jobs', get name() { return tr('Kadrlar va ish'); }, icon: 'people-outline', color: '#4F46E5', get examples() { return tr('Vakansiyalar, mutaxassislar va masofaviy ish'); } },
+  { id: 'ecology', get name() { return tr('Ekologiya'); }, icon: 'earth-outline', color: '#059669', get examples() { return tr('Ekologik texnologiyalar va tabiatni muhofaza qilish'); } },
+  { id: 'charity', get name() { return tr('Xayriya va ijtimoiy loyihalar'); }, icon: 'heart-outline', color: '#F43F5E', get examples() { return tr('Jamoatchilik tashabbuslari va ijtimoiy yordam'); } },
+  { id: 'science', get name() { return tr('Ilm-fan va ixtirolar'); }, icon: 'flask-outline', color: '#6366F1', get examples() { return tr("Tadqiqotlar, yangi texnologiyalar va patentga oid g'oyalar"); } },
+  { id: 'eservices', get name() { return tr('Elektron xizmatlar'); }, icon: 'cloud-outline', color: '#0284C7', get examples() { return tr('Raqamli xizmatlar va avtomatlashtirilgan tizimlar'); } },
+  { id: 'finance', get name() { return tr('Moliya'); }, icon: 'cash-outline', color: '#15803D', get examples() { return tr("To'lov tizimlari, fintex va buxgalteriya"); } },
+  { id: 'legal', get name() { return tr('Huquqiy xizmatlar'); }, icon: 'document-text-outline', color: '#475569', get examples() { return tr("Yuridik maslahat, shartnomalar va ro'yxatdan o'tkazish"); } },
+  { id: 'insurance', get name() { return tr("Sug'urta"); }, icon: 'shield-checkmark-outline', color: '#0F766E', get examples() { return tr("Sug'urta mahsulotlari va risklarni boshqarish"); } },
+  { id: 'telecom', get name() { return tr('Telekommunikatsiya'); }, icon: 'cellular-outline', color: '#1D4ED8', get examples() { return tr('Aloqa, internet va tarmoq infratuzilmasi'); } },
+  { id: 'sport', get name() { return tr('Sport'); }, icon: 'football-outline', color: '#EA580C', get examples() { return tr('Sport klublari, fitnes va sport texnologiyalari'); } },
 ];
 
 export type Country = { code: string; name: string; flag: string; region: 'Osiyo' | 'Yevropa' | 'Amerika' | 'Afrika' | 'Okeaniya' };
 
 export const COUNTRIES: Country[] = [
-  { code: 'UZ', name: "O'zbekiston", flag: '🇺🇿', region: 'Osiyo' },
-  { code: 'KZ', name: "Qozog'iston", flag: '🇰🇿', region: 'Osiyo' },
-  { code: 'KG', name: "Qirg'iziston", flag: '🇰🇬', region: 'Osiyo' },
-  { code: 'TJ', name: 'Tojikiston', flag: '🇹🇯', region: 'Osiyo' },
-  { code: 'TM', name: 'Turkmaniston', flag: '🇹🇲', region: 'Osiyo' },
-  { code: 'TR', name: 'Turkiya', flag: '🇹🇷', region: 'Osiyo' },
-  { code: 'GE', name: 'Gruziya', flag: '🇬🇪', region: 'Osiyo' },
-  { code: 'AE', name: 'BAA', flag: '🇦🇪', region: 'Osiyo' },
-  { code: 'SA', name: 'Saudiya Arabistoni', flag: '🇸🇦', region: 'Osiyo' },
-  { code: 'CN', name: 'Xitoy', flag: '🇨🇳', region: 'Osiyo' },
-  { code: 'KR', name: 'Janubiy Koreya', flag: '🇰🇷', region: 'Osiyo' },
-  { code: 'JP', name: 'Yaponiya', flag: '🇯🇵', region: 'Osiyo' },
-  { code: 'IN', name: 'Hindiston', flag: '🇮🇳', region: 'Osiyo' },
-  { code: 'SG', name: 'Singapur', flag: '🇸🇬', region: 'Osiyo' },
-  { code: 'RU', name: 'Rossiya', flag: '🇷🇺', region: 'Yevropa' },
-  { code: 'DE', name: 'Germaniya', flag: '🇩🇪', region: 'Yevropa' },
-  { code: 'GB', name: 'Buyuk Britaniya', flag: '🇬🇧', region: 'Yevropa' },
-  { code: 'FR', name: 'Fransiya', flag: '🇫🇷', region: 'Yevropa' },
-  { code: 'PL', name: 'Polsha', flag: '🇵🇱', region: 'Yevropa' },
-  { code: 'NL', name: 'Niderlandiya', flag: '🇳🇱', region: 'Yevropa' },
-  { code: 'EE', name: 'Estoniya', flag: '🇪🇪', region: 'Yevropa' },
-  { code: 'US', name: 'AQSh', flag: '🇺🇸', region: 'Amerika' },
-  { code: 'CA', name: 'Kanada', flag: '🇨🇦', region: 'Amerika' },
-  { code: 'BR', name: 'Braziliya', flag: '🇧🇷', region: 'Amerika' },
-  { code: 'NG', name: 'Nigeriya', flag: '🇳🇬', region: 'Afrika' },
-  { code: 'KE', name: 'Keniya', flag: '🇰🇪', region: 'Afrika' },
-  { code: 'EG', name: 'Misr', flag: '🇪🇬', region: 'Afrika' },
-  { code: 'AU', name: 'Avstraliya', flag: '🇦🇺', region: 'Okeaniya' },
+  { code: 'UZ', get name() { return tr("O'zbekiston"); }, flag: '🇺🇿', region: 'Osiyo' },
+  { code: 'KZ', get name() { return tr("Qozog'iston"); }, flag: '🇰🇿', region: 'Osiyo' },
+  { code: 'KG', get name() { return tr("Qirg'iziston"); }, flag: '🇰🇬', region: 'Osiyo' },
+  { code: 'TJ', get name() { return tr('Tojikiston'); }, flag: '🇹🇯', region: 'Osiyo' },
+  { code: 'TM', get name() { return tr('Turkmaniston'); }, flag: '🇹🇲', region: 'Osiyo' },
+  { code: 'TR', get name() { return tr('Turkiya'); }, flag: '🇹🇷', region: 'Osiyo' },
+  { code: 'GE', get name() { return tr('Gruziya'); }, flag: '🇬🇪', region: 'Osiyo' },
+  { code: 'AE', get name() { return tr('BAA'); }, flag: '🇦🇪', region: 'Osiyo' },
+  { code: 'SA', get name() { return tr('Saudiya Arabistoni'); }, flag: '🇸🇦', region: 'Osiyo' },
+  { code: 'CN', get name() { return tr('Xitoy'); }, flag: '🇨🇳', region: 'Osiyo' },
+  { code: 'KR', get name() { return tr('Janubiy Koreya'); }, flag: '🇰🇷', region: 'Osiyo' },
+  { code: 'JP', get name() { return tr('Yaponiya'); }, flag: '🇯🇵', region: 'Osiyo' },
+  { code: 'IN', get name() { return tr('Hindiston'); }, flag: '🇮🇳', region: 'Osiyo' },
+  { code: 'SG', get name() { return tr('Singapur'); }, flag: '🇸🇬', region: 'Osiyo' },
+  { code: 'RU', get name() { return tr('Rossiya'); }, flag: '🇷🇺', region: 'Yevropa' },
+  { code: 'DE', get name() { return tr('Germaniya'); }, flag: '🇩🇪', region: 'Yevropa' },
+  { code: 'GB', get name() { return tr('Buyuk Britaniya'); }, flag: '🇬🇧', region: 'Yevropa' },
+  { code: 'FR', get name() { return tr('Fransiya'); }, flag: '🇫🇷', region: 'Yevropa' },
+  { code: 'PL', get name() { return tr('Polsha'); }, flag: '🇵🇱', region: 'Yevropa' },
+  { code: 'NL', get name() { return tr('Niderlandiya'); }, flag: '🇳🇱', region: 'Yevropa' },
+  { code: 'EE', get name() { return tr('Estoniya'); }, flag: '🇪🇪', region: 'Yevropa' },
+  { code: 'US', get name() { return tr('AQSh'); }, flag: '🇺🇸', region: 'Amerika' },
+  { code: 'CA', get name() { return tr('Kanada'); }, flag: '🇨🇦', region: 'Amerika' },
+  { code: 'BR', get name() { return tr('Braziliya'); }, flag: '🇧🇷', region: 'Amerika' },
+  { code: 'NG', get name() { return tr('Nigeriya'); }, flag: '🇳🇬', region: 'Afrika' },
+  { code: 'KE', get name() { return tr('Keniya'); }, flag: '🇰🇪', region: 'Afrika' },
+  { code: 'EG', get name() { return tr('Misr'); }, flag: '🇪🇬', region: 'Afrika' },
+  { code: 'AU', get name() { return tr('Avstraliya'); }, flag: '🇦🇺', region: 'Okeaniya' },
 ];
 
 /** Til va uni ko'rsatadigan bayroq (mamlakat kodi) */
 export const LANGUAGES: { id: string; name: string; flag: string }[] = [
-  { id: 'uz', name: "O'zbek", flag: 'UZ' },
-  { id: 'ru', name: 'Rus', flag: 'RU' },
-  { id: 'en', name: 'Ingliz', flag: 'GB' },
-  { id: 'tr', name: 'Turk', flag: 'TR' },
-  { id: 'kk', name: 'Qozoq', flag: 'KZ' },
-  { id: 'de', name: 'Nemis', flag: 'DE' },
-  { id: 'fr', name: 'Fransuz', flag: 'FR' },
-  { id: 'ar', name: 'Arab', flag: 'SA' },
-  { id: 'zh', name: 'Xitoy', flag: 'CN' },
-  { id: 'ko', name: 'Koreys', flag: 'KR' },
-  { id: 'es', name: 'Ispan', flag: 'ES' },
+  { id: 'uz', get name() { return tr("O'zbek"); }, flag: 'UZ' },
+  { id: 'ru', get name() { return tr('Rus'); }, flag: 'RU' },
+  { id: 'en', get name() { return tr('Ingliz'); }, flag: 'GB' },
+  { id: 'tr', get name() { return tr('Turk'); }, flag: 'TR' },
+  { id: 'kk', get name() { return tr('Qozoq'); }, flag: 'KZ' },
+  { id: 'de', get name() { return tr('Nemis'); }, flag: 'DE' },
+  { id: 'fr', get name() { return tr('Fransuz'); }, flag: 'FR' },
+  { id: 'ar', get name() { return tr('Arab'); }, flag: 'SA' },
+  { id: 'zh', get name() { return tr('Xitoy tili'); }, flag: 'CN' },
+  { id: 'ko', get name() { return tr('Koreys'); }, flag: 'KR' },
+  { id: 'es', get name() { return tr('Ispan'); }, flag: 'ES' },
 ];
 
 export const STAGES: { id: Stage; name: string; icon: IconName }[] = [
-  { id: 'idea', name: "G'oya", icon: 'bulb-outline' },
-  { id: 'prototype', name: 'Prototip', icon: 'construct-outline' },
-  { id: 'mvp', name: 'MVP', icon: 'rocket-outline' },
-  { id: 'growth', name: "O'sish", icon: 'trending-up-outline' },
-  { id: 'scale', name: 'Kengayish', icon: 'globe-outline' },
+  { id: 'idea', get name() { return tr("G'oya"); }, icon: 'bulb-outline' },
+  { id: 'prototype', get name() { return tr('Prototip'); }, icon: 'construct-outline' },
+  { id: 'mvp', get name() { return tr('MVP'); }, icon: 'rocket-outline' },
+  { id: 'growth', get name() { return tr("O'sish"); }, icon: 'trending-up-outline' },
+  { id: 'scale', get name() { return tr('Kengayish'); }, icon: 'globe-outline' },
 ];
 
 export const SEEKS: { id: Seek; name: string; icon: IconName }[] = [
-  { id: 'investment', name: 'Investitsiya', icon: 'cash-outline' },
-  { id: 'partner', name: 'Hamkor', icon: 'people-outline' },
-  { id: 'specialist', name: 'Mutaxassis', icon: 'code-slash-outline' },
-  { id: 'client', name: 'Mijozlar', icon: 'person-add-outline' },
-  { id: 'supplier', name: "Yetkazib beruvchi", icon: 'cube-outline' },
+  { id: 'investment', get name() { return tr('Investitsiya'); }, icon: 'cash-outline' },
+  { id: 'partner', get name() { return tr('Hamkor'); }, icon: 'people-outline' },
+  { id: 'specialist', get name() { return tr('Mutaxassis'); }, icon: 'code-slash-outline' },
+  { id: 'client', get name() { return tr('Mijozlar'); }, icon: 'person-add-outline' },
+  { id: 'supplier', get name() { return tr("Yetkazib beruvchi"); }, icon: 'cube-outline' },
 ];
 
 export const STATUS_META: Record<ListingStatus, { name: string; icon: IconName; tone: 'muted' | 'warn' | 'ok' | 'danger' }> = {
-  draft: { name: 'Qoralama', icon: 'create-outline', tone: 'muted' },
-  review: { name: "Ko'rib chiqilmoqda", icon: 'hourglass-outline', tone: 'warn' },
-  published: { name: 'Faol', icon: 'checkmark-circle', tone: 'ok' },
-  paused: { name: 'Nofaol', icon: 'pause-circle', tone: 'muted' },
-  rejected: { name: 'Rad etilgan', icon: 'close-circle', tone: 'danger' },
-  blocked: { name: 'Bloklangan', icon: 'ban', tone: 'danger' },
+  draft: { get name() { return tr('Qoralama'); }, icon: 'create-outline', tone: 'muted' },
+  review: { get name() { return tr("Ko'rib chiqilmoqda"); }, icon: 'hourglass-outline', tone: 'warn' },
+  published: { get name() { return tr('Faol'); }, icon: 'checkmark-circle', tone: 'ok' },
+  paused: { get name() { return tr('Nofaol'); }, icon: 'pause-circle', tone: 'muted' },
+  rejected: { get name() { return tr('Rad etilgan'); }, icon: 'close-circle', tone: 'danger' },
+  blocked: { get name() { return tr('Bloklangan'); }, icon: 'ban', tone: 'danger' },
 };
 
 export const MARKET_KINDS: { id: MarketKind; name: string; icon: IconName }[] = [
-  { id: 'goods', name: 'Tovarlar', icon: 'cube-outline' },
-  { id: 'digital', name: 'Raqamli mahsulotlar', icon: 'cloud-download-outline' },
-  { id: 'service', name: 'Xizmatlar', icon: 'briefcase-outline' },
+  { id: 'goods', get name() { return tr('Tovarlar'); }, icon: 'cube-outline' },
+  { id: 'digital', get name() { return tr('Raqamli mahsulotlar'); }, icon: 'cloud-download-outline' },
+  { id: 'service', get name() { return tr('Xizmatlar'); }, icon: 'briefcase-outline' },
 ];
 
 export const INVESTOR_KINDS: Record<Investor['kind'], string> = {
-  angel: 'Biznes-farishta',
-  fund: 'Venchur fond',
-  corporate: 'Korporativ investor',
-  accelerator: 'Akselerator',
+  get angel() { return tr('Biznes-farishta'); },
+  get fund() { return tr('Venchur fond'); },
+  get corporate() { return tr('Korporativ investor'); },
+  get accelerator() { return tr('Akselerator'); },
 };
 
 export const REPORT_REASONS = [
-  'Firibgarlik yoki aldov',
-  'Soxta investitsiya taklifi',
-  'Noqonuniy tovar yoki xizmat',
-  "Litsenziyasiz moliyaviy faoliyat",
-  'Spam yoki takroriy e\'lon',
-  'Haqoratli yoki zararli kontent',
-  'Mualliflik huquqi buzilishi',
-  'Boshqa',
+  tx('Firibgarlik yoki aldov'),
+  tx('Soxta investitsiya taklifi'),
+  tx('Noqonuniy tovar yoki xizmat'),
+  tx("Litsenziyasiz moliyaviy faoliyat"),
+  tx('Spam yoki takroriy e\'lon'),
+  tx('Haqoratli yoki zararli kontent'),
+  tx('Mualliflik huquqi buzilishi'),
+  tx('Boshqa'),
 ];
 
 /** Platformada taqiqlangan faoliyat — e'lon matnida uchrasa avtomatik moderatsiyaga tushadi */
@@ -346,23 +346,23 @@ export const BANNED_WORDS = ['kafolatlangan daromad', 'piramida', 'kazino', 'qur
 export const PLANS: { id: Plan; name: string; price: number; yearly: number; color: string; perks: string[] }[] = [
   {
     id: 'free', name: 'Free', price: 0, yearly: 0, color: '#64748B',
-    perks: ["3 tagacha faol loyiha", "Oddiy joylashtirish bepul", 'Xabarlar va hamkorlik so\'rovlari', 'Asosiy qidiruv va filtrlar'],
+    get perks() { return [tr("3 tagacha faol loyiha"), tr("Oddiy joylashtirish bepul"), tr('Xabarlar va hamkorlik so\'rovlari'), tr('Asosiy qidiruv va filtrlar')]; },
   },
   {
     id: 'pro', name: 'Pro', price: 19, yearly: 190, color: '#2457F5',
-    perks: ['Cheksiz loyihalar', 'Oyiga 2 ta bepul «Top» ko\'rsatish', "Ko'rishlar statistikasi", 'Onlayn uchrashuvlar', 'Fayl almashish 1 GB gacha'],
+    get perks() { return [tr('Cheksiz loyihalar'), tr('Oyiga 2 ta bepul «Top» ko\'rsatish'), tr("Ko'rishlar statistikasi"), tr('Onlayn uchrashuvlar'), tr('Fayl almashish 1 GB gacha')]; },
   },
   {
     id: 'business', name: 'Business', price: 79, yearly: 790, color: '#7A4DF0',
-    perks: ['Kengaytirilgan kompaniya profili', 'Xizmatlar katalogi va B2B takliflar', '5 ta xodim akkaunti', 'Ustuvor moderatsiya (24 soat)', 'Reklama joylariga 20% chegirma', 'Shaxsiy menejer'],
+    get perks() { return [tr('Kengaytirilgan kompaniya profili'), tr('Xizmatlar katalogi va B2B takliflar'), tr('5 ta xodim akkaunti'), tr('Ustuvor moderatsiya (24 soat)'), tr('Reklama joylariga 20% chegirma'), tr('Shaxsiy menejer')]; },
   },
 ];
 
 export const PRO_SERVICES: { id: string; title: string; desc: string; price: string; icon: IconName }[] = [
-  { id: 'analysis', title: 'Loyiha tahlili', desc: "Bozor, raqobatchilar va moliyaviy model bo'yicha ekspert xulosasi", price: '$149 dan', icon: 'analytics-outline' },
-  { id: 'design', title: 'Taqdimot dizayni', desc: 'Investorlar uchun pitch-deck tayyorlash', price: '$99 dan', icon: 'easel-outline' },
-  { id: 'translate', title: 'Tarjima', desc: "Loyiha sahifasini ingliz, rus va boshqa tillarga tarjima qilish", price: '$0.06 / so\'z', icon: 'language-outline' },
-  { id: 'docs', title: 'Hujjat tayyorlash', desc: 'Shartnoma, NDA va biznes-reja shablonlari', price: '$59 dan', icon: 'document-attach-outline' },
+  { id: 'analysis', get title() { return tr('Loyiha tahlili'); }, get desc() { return tr("Bozor, raqobatchilar va moliyaviy model bo'yicha ekspert xulosasi"); }, get price() { return tr('{sum} dan', { sum: '$149' }); }, icon: 'analytics-outline' },
+  { id: 'design', get title() { return tr('Taqdimot dizayni'); }, get desc() { return tr('Investorlar uchun pitch-deck tayyorlash'); }, get price() { return tr('{sum} dan', { sum: '$99' }); }, icon: 'easel-outline' },
+  { id: 'translate', get title() { return tr('Tarjima'); }, get desc() { return tr("Loyiha sahifasini ingliz, rus va boshqa tillarga tarjima qilish"); }, get price() { return tr("{sum} / so'z", { sum: '$0.06' }); }, icon: 'language-outline' },
+  { id: 'docs', get title() { return tr('Hujjat tayyorlash'); }, get desc() { return tr('Shartnoma, NDA va biznes-reja shablonlari'); }, get price() { return tr('{sum} dan', { sum: '$59' }); }, icon: 'document-attach-outline' },
 ];
 
 /* ================= Namuna ma'lumotlar ================= */
@@ -577,16 +577,16 @@ export const SEED_INVESTORS: Investor[] = [
 ];
 
 export const SEED_MARKET: MarketItem[] = [
-  { id: 'm1', title: 'Quyosh paneli 550 Vt (Tier-1)', kind: 'goods', price: 118, unit: 'dona', sellerId: 'c3', sellerName: 'SunPower Central Asia', sellerVerified: true, country: 'UZ', sector: 'energy', desc: "Monokristall panel, 25 yil kafolat. Ulgurji buyurtmalar uchun maxsus narx.", delivery: "O'zbekiston bo'ylab 3–5 kun", minOrder: '20 dona', oldPrice: 139, rating: 4.8, reviews: 126, sold: 2400, status: 'published', createdAt: d(4) },
-  { id: 'm2', title: 'Quritilgan o\'rik, eksport sifati', kind: 'goods', price: 3.8, unit: 'kg', sellerId: 'u30', sellerName: "Farg'ona Agro Export", sellerVerified: true, country: 'UZ', sector: 'agro', desc: "Shakar qo'shilmagan, GOST va EU standartlari bo'yicha sertifikatlangan.", delivery: 'FOB Toshkent', minOrder: '1 tonna', rating: 4.9, reviews: 312, sold: 18000, status: 'published', createdAt: d(7) },
-  { id: 'm3', title: 'Suzani — qo\'lda tikilgan, 2×1.5 m', kind: 'goods', price: 340, unit: 'dona', sellerId: 'u8', sellerName: 'Aziza Yusupova', sellerVerified: true, country: 'UZ', sector: 'ecommerce', desc: "Buxoro ustalari tomonidan ipak iplar bilan tikilgan. Har bir buyum yagona nusxada.", delivery: 'Xalqaro DHL, 5–9 kun', oldPrice: 390, rating: 5.0, reviews: 48, sold: 95, status: 'published', createdAt: d(2) },
+  { id: 'm1', title: 'Quyosh paneli 550 Vt (Tier-1)', kind: 'goods', price: 118, unit: tx('dona'), sellerId: 'c3', sellerName: 'SunPower Central Asia', sellerVerified: true, country: 'UZ', sector: 'energy', desc: "Monokristall panel, 25 yil kafolat. Ulgurji buyurtmalar uchun maxsus narx.", delivery: "O'zbekiston bo'ylab 3–5 kun", minOrder: '20 dona', oldPrice: 139, rating: 4.8, reviews: 126, sold: 2400, status: 'published', createdAt: d(4) },
+  { id: 'm2', title: 'Quritilgan o\'rik, eksport sifati', kind: 'goods', price: 3.8, unit: tx('kg'), sellerId: 'u30', sellerName: "Farg'ona Agro Export", sellerVerified: true, country: 'UZ', sector: 'agro', desc: "Shakar qo'shilmagan, GOST va EU standartlari bo'yicha sertifikatlangan.", delivery: 'FOB Toshkent', minOrder: '1 tonna', rating: 4.9, reviews: 312, sold: 18000, status: 'published', createdAt: d(7) },
+  { id: 'm3', title: 'Suzani — qo\'lda tikilgan, 2×1.5 m', kind: 'goods', price: 340, unit: tx('dona'), sellerId: 'u8', sellerName: 'Aziza Yusupova', sellerVerified: true, country: 'UZ', sector: 'ecommerce', desc: "Buxoro ustalari tomonidan ipak iplar bilan tikilgan. Har bir buyum yagona nusxada.", delivery: 'Xalqaro DHL, 5–9 kun', oldPrice: 390, rating: 5.0, reviews: 48, sold: 95, status: 'published', createdAt: d(2) },
   { id: 'm4', title: 'Biznes-reja shabloni (Excel + Word)', kind: 'digital', price: 29, sellerId: 'u31', sellerName: 'StartupKit', sellerVerified: false, country: 'EE', sector: 'startup', desc: "Moliyaviy model, P&L, cash-flow va investorlar uchun taqdimot tuzilmasi. O'zbek, rus, ingliz tillarida.", oldPrice: 39, rating: 4.6, reviews: 84, sold: 640, status: 'published', createdAt: d(10) },
   { id: 'm5', title: 'Mobil ilova UI kit (Figma)', kind: 'digital', price: 49, sellerId: 'c21', sellerName: 'PixelForge Studio', sellerVerified: false, country: 'PL', sector: 'design', desc: '320+ komponent, yorug\' va qorong\'i mavzu, taksi va e-commerce ekranlari.', rating: 4.7, reviews: 57, sold: 410, status: 'published', createdAt: d(5) },
   { id: 'm6', title: 'Onlayn kurs: Python va Data Science', kind: 'digital', price: 79, sellerId: 'u2', sellerName: 'EduBridge', sellerVerified: true, country: 'UZ', sector: 'education', desc: "60 soatlik video, amaliy loyihalar va sertifikat. O'zbek tilida.", oldPrice: 99, rating: 4.9, reviews: 1204, sold: 5300, status: 'published', createdAt: d(3) },
-  { id: 'm7', title: 'Bojxona rasmiylashtiruvi', kind: 'service', price: 180, unit: 'deklaratsiya', sellerId: 'c20', sellerName: 'Silk Road Logistics', sellerVerified: true, country: 'KZ', sector: 'logistics', desc: 'Eksport-import deklaratsiyalari, sertifikatlar va litsenziyalar bo\'yicha yordam.', rating: 4.8, reviews: 73, sold: 320, status: 'published', createdAt: d(6) },
+  { id: 'm7', title: 'Bojxona rasmiylashtiruvi', kind: 'service', price: 180, unit: tx('deklaratsiya'), sellerId: 'c20', sellerName: 'Silk Road Logistics', sellerVerified: true, country: 'KZ', sector: 'logistics', desc: 'Eksport-import deklaratsiyalari, sertifikatlar va litsenziyalar bo\'yicha yordam.', rating: 4.8, reviews: 73, sold: 320, status: 'published', createdAt: d(6) },
   { id: 'm8', title: 'Saytni ingliz va rus tiliga tarjima', kind: 'service', price: 0.06, unit: "so'z", sellerId: 'u32', sellerName: 'LinguaPro', sellerVerified: true, country: 'UZ', sector: 'eservices', desc: "Texnik, yuridik va marketing matnlari. Ona tili egalari tomonidan tahrir.", rating: 4.7, reviews: 210, sold: 1500, status: 'published', createdAt: d(9) },
-  { id: 'm9', title: 'Sanoat 3D printeri FDM-600', kind: 'goods', price: 7400, unit: 'dona', sellerId: 'u33', sellerName: 'Shenzhen MakerTech', sellerVerified: true, country: 'CN', sector: 'manufacturing', desc: '600×600×600 mm bosma maydoni, sanoat plastmassalari. O\'rnatish va o\'qitish bilan.', delivery: 'Toshkentgacha 21 kun', minOrder: '1 dona', oldPrice: 8200, rating: 4.5, reviews: 19, sold: 34, status: 'published', createdAt: d(13) },
-  { id: 'm10', title: 'Yuridik maslahat: MChJ ochish', kind: 'service', price: 120, unit: 'paket', sellerId: 'u34', sellerName: 'LexAsia Advokatlik byurosi', sellerVerified: true, country: 'UZ', sector: 'legal', desc: "Xorijiy investitsiyali korxonani ro'yxatdan o'tkazish, ustav va bank hisobini ochish.", rating: 4.9, reviews: 96, sold: 280, status: 'published', createdAt: d(1) },
+  { id: 'm9', title: 'Sanoat 3D printeri FDM-600', kind: 'goods', price: 7400, unit: tx('dona'), sellerId: 'u33', sellerName: 'Shenzhen MakerTech', sellerVerified: true, country: 'CN', sector: 'manufacturing', desc: '600×600×600 mm bosma maydoni, sanoat plastmassalari. O\'rnatish va o\'qitish bilan.', delivery: 'Toshkentgacha 21 kun', minOrder: '1 dona', oldPrice: 8200, rating: 4.5, reviews: 19, sold: 34, status: 'published', createdAt: d(13) },
+  { id: 'm10', title: 'Yuridik maslahat: MChJ ochish', kind: 'service', price: 120, unit: tx('paket'), sellerId: 'u34', sellerName: 'LexAsia Advokatlik byurosi', sellerVerified: true, country: 'UZ', sector: 'legal', desc: "Xorijiy investitsiyali korxonani ro'yxatdan o'tkazish, ustav va bank hisobini ochish.", rating: 4.9, reviews: 96, sold: 280, status: 'published', createdAt: d(1) },
 ];
 
 export const SEED_SPECIALISTS: Specialist[] = [

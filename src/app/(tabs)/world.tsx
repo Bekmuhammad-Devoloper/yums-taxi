@@ -12,17 +12,18 @@ import { countryOf, sectorOf, usePlatform } from '@/lib/platform';
 import { SECTOR_ART } from '@/lib/sector-art';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
+import { tr, tx } from '@/lib/i18n';
 
 export type SearchType = 'projects' | 'companies' | 'specialists' | 'market' | 'investors';
 const TYPES: SearchType[] = ['projects', 'companies', 'specialists', 'market', 'investors'];
-const REGIONS: (Country['region'] | 'all')[] = ['all', 'Osiyo', 'Yevropa', 'Amerika', 'Afrika'];
+const REGIONS: (Country['region'] | 'all')[] = ['all', tx('Osiyo'), tx('Yevropa'), tx('Amerika'), tx('Afrika')];
 type Sort = 'new' | 'popular' | 'rating';
 type Picker = 'sector' | 'country' | 'language' | 'stage' | 'sort' | null;
 
 const SORTS: { id: Sort; label: string }[] = [
-  { id: 'new', label: 'Avval yangilari' },
-  { id: 'popular', label: 'Ommaboplari' },
-  { id: 'rating', label: 'Reyting / byudjet' },
+  { id: 'new', label: tx('Avval yangilari') },
+  { id: 'popular', label: tx('Ommaboplari') },
+  { id: 'rating', label: tx('Reyting / byudjet') },
 ];
 
 export default function World() {
@@ -119,13 +120,13 @@ export default function World() {
           {showLang && <Filter label={label(t('world.language'), language, id => LANGUAGES.find(l => l.id === id)?.name ?? id)} on={!!language.length} onPress={() => setPicker('language')} />}
           {showStage && <Filter label={label(t('world.stage'), stage, id => STAGES.find(s => s.id === id)?.name ?? id)} on={!!stage.length} onPress={() => setPicker('stage')} />}
           <Filter label={t('common.verified')} icon="checkmark-circle" on={verifiedOnly} onPress={() => setVerifiedOnly(v => !v)} toggle />
-          <Filter label={SORTS.find(s => s.id === sort)!.label} icon="swap-vertical" on={false} onPress={() => setPicker('sort')} />
+          <Filter label={tr(SORTS.find(s => s.id === sort)!.label)} icon="swap-vertical" on={false} onPress={() => setPicker('sort')} />
         </ScrollView>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.chips, { paddingTop: 0, gap: 14 }]}>
           {REGIONS.map(r => (
             <Pressable key={r} onPress={() => { haptic.tap(); setRegion(r); }} hitSlop={6}>
               <Txt v="small" color={region === r ? c.text : c.faint} style={{ fontFamily: F.heavy, textDecorationLine: region === r ? 'underline' : 'none' }}>
-                {r === 'all' ? 'Butun dunyo' : r}
+                {r === 'all' ? tr('Butun dunyo') : tr(r)}
               </Txt>
             </Pressable>
           ))}
@@ -162,7 +163,7 @@ export default function World() {
       <PickerSheet visible={picker === 'stage'} onClose={() => setPicker(null)} title={t('world.stage')} multi selected={stage} onChange={setStage}
         options={STAGES.map(s => ({ id: s.id, label: s.name, icon: s.icon }))} />
       <PickerSheet visible={picker === 'sort'} onClose={() => setPicker(null)} title={t('world.sort')} selected={[sort]} onChange={ids => setSort(ids[0] as Sort)}
-        options={SORTS.map(s => ({ id: s.id, label: s.label }))} />
+        options={SORTS.map(s => ({ id: s.id, label: tr(s.label) }))} />
     </View>
   );
 }

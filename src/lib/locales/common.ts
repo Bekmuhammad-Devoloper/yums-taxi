@@ -2,7 +2,6 @@
 import type { Row } from '.';
 
 const common: Record<string, Row> = {
-  "Til": ["Язык", "Language", "Забон", "اللغة"],
   "Ilova tili": ["Язык приложения", "App language", "Забони барнома", "لغة التطبيق"],
   "Sxematik xarita · xarita serveri bilan aloqa yo'q": ["Схематичная карта · нет связи с сервером карт", "Schematic map · map server unavailable", "Харитаи схемавӣ · бо сервери харита алоқа нест", "خريطة تخطيطية · لا يوجد اتصال بخادم الخرائط"],
   "YUMS — O'rgimchak Taxi": ["YUMS — Такси «Паук»", "YUMS — Spider Taxi", "YUMS — Таксии «Тортанак»", "YUMS — تاكسي العنكبوت"],

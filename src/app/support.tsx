@@ -29,7 +29,7 @@ export default function Support() {
   return (
     <Screen title={tr('Yordam')}>
       <Card style={{ padding: 6 }}>
-        <ListItem icon="chatbubbles" iconBg={c.brandSoft} title={tr('Ilovada yozish')} sub={tr("YUMS qo'llab-quvvatlash · 24/7")} onPress={() => start({ peerId: 'support', peerName: "YUMS qo'llab-quvvatlash", peerKind: 'support', peerVerified: true })} />
+        <ListItem icon="chatbubbles" iconBg={c.brandSoft} title={tr('Ilovada yozish')} sub={tr("YUMS qo'llab-quvvatlash · 24/7")} onPress={() => start({ peerId: 'support', peerName: tr("YUMS qo'llab-quvvatlash"), peerKind: 'support', peerVerified: true })} />
         <ListItem icon="paper-plane" iconBg="#E3F2FD" iconColor="#229ED9" title={tr('Telegram orqali yozish')} sub={tr('Odatda 2 daqiqada javob beramiz')} onPress={() => Linking.openURL('https://t.me/').catch(() => toast(tr('Telegram ochilmadi'), 'alert-circle'))} />
         <ListItem icon="call" iconBg={c.okSoft} iconColor={c.ok} title={tr("Qo'ng'iroq qilish")} sub={tr('24/7 · bepul')} onPress={() => Linking.openURL('tel:+998712000000').catch(() => {})} />
       </Card>

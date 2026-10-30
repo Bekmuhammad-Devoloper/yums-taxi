@@ -11,6 +11,7 @@ import { LANGUAGES } from '@/lib/platform-data';
 import { countryOf, sectorOf, usePlatform } from '@/lib/platform';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
+import { tr } from '@/lib/i18n';
 
 export default function CompanyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -21,7 +22,7 @@ export default function CompanyScreen() {
   const co = p.companies.find(x => x.id === id);
 
   if (!co || p.isBlocked('company', co.id)) {
-    return <Screen title="Kompaniya"><EmptyState icon="business-outline" title="Kompaniya topilmadi" sub="Profil o'chirilgan yoki moderator tomonidan cheklangan" /></Screen>;
+    return <Screen title={tr('Kompaniya')}><EmptyState icon="business-outline" title={tr('Kompaniya topilmadi')} sub={tr("Profil o'chirilgan yoki moderator tomonidan cheklangan")} /></Screen>;
   }
   const k = countryOf(co.country);
   const sec = sectorOf(co.sector);
@@ -35,8 +36,8 @@ export default function CompanyScreen() {
       right={<Row gap={8}><View style={[styles.fav, { backgroundColor: c.surface }]}><FavButton k={'company:' + co.id} /></View><IconButton name="flag-outline" size={42} onPress={() => setReporting(true)} /></Row>}
       footer={
         <Row gap={10}>
-          <Button title="Hamkorlik so'rovi" kind="ghost" icon="people-outline" style={{ flex: 1 }} onPress={() => start(peer, { request: true, subject: "B2B hamkorlik" })} />
-          <Button title="Yozish" icon="chatbubble-ellipses" style={{ flex: 1 }} onPress={() => start(peer)} />
+          <Button title={tr("Hamkorlik so'rovi")} kind="ghost" icon="people-outline" style={{ flex: 1 }} onPress={() => start(peer, { request: true, subject: tr('B2B hamkorlik') })} />
+          <Button title={tr('Yozish')} icon="chatbubble-ellipses" style={{ flex: 1 }} onPress={() => start(peer)} />
         </Row>
       }>
       <Card style={{ gap: 14 }}>
@@ -47,7 +48,7 @@ export default function CompanyScreen() {
             <Place code={k.code} city={co.city} />
             <Row gap={6}>
               <Badge label={sec.name} />
-              {co.plan === 'business' && <Badge label="Business" icon="diamond" tone="violet" />}
+              {co.plan === 'business' && <Badge label={tr('Business')} icon="diamond" tone="violet" />}
             </Row>
           </View>
         </Row>
@@ -55,49 +56,49 @@ export default function CompanyScreen() {
         {!co.verified && (
           <View style={[styles.note, { backgroundColor: c.warnSoft }]}>
             <Ionicons name="alert-circle-outline" size={18} color={c.warn} />
-            <Txt v="small" color={c.warn} style={{ flex: 1 }}>Kompaniya hujjatlari hali tekshirilmagan. Shartnoma tuzishdan oldin ma'lumotlarni mustaqil tekshiring.</Txt>
+            <Txt v="small" color={c.warn} style={{ flex: 1 }}>{tr("Kompaniya hujjatlari hali tekshirilmagan. Shartnoma tuzishdan oldin ma'lumotlarni mustaqil tekshiring.")}</Txt>
           </View>
         )}
       </Card>
 
       <KeyValue items={[
-        { label: 'Tashkil etilgan', value: String(co.founded), icon: 'calendar-outline' },
-        { label: 'Xodimlar', value: co.employees, icon: 'people-outline' },
-        { label: 'Reyting', value: `★ ${co.rating.toFixed(1)}`, icon: 'star-outline' },
-        { label: 'Tillar', value: co.languages.map(l => LANGUAGES.find(x => x.id === l)?.name ?? l).join(', '), icon: 'language-outline' },
+        { label: tr('Tashkil etilgan'), value: String(co.founded), icon: 'calendar-outline' },
+        { label: tr('Xodimlar'), value: co.employees, icon: 'people-outline' },
+        { label: tr('Reyting'), value: `★ ${co.rating.toFixed(1)}`, icon: 'star-outline' },
+        { label: tr('Tillar'), value: co.languages.map(l => LANGUAGES.find(x => x.id === l)?.name ?? l).join(', '), icon: 'language-outline' },
       ]} />
 
       {co.website && (
-        <Card onPress={() => Linking.openURL(`https://${co.website}`).catch(() => toast('Sayt ochilmadi', 'globe'))}>
+        <Card onPress={() => Linking.openURL(`https://${co.website}`).catch(() => toast(tr('Sayt ochilmadi'), 'globe'))}>
           <Row><Ionicons name="globe-outline" size={20} color={c.accent} /><Txt color={c.accent} style={{ flex: 1, fontFamily: F.bold }}>{co.website}</Txt><Ionicons name="open-outline" size={18} color={c.faint} /></Row>
         </Card>
       )}
 
-      <SectionHeader title="Xizmatlar katalogi" />
+      <SectionHeader title={tr('Xizmatlar katalogi')} />
       <Card style={{ paddingVertical: 4 }}>
         {co.services.map((s, i) => (
           <Row key={s.title} style={[styles.service, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}>
             <Ionicons name="checkmark-circle-outline" size={18} color={c.ok} />
             <Txt style={{ flex: 1 }}>{s.title}</Txt>
-            <Txt v="small" style={{ fontFamily: F.heavy }}>{s.price ?? 'Kelishuv'}</Txt>
+            <Txt v="small" style={{ fontFamily: F.heavy }}>{s.price ?? tr('Kelishuv')}</Txt>
           </Row>
         ))}
       </Card>
 
-      {co.offers.length > 0 && <SectionHeader title="B2B takliflar" />}
+      {co.offers.length > 0 && <SectionHeader title={tr('B2B takliflar')} />}
       {co.offers.map(o => (
         <Card key={o.id} style={{ gap: 8, backgroundColor: c.okSoft }}>
           <Row gap={8}><Ionicons name="hand-left" size={18} color={c.ok} /><Txt v="h3" style={{ flex: 1 }}>{o.title}</Txt></Row>
           <Txt v="small" muted>{o.desc}</Txt>
-          <Button title="Qiziqish bildirish" small kind="dark" onPress={() => start(peer, { request: true, subject: `B2B: ${o.title}` })} />
+          <Button title={tr('Qiziqish bildirish')} small kind="dark" onPress={() => start(peer, { request: true, subject: `B2B: ${o.title}` })} />
         </Card>
       ))}
 
-      {projects.length > 0 && <SectionHeader title="Kompaniya loyihalari" />}
+      {projects.length > 0 && <SectionHeader title={tr('Kompaniya loyihalari')} />}
       {projects.map(x => <ProjectCard key={x.id} p={x} />)}
 
       <ReportSheet visible={reporting} onClose={() => setReporting(false)} kind="company" id={co.id} title={co.name} />
-      <Txt v="tiny" faint style={{ textAlign: 'center' }} onPress={() => router.push('/legal')}>Ma'lumotlar kompaniya tomonidan taqdim etilgan · Qoidalar</Txt>
+      <Txt v="tiny" faint style={{ textAlign: 'center' }} onPress={() => router.push('/legal')}>{tr("Ma'lumotlar kompaniya tomonidan taqdim etilgan · Qoidalar")}</Txt>
     </Screen>
   );
 }

@@ -5,13 +5,15 @@
 // kabi rasmiy manbalardan ma'lumot oladi — mobil ilova ularga to'g'ridan-to'g'ri murojaat qilmaydi.
 // API berilmasa, demo reyestr ishlatiladi (to'qilgan yozuvlar, haqiqiy kompaniyalar emas).
 
+import { tr } from '@/lib/i18n';
+
 export type CompanyRecord = { stir: string; name: string; director: string; status: 'active' | 'liquidated' };
 export type LookupResult = { ok: true; record: CompanyRecord } | { ok: false; reason: 'notfound' | 'network' };
 
 /** STIR: 9 raqam. Yuridik shaxslarda 2 yoki 3 bilan, jismoniy shaxslarda 4–6 bilan boshlanadi */
 export function checkStir(s: string, kind: 'company' | 'person' = 'company'): string | null {
-  if (!/^\d{9}$/.test(s)) return 'STIR 9 ta raqamdan iborat bo\'lishi kerak';
-  if (kind === 'company' && !/^[23]/.test(s)) return 'Yuridik shaxs STIRi 2 yoki 3 bilan boshlanadi';
+  if (!/^\d{9}$/.test(s)) return tr("STIR 9 ta raqamdan iborat bo'lishi kerak");
+  if (kind === 'company' && !/^[23]/.test(s)) return tr('Yuridik shaxs STIRi 2 yoki 3 bilan boshlanadi');
   return null;
 }
 
@@ -20,15 +22,15 @@ export function checkStir(s: string, kind: 'company' | 'person' = 'company'): st
  * keyingi 6 raqam — tug'ilgan sana (KKOOYY).
  */
 export function checkPinfl(s: string): { error: string | null; birth?: Date } {
-  if (!/^\d{14}$/.test(s)) return { error: 'JShShIR 14 ta raqamdan iborat bo\'lishi kerak' };
+  if (!/^\d{14}$/.test(s)) return { error: tr("JShShIR 14 ta raqamdan iborat bo'lishi kerak") };
   const century = { '1': 1800, '2': 1800, '3': 1900, '4': 1900, '5': 2000, '6': 2000 }[s[0]];
-  if (!century) return { error: "JShShIR 1–6 raqamlaridan biri bilan boshlanadi" };
+  if (!century) return { error: tr('JShShIR 1–6 raqamlaridan biri bilan boshlanadi') };
   const d = +s.slice(1, 3), m = +s.slice(3, 5), y = century + +s.slice(5, 7);
   const birth = new Date(y, m - 1, d);
-  if (birth.getFullYear() !== y || birth.getMonth() !== m - 1 || birth.getDate() !== d) return { error: "JShShIR ichidagi tug'ilgan sana noto'g'ri" };
+  if (birth.getFullYear() !== y || birth.getMonth() !== m - 1 || birth.getDate() !== d) return { error: tr("JShShIR ichidagi tug'ilgan sana noto'g'ri") };
   const age = (Date.now() - birth.getTime()) / (365.25 * 86400000);
-  if (age < 18) return { error: "Ro'yxatdan o'tish uchun 18 yoshdan katta bo'lish kerak", birth };
-  if (age > 110) return { error: "JShShIR ichidagi tug'ilgan sana noto'g'ri" };
+  if (age < 18) return { error: tr("Ro'yxatdan o'tish uchun 18 yoshdan katta bo'lish kerak"), birth };
+  if (age > 110) return { error: tr("JShShIR ichidagi tug'ilgan sana noto'g'ri") };
   return { error: null, birth };
 }
 

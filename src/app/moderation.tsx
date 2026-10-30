@@ -9,10 +9,14 @@ import { Place } from '@/components/platform-ui';
 import { ago, flagged, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
+import { tr, tx } from '@/lib/i18n';
 
 type Tab = 'queue' | 'reports' | 'verify';
-const REJECT = ["Soxta yoki tekshirib bo'lmaydigan ma'lumot", 'Taqiqlangan faoliyat', 'Litsenziya talab qilinadi', "Kontent to'liq emas", "Takroriy e'lon"];
-const KIND_LABEL: Record<string, string> = { project: 'Loyiha', market: 'Bozor', company: 'Kompaniya', specialist: 'Mutaxassis', investor: 'Investor', user: 'Foydalanuvchi' };
+const REJECT = [tx("Soxta yoki tekshirib bo'lmaydigan ma'lumot"), tx('Taqiqlangan faoliyat'), tx('Litsenziya talab qilinadi'), tx("Kontent to'liq emas"), tx("Takroriy e'lon")];
+const KIND_LABEL: Record<string, string> = {
+  get project() { return tr('Loyiha'); }, get market() { return tr('Bozor'); }, get company() { return tr('Kompaniya'); },
+  get specialist() { return tr('Mutaxassis'); }, get investor() { return tr('Investor'); }, get user() { return tr('Foydalanuvchi'); },
+};
 
 export default function Moderation() {
   const { colors: c, user } = useStore();
@@ -22,8 +26,8 @@ export default function Moderation() {
 
   if (user?.role !== 'moderator' && user?.role !== 'admin') {
     return (
-      <Screen title="Moderatsiya">
-        <EmptyState icon="lock-closed-outline" title="Ruxsat yo'q" sub="Bu bo'lim faqat moderator va administratorlar uchun. Ruxsat darajasi Xavfsizlik bo'limida ko'rsatilgan." action="Xavfsizlik" onAction={() => router.replace('/security')} />
+      <Screen title={tr('Moderatsiya')}>
+        <EmptyState icon="lock-closed-outline" title={tr("Ruxsat yo'q")} sub={tr("Bu bo'lim faqat moderator va administratorlar uchun. Ruxsat darajasi Xavfsizlik bo'limida ko'rsatilgan.")} action={tr('Xavfsizlik')} onAction={() => router.replace('/security')} />
       </Screen>
     );
   }
@@ -39,24 +43,24 @@ export default function Moderation() {
   const decide = (kind: 'project' | 'market', id: string, ok: boolean, reason?: string) => {
     haptic.success();
     p.moderate(kind, id, ok, reason);
-    toast(ok ? "E'lon tasdiqlandi va katalogda" : "E'lon rad etildi — muallifga sabab yuborildi", ok ? 'checkmark-circle' : 'close-circle');
+    toast(ok ? tr("E'lon tasdiqlandi va katalogda") : tr("E'lon rad etildi — muallifga sabab yuborildi"), ok ? 'checkmark-circle' : 'close-circle');
   };
 
   return (
-    <Screen title="Moderatsiya paneli" subtitle={user.role === 'admin' ? 'Administrator' : 'Moderator'}>
+    <Screen title={tr('Moderatsiya paneli')} subtitle={user.role === 'admin' ? tr('Administrator') : tr('Moderator')}>
       <Card>
         <Row>
-          <Stat value={String(queue.length)} label="Navbatda" />
-          <Stat value={String(open.length)} label="Shikoyatlar" />
-          <Stat value={String(pendingV.length)} label="Tasdiqlash" />
-          <Stat value={String(p.blocked.length)} label="Bloklangan" />
+          <Stat value={String(queue.length)} label={tr('Navbatda')} />
+          <Stat value={String(open.length)} label={tr('Shikoyatlar')} />
+          <Stat value={String(pendingV.length)} label={tr('Tasdiqlash')} />
+          <Stat value={String(p.blocked.length)} label={tr('Bloklangan')} />
         </Row>
       </Card>
 
       <Segmented<Tab> value={tab} onChange={setTab} items={[
-        { id: 'queue', label: "E'lonlar", badge: queue.length },
-        { id: 'reports', label: 'Shikoyatlar', badge: open.length },
-        { id: 'verify', label: 'Tasdiqlash', badge: pendingV.length },
+        { id: 'queue', label: tr("E'lonlar"), badge: queue.length },
+        { id: 'reports', label: tr('Shikoyatlar'), badge: open.length },
+        { id: 'verify', label: tr('Tasdiqlash'), badge: pendingV.length },
       ]} />
 
       {tab === 'queue' && (queue.length ? queue.map(q => (
@@ -67,25 +71,25 @@ export default function Moderation() {
           </Row>
           <Pressable onPress={() => router.push(q.kind === 'project' ? { pathname: '/project/[id]', params: { id: q.id } } : { pathname: '/market/[id]', params: { id: q.id } })}>
             <Txt v="h3">{q.title}</Txt>
-            <Txt v="small" muted>{q.owner}{q.verified ? ' · tasdiqlangan' : ' · tasdiqlanmagan'}</Txt>
+            <Txt v="small" muted>{q.owner}{q.verified ? tr(' · tasdiqlangan') : tr(' · tasdiqlanmagan')}</Txt>
           </Pressable>
           <Txt v="small" muted numberOfLines={3}>{q.text}</Txt>
           {q.flags.length > 0 && (
             <View style={[styles.flag, { backgroundColor: c.dangerSoft }]}>
               <Ionicons name="warning" size={16} color={c.danger} />
-              <Txt v="small" color={c.danger} style={{ flex: 1, fontFamily: F.bold }}>Avto-filtr: «{q.flags.join('», «')}»</Txt>
+              <Txt v="small" color={c.danger} style={{ flex: 1, fontFamily: F.bold }}>{tr('Avto-filtr: «{flags}»', { flags: q.flags.join('», «') })}</Txt>
             </View>
           )}
           <Row gap={8}>
-            <Button title="Rad etish" kind="danger" small style={{ flex: 1 }} onPress={() => setRejecting({ kind: q.kind, id: q.id })} />
-            <Button title="Tasdiqlash" small icon="checkmark" style={{ flex: 1 }} onPress={() => decide(q.kind, q.id, true)} />
+            <Button title={tr('Rad etish')} kind="danger" small style={{ flex: 1 }} onPress={() => setRejecting({ kind: q.kind, id: q.id })} />
+            <Button title={tr('Tasdiqlash')} small icon="checkmark" style={{ flex: 1 }} onPress={() => decide(q.kind, q.id, true)} />
           </Row>
         </Card>
-      )) : <EmptyState icon="checkmark-done-outline" title="Navbat bo'sh" sub="Barcha e'lonlar ko'rib chiqildi" />)}
+      )) : <EmptyState icon="checkmark-done-outline" title={tr("Navbat bo'sh")} sub={tr("Barcha e'lonlar ko'rib chiqildi")} />)}
 
       {tab === 'reports' && (
         <>
-          {open.length === 0 && <EmptyState icon="shield-checkmark-outline" title="Ochiq shikoyatlar yo'q" />}
+          {open.length === 0 && <EmptyState icon="shield-checkmark-outline" title={tr("Ochiq shikoyatlar yo'q")} />}
           {open.map(r => (
             <Card key={r.id} style={{ gap: 8 }}>
               <Row style={{ justifyContent: 'space-between' }}>
@@ -93,23 +97,23 @@ export default function Moderation() {
                 <Txt v="tiny" faint>{ago(r.createdAt)}</Txt>
               </Row>
               <Txt v="h3">{r.targetTitle}</Txt>
-              <Txt v="small" style={{ fontFamily: F.bold }}>{r.reason}</Txt>
+              <Txt v="small" style={{ fontFamily: F.bold }}>{tr(r.reason)}</Txt>
               {r.note ? <Txt v="small" muted>«{r.note}»</Txt> : null}
-              <Txt v="tiny" faint>Shikoyatchi: {r.by}</Txt>
+              <Txt v="tiny" faint>{tr('Shikoyatchi: {by}', { by: r.by })}</Txt>
               <Row gap={8} style={{ marginTop: 4 }}>
-                <Button title="Asos yo'q" kind="ghost" small style={{ flex: 1 }} onPress={() => { p.resolveReport(r.id, 'dismiss'); toast('Shikoyat yopildi', 'checkmark'); }} />
-                <Button title="Bloklash" kind="danger" small icon="ban" style={{ flex: 1 }} onPress={() => { p.resolveReport(r.id, 'block'); haptic.success(); toast('Kontent bloklandi va katalogdan olindi', 'ban'); }} />
+                <Button title={tr("Asos yo'q")} kind="ghost" small style={{ flex: 1 }} onPress={() => { p.resolveReport(r.id, 'dismiss'); toast(tr('Shikoyat yopildi'), 'checkmark'); }} />
+                <Button title={tr('Bloklash')} kind="danger" small icon="ban" style={{ flex: 1 }} onPress={() => { p.resolveReport(r.id, 'block'); haptic.success(); toast(tr('Kontent bloklandi va katalogdan olindi'), 'ban'); }} />
               </Row>
             </Card>
           ))}
-          {closed.length > 0 && <Txt v="tiny" faint style={{ marginTop: 6, marginLeft: 4 }}>KO'RIB CHIQILGAN</Txt>}
+          {closed.length > 0 && <Txt v="tiny" faint style={{ marginTop: 6, marginLeft: 4 }}>{tr("KO'RIB CHIQILGAN")}</Txt>}
           {closed.map(r => (
             <Card key={r.id} style={{ gap: 4, opacity: 0.75 }}>
               <Row style={{ justifyContent: 'space-between' }}>
                 <Txt v="small" style={{ fontFamily: F.bold, flex: 1 }} numberOfLines={1}>{r.targetTitle}</Txt>
                 <Badge label={r.action ?? r.status} tone={r.status === 'resolved' ? 'danger' : 'muted'} />
               </Row>
-              <Txt v="tiny" faint>{r.reason}</Txt>
+              <Txt v="tiny" faint>{tr(r.reason)}</Txt>
             </Card>
           ))}
         </>
@@ -117,29 +121,29 @@ export default function Moderation() {
 
       {tab === 'verify' && (
         <>
-          {pendingV.length === 0 && <EmptyState icon="id-card-outline" title="Tasdiqlash so'rovlari yo'q" />}
+          {pendingV.length === 0 && <EmptyState icon="id-card-outline" title={tr("Tasdiqlash so'rovlari yo'q")} />}
           {pendingV.map(v => (
             <Card key={v.id} style={{ gap: 8 }}>
               <Row style={{ justifyContent: 'space-between' }}>
-                <Txt v="h3" style={{ flex: 1 }}>{v.name}{v.isMe ? ' (siz)' : ''}</Txt>
-                <Badge label={v.kind === 'company' ? 'Kompaniya' : 'Jismoniy shaxs'} />
+                <Txt v="h3" style={{ flex: 1 }}>{v.name}{v.isMe ? tr(' (siz)') : ''}</Txt>
+                <Badge label={v.kind === 'company' ? tr('Kompaniya') : tr('Jismoniy shaxs')} />
               </Row>
               <Place code={v.country} after={` · ${ago(v.createdAt)}`} />
               {v.docs.map(d => (
                 <Row key={d} gap={8}><Ionicons name="document-attach-outline" size={16} color={c.muted} /><Txt v="small">{d}</Txt></Row>
               ))}
               <Row gap={8} style={{ marginTop: 4 }}>
-                <Button title="Rad etish" kind="danger" small style={{ flex: 1 }} onPress={() => { p.decideVerification(v.id, false); toast('Tasdiqlash rad etildi', 'close-circle'); }} />
-                <Button title="Tasdiqlash" small icon="shield-checkmark" style={{ flex: 1 }} onPress={() => { p.decideVerification(v.id, true); haptic.success(); toast('Profil tasdiqlandi', 'shield-checkmark'); }} />
+                <Button title={tr('Rad etish')} kind="danger" small style={{ flex: 1 }} onPress={() => { p.decideVerification(v.id, false); toast(tr('Tasdiqlash rad etildi'), 'close-circle'); }} />
+                <Button title={tr('Tasdiqlash')} small icon="shield-checkmark" style={{ flex: 1 }} onPress={() => { p.decideVerification(v.id, true); haptic.success(); toast(tr('Profil tasdiqlandi'), 'shield-checkmark'); }} />
               </Row>
             </Card>
           ))}
         </>
       )}
 
-      <Sheet visible={!!rejecting} onClose={() => setRejecting(null)} title="Rad etish sababi">
+      <Sheet visible={!!rejecting} onClose={() => setRejecting(null)} title={tr('Rad etish sababi')}>
         {REJECT.map(r => (
-          <Button key={r} title={r} kind="ghost" small onPress={() => { if (rejecting) decide(rejecting.kind, rejecting.id, false, r); setRejecting(null); }} />
+          <Button key={r} title={tr(r)} kind="ghost" small onPress={() => { if (rejecting) decide(rejecting.kind, rejecting.id, false, r); setRejecting(null); }} />
         ))}
       </Sheet>
     </Screen>

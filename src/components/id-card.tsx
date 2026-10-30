@@ -11,6 +11,7 @@ import { LANGUAGES, type Specialist } from '@/lib/platform-data';
 import { countryOf } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
+import { tr } from '@/lib/i18n';
 
 import { SpecialistAvatar } from './platform-ui';
 import { toast } from './toast';
@@ -54,7 +55,7 @@ export function SpecialistIdCard({ sp }: { sp: Specialist }) {
     <View>
       <View>
       <Animated.View style={[styles.face, { transform: [{ perspective: 1200 }, { rotateY: front }] }]} pointerEvents={backSide ? 'none' : 'auto'}>
-        <Pressable onPress={flip} accessibilityRole="button" accessibilityLabel="Kartaning orqa tomonini ko'rish">
+        <Pressable onPress={flip} accessibilityRole="button" accessibilityLabel={tr("Kartaning orqa tomonini ko'rish")}>
           <IdFront sp={sp} />
         </Pressable>
       </Animated.View>
@@ -94,11 +95,11 @@ function IdBack({ sp, onFlip }: { sp: Specialist; onFlip: () => void }) {
   const num = 'YM' + sp.id.replace(/\D/g, '').padStart(7, '0');
   const bars = [...(num + sp.name)].map(ch => 1 + (ch.charCodeAt(0) % 4));
   const langs = sp.languages.map(l => LANGUAGES.find(x => x.id === l)?.name ?? l).join(', ');
-  const chat = () => { haptic.tap(); start({ peerId: sp.id, peerName: sp.name, peerKind: 'specialist', peerVerified: sp.verified }, { subject: 'YUMS ID orqali murojaat' }); };
+  const chat = () => { haptic.tap(); start({ peerId: sp.id, peerName: sp.name, peerKind: 'specialist', peerVerified: sp.verified }, { subject: tr('YUMS ID orqali murojaat') }); };
   const go = () => {
     if (!sp.website) return chat();
     haptic.tap();
-    Linking.openURL(sp.website).catch(() => toast("Saytni ochib bo'lmadi", 'alert-circle'));
+    Linking.openURL(sp.website).catch(() => toast(tr("Saytni ochib bo'lmadi"), 'alert-circle'));
   };
   return (
     <View style={styles.back}>
@@ -107,35 +108,35 @@ function IdBack({ sp, onFlip }: { sp: Specialist; onFlip: () => void }) {
       <View style={styles.backTop}>
         <BrandMark size={22} style={{ borderRadius: 6 }} />
         <Text style={styles.backBrand}>YUMS <Text style={{ color: '#FFC800' }}>ID</Text></Text>
-        <Pressable onPress={onFlip} hitSlop={10} style={styles.backFlip} accessibilityLabel="Old tomoniga qaytish">
+        <Pressable onPress={onFlip} hitSlop={10} style={styles.backFlip} accessibilityLabel={tr('Old tomoniga qaytish')}>
           <Ionicons name="sync-outline" size={16} color="#fff" />
         </Pressable>
       </View>
       <View style={{ gap: 7 }}>
         <View>
-          <Text style={styles.backKicker}>{sp.website ? `PORTFOLIO · ${site}` : 'YUMS CHAT ORQALI ALOQA'}</Text>
+          <Text style={styles.backKicker}>{sp.website ? tr('PORTFOLIO · {site}', { site }) : tr('YUMS CHAT ORQALI ALOQA')}</Text>
           <Text style={styles.backTitle} numberOfLines={1}>{sp.name}</Text>
         </View>
         <View style={styles.statRow}>
           <Stat icon="star" tint="#FFC800" text={`${sp.rating.toFixed(1)} (${sp.reviews})`} />
-          <Stat icon="cash-outline" text={`$${sp.rate}/soat`} />
-          <Stat icon="ribbon-outline" text={`${sp.experience} yil`} />
-          {sp.remote && <Stat icon="globe-outline" text="Masofaviy" />}
+          <Stat icon="cash-outline" text={tr('${rate}/soat', { rate: sp.rate })} />
+          <Stat icon="ribbon-outline" text={tr('{experience} yil', { experience: sp.experience })} />
+          {sp.remote && <Stat icon="globe-outline" text={tr('Masofaviy')} />}
         </View>
         <View style={styles.skillRow}>
           {sp.skills.slice(0, 4).map(k => <View key={k} style={styles.skill}><Text style={styles.skillText} numberOfLines={1}>{k}</Text></View>)}
         </View>
         <Text style={styles.backSub} numberOfLines={1}>
-          <Ionicons name="language-outline" size={12} color="rgba(255,255,255,0.8)" /> {langs}  ·  {sp.available ? "Hozir bo'sh — buyurtma qabul qiladi" : 'Hozir band'}
+          <Ionicons name="language-outline" size={12} color="rgba(255,255,255,0.8)" /> {langs}  ·  {sp.available ? tr("Hozir bo'sh — buyurtma qabul qiladi") : tr('Hozir band')}
         </Text>
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Pressable onPress={go} style={({ pressed }) => [styles.backCta, { opacity: pressed ? 0.85 : 1 }]}>
           <Ionicons name={sp.website ? 'open-outline' : 'chatbubble-ellipses'} size={15} color="#0E1525" />
-          <Text style={styles.backCtaText}>{sp.website ? 'Saytni ochish' : 'Chatda yozish'}</Text>
+          <Text style={styles.backCtaText}>{sp.website ? tr('Saytni ochish') : tr('Chatda yozish')}</Text>
         </Pressable>
         {sp.website ? (
-          <Pressable onPress={chat} style={({ pressed }) => [styles.backGhost, { opacity: pressed ? 0.7 : 1 }]} accessibilityLabel="YUMS chatda yozish">
+          <Pressable onPress={chat} style={({ pressed }) => [styles.backGhost, { opacity: pressed ? 0.7 : 1 }]} accessibilityLabel={tr('YUMS chatda yozish')}>
             <Ionicons name="chatbubble-ellipses-outline" size={15} color="#fff" />
           </Pressable>
         ) : null}
@@ -192,12 +193,12 @@ function IdFront({ sp }: { sp: Specialist }) {
         <BrandMark size={24} style={{ borderRadius: 7 }} />
         <View style={{ flex: 1 }}>
           <Text style={[styles.brand, { color: t.ink }]}>YUMS <Text style={{ color: '#E0A800' }}>ID</Text></Text>
-          <Text style={[styles.headSub, { color: t.label }]}>MUTAXASSIS GUVOHNOMASI</Text>
+          <Text style={[styles.headSub, { color: t.label }]}>{tr('MUTAXASSIS GUVOHNOMASI')}</Text>
         </View>
         {sp.verified && (
           <View style={styles.seal}>
             <Ionicons name="shield-checkmark" size={12} color="#0095F6" />
-            <Text style={styles.sealText}>TASDIQLANGAN</Text>
+            <Text style={styles.sealText}>{tr('TASDIQLANGAN')}</Text>
           </View>
         )}
         <Flag code={k.code} size={22} />
@@ -211,17 +212,17 @@ function IdFront({ sp }: { sp: Specialist }) {
           </View>
           <LinearGradient colors={['rgba(255,120,200,0.55)', 'rgba(120,200,255,0.55)', 'rgba(255,230,120,0.55)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.holo} />
           <View style={[styles.status, { backgroundColor: sp.available ? c.ok : c.faint }]}>
-            <Text style={styles.statusText}>{sp.available ? "BO'SH" : 'BAND'}</Text>
+            <Text style={styles.statusText}>{sp.available ? tr("BO'SH") : 'BAND'}</Text>
           </View>
         </View>
 
         <View style={{ flex: 1, gap: 7 }}>
-          <Field label="FAMILIYA / SURNAME" value={surname.toUpperCase()} ink={t.ink} labelColor={t.label} big verified={sp.verified} />
-          {given ? <Field label="ISM / GIVEN NAME" value={given.toUpperCase()} ink={t.ink} labelColor={t.label} big /> : null}
-          <Field label="KASB / PROFESSION" value={sp.title} ink={t.ink} labelColor={t.label} />
+          <Field label={tr('FAMILIYA / SURNAME')} value={surname.toUpperCase()} ink={t.ink} labelColor={t.label} big verified={sp.verified} />
+          {given ? <Field label={tr('ISM / GIVEN NAME')} value={given.toUpperCase()} ink={t.ink} labelColor={t.label} big /> : null}
+          <Field label={tr('KASB / PROFESSION')} value={sp.title} ink={t.ink} labelColor={t.label} />
           <View style={{ flexDirection: 'row', gap: 14 }}>
-            <Field label="MAMLAKAT" value={`${iso} · ${sp.city}`} ink={t.ink} labelColor={t.label} />
-            <Field label="TAJRIBA" value={`${sp.experience} yil`} ink={t.ink} labelColor={t.label} />
+            <Field label={tr('MAMLAKAT')} value={`${iso} · ${sp.city}`} ink={t.ink} labelColor={t.label} />
+            <Field label={tr('TAJRIBA')} value={tr('{experience} yil', { experience: sp.experience })} ink={t.ink} labelColor={t.label} />
           </View>
         </View>
       </View>

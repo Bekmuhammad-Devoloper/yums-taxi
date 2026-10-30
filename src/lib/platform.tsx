@@ -9,6 +9,8 @@ import {
   type Report, type ReportTarget, type SecurityEvent, type Verification,
 } from './platform-data';
 import { useStore } from './store';
+import { tr, tx } from '@/lib/i18n';
+import { fmtDay } from '@/lib/format';
 
 /* ---------- Yordamchi formatlar ---------- */
 
@@ -27,12 +29,12 @@ export const sectorOf = (id: string) => SECTORS.find(s => s.id === id) ?? SECTOR
 
 export const ago = (iso: string) => {
   const m = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
-  if (m < 1) return 'hozir';
-  if (m < 60) return `${m} daq oldin`;
+  if (m < 1) return tr('hozir');
+  if (m < 60) return tr('{n} daq oldin', { n: m });
   const h = Math.round(m / 60);
-  if (h < 24) return `${h} soat oldin`;
+  if (h < 24) return tr('{n} soat oldin', { n: h });
   const dd = Math.round(h / 24);
-  return dd < 30 ? `${dd} kun oldin` : new Date(iso).toLocaleDateString();
+  return dd < 30 ? tr('{n} kun oldin', { n: dd }) : fmtDay(iso);
 };
 
 export const fileSize = (b?: number) => (!b ? '' : b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1e3))} KB`);
@@ -71,7 +73,7 @@ export type CartLine = { id: string; qty: number };
 /** Reklama kampaniyasi; banner — 2:1 rasm (data: URI) */
 export type Ad = { id: string; title: string; budget: number; status: 'review' | 'active'; image?: string };
 
-const device = () => (Platform.OS === 'ios' ? 'iPhone' : Platform.OS === 'android' ? 'Android' : 'Veb-brauzer');
+const device = () => (Platform.OS === 'ios' ? 'iPhone' : Platform.OS === 'android' ? 'Android' : tr('Veb-brauzer'));
 
 const initial = (): State => ({
   v: 1,
@@ -166,11 +168,12 @@ export const usePlatform = () => {
   return c;
 };
 
+// demo suhbatdosh javoblari (yuborilgan paytda joriy tilda)
 const AUTO_REPLIES = [
-  "Rahmat, xabaringizni oldim! Tez orada batafsil javob beraman.",
-  "Qiziq taklif. Qo'shimcha ma'lumot yoki taqdimot yubora olasizmi?",
-  'Kelishdik. Qulay vaqtda onlayn uchrashuv belgilasak bo\'ladi.',
-  "Hujjatlarni ko'rib chiqib, ertaga qaytaman.",
+  tx('Rahmat, xabaringizni oldim! Tez orada batafsil javob beraman.'),
+  tx("Qiziq taklif. Qo'shimcha ma'lumot yoki taqdimot yubora olasizmi?"),
+  tx("Kelishdik. Qulay vaqtda onlayn uchrashuv belgilasak bo'ladi."),
+  tx("Hujjatlarni ko'rib chiqib, ertaga qaytaman."),
 ];
 
 export function PlatformProvider({ children }: { children: ReactNode }) {
@@ -197,7 +200,7 @@ export function PlatformProvider({ children }: { children: ReactNode }) {
   }, [s, loaded]);
 
   const me = user?.id ?? 'me';
-  const meName = user?.kind === 'company' && user.company ? user.company : user?.name ?? 'Siz';
+  const meName = user?.kind === 'company' && user.company ? user.company : user?.name ?? tr('Siz');
 
   const notice = (n: Omit<Notice, 'id' | 'at' | 'read'>) =>
     setS(x => ({ ...x, notices: [{ ...n, id: uid('n'), at: now(), read: false }, ...x.notices].slice(0, 40) }));
@@ -224,7 +227,7 @@ export function PlatformProvider({ children }: { children: ReactNode }) {
         title = m.title;
         return { ...x, market: x.market.map(y => (y.id === id ? { ...y, status: 'published' } : y)) };
       });
-      later(() => title && notice({ icon: 'checkmark-circle', title: 'Moderatsiyadan o\'tdi', text: `«${title}» katalogda e'lon qilindi`, href: kind === 'project' ? `/project/${id}` : `/market/${id}` }), 50);
+      later(() => title && notice({ icon: 'checkmark-circle', title: tr("Moderatsiyadan o'tdi"), text: tr("«{title}» katalogda e'lon qilindi", { title }), href: kind === 'project' ? `/project/${id}` : `/market/${id}` }), 50);
     }, 7000);
   };
 
@@ -278,10 +281,10 @@ export function PlatformProvider({ children }: { children: ReactNode }) {
           ...x,
           conversations: x.conversations.map(y => y.id === cid ? {
             ...y, requestStatus: 'accepted', unread: y.unread + 1,
-            messages: [...y.messages, { id: uid('x'), from: 'system', text: `${c.peerName} hamkorlik so'rovingizni qabul qildi`, at: now() }, { id: uid('x'), from: 'them', text: AUTO_REPLIES[1], at: now() }],
+            messages: [...y.messages, { id: uid('x'), from: 'system', text: tr("{peerName} hamkorlik so'rovingizni qabul qildi", { peerName: c.peerName }), at: now() }, { id: uid('x'), from: 'them', text: AUTO_REPLIES[1], at: now() }],
           } : y),
         }));
-        notice({ icon: 'people', title: "So'rov qabul qilindi", text: `${c.peerName} siz bilan bog'lanishga rozi`, href: `/chat/${cid}` });
+        notice({ icon: 'people', title: tr("So'rov qabul qilindi"), text: tr("{peerName} siz bilan bog'lanishga rozi", { peerName: c.peerName }), href: `/chat/${cid}` });
       }, 5000);
       return;
     }
@@ -289,7 +292,7 @@ export function PlatformProvider({ children }: { children: ReactNode }) {
       setS(x => ({
         ...x,
         conversations: x.conversations.map(y => y.id === cid && !y.blocked
-          ? { ...y, unread: y.unread + 1, messages: [...y.messages, { id: uid('x'), from: 'them', text: y.peerKind === 'support' ? 'Murojaatingiz qabul qilindi. Operator 5 daqiqa ichida javob beradi.' : AUTO_REPLIES[Math.floor(Math.random() * AUTO_REPLIES.length)], at: now() }] }
+          ? { ...y, unread: y.unread + 1, messages: [...y.messages, { id: uid('x'), from: 'them', text: y.peerKind === 'support' ? tr('Murojaatingiz qabul qilindi. Operator 5 daqiqa ichida javob beradi.') : tr(AUTO_REPLIES[Math.floor(Math.random() * AUTO_REPLIES.length)]), at: now() }] }
           : y),
       }));
     }, 2600);
@@ -394,7 +397,7 @@ export function PlatformProvider({ children }: { children: ReactNode }) {
       return {
         ...x,
         reports: x.reports.map(y => (y.targetKind === r.targetKind && y.targetId === r.targetId && y.status === 'open') || y.id === id
-          ? { ...y, status: block ? 'resolved' : 'dismissed', action: block ? 'Kontent bloklandi' : 'Asos topilmadi' } : y),
+          ? { ...y, status: block ? 'resolved' : 'dismissed', action: block ? tr('Kontent bloklandi') : tr('Asos topilmadi') } : y),
         blocked: block && !x.blocked.includes(key) ? [...x.blocked, key] : x.blocked,
         projects: block && r.targetKind === 'project' ? x.projects.map(p => (p.id === r.targetId ? { ...p, status: 'blocked' } : p)) : x.projects,
         market: block && r.targetKind === 'market' ? x.market.map(m => (m.id === r.targetId ? { ...m, status: 'blocked' } : m)) : x.market,
@@ -417,7 +420,7 @@ export function PlatformProvider({ children }: { children: ReactNode }) {
         verifications: x.verifications.map(y => (y.id === id ? { ...y, status: approve ? 'approved' : 'rejected' } : y)),
         projects: v?.isMe && approve ? x.projects.map(p => (p.ownerId === me ? { ...p, ownerVerified: true } : p)) : x.projects,
       }));
-      if (v?.isMe) notice({ icon: approve ? 'shield-checkmark' : 'alert-circle', title: approve ? 'Profil tasdiqlandi' : 'Tasdiqlash rad etildi', text: approve ? 'Profilingizda «Tasdiqlangan» belgisi paydo bo\'ldi' : "Hujjatlar aniq ko'rinmadi — qayta yuboring", href: '/verify' });
+      if (v?.isMe) notice({ icon: approve ? 'shield-checkmark' : 'alert-circle', title: approve ? tr('Profil tasdiqlandi') : tr('Tasdiqlash rad etildi'), text: approve ? tr("Profilingizda «Tasdiqlangan» belgisi paydo bo'ldi") : tr("Hujjatlar aniq ko'rinmadi — qayta yuboring"), href: '/verify' });
     },
 
     openChat,
@@ -427,7 +430,7 @@ export function PlatformProvider({ children }: { children: ReactNode }) {
       ...x,
       conversations: x.conversations.map(c => (c.id === cid ? {
         ...c, requestStatus: accept ? 'accepted' : 'declined',
-        messages: [...c.messages, { id: uid('x'), from: 'system', text: accept ? "Siz so'rovni qabul qildingiz — endi yozishishingiz mumkin" : "So'rov rad etildi", at: now() }],
+        messages: [...c.messages, { id: uid('x'), from: 'system', text: accept ? tr("Siz so'rovni qabul qildingiz — endi yozishishingiz mumkin") : tr("So'rov rad etildi"), at: now() }],
       } : c)),
     })),
     toggleBlockChat: cid => setS(x => ({ ...x, conversations: x.conversations.map(c => (c.id === cid ? { ...c, blocked: !c.blocked } : c)) })),

@@ -12,9 +12,10 @@ import type { Attachment, Message, ReportTarget } from '@/lib/platform-data';
 import { fileSize, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
+import { fmtDay, weekdayShort } from '@/lib/format';
+import { tr } from '@/lib/i18n';
 
 const hhmm = (iso: string) => { const d = new Date(iso); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
-const DAYS = ['Yak', 'Dush', 'Sesh', 'Chor', 'Pay', 'Jum', 'Shan'];
 
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -32,7 +33,7 @@ export default function ChatScreen() {
 
   useEffect(() => { if (id) markRead(id); }, [id, count]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!cv) return <Screen title="Suhbat"><EmptyState icon="chatbubbles-outline" title="Suhbat topilmadi" /></Screen>;
+  if (!cv) return <Screen title={tr('Suhbat')}><EmptyState icon="chatbubbles-outline" title={tr('Suhbat topilmadi')} /></Screen>;
 
   const pendingOut = cv.kind === 'request' && !cv.incoming && cv.requestStatus === 'pending';
   const pendingIn = cv.kind === 'request' && cv.incoming && cv.requestStatus === 'pending';
@@ -57,10 +58,10 @@ export default function ChatScreen() {
       const r = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
       if (r.canceled) return;
       const a = r.assets[0];
-      if ((a.size ?? 0) > 25e6) { toast('Fayl 25 MB dan katta', 'alert-circle'); return; }
+      if ((a.size ?? 0) > 25e6) { toast(tr('Fayl 25 MB dan katta'), 'alert-circle'); return; }
       send({ id: 'f' + a.lastModified, name: a.name, size: a.size, mime: a.mimeType, uri: a.uri });
     } catch {
-      toast("Fayl tanlab bo'lmadi", 'alert-circle');
+      toast(tr("Fayl tanlab bo'lmadi"), 'alert-circle');
     }
   };
 
@@ -73,7 +74,7 @@ export default function ChatScreen() {
             <PeerAvatar conv={cv} size={40} />
             <View style={{ flex: 1 }}>
               <Row gap={4}><Txt v="h3" numberOfLines={1} style={{ flexShrink: 1 }}>{cv.peerName}</Txt>{cv.peerVerified && <Verified size={14} />}</Row>
-              <Txt v="tiny" faint numberOfLines={1}>{cv.blocked ? 'Bloklangan' : `${PEER_LABEL[cv.peerKind]}${cv.subject ? ' · ' + cv.subject : ''}`}</Txt>
+              <Txt v="tiny" faint numberOfLines={1}>{cv.blocked ? tr('Bloklangan') : `${PEER_LABEL[cv.peerKind]}${cv.subject ? ' · ' + cv.subject : ''}`}</Txt>
             </View>
           </Row>
         </Pressable>
@@ -90,9 +91,9 @@ export default function ChatScreen() {
           {cv.messages.length === 0 && (
             <View style={[styles.intro, { backgroundColor: c.surface }]}>
               <Ionicons name={pendingOut ? 'people' : 'chatbubbles'} size={28} color={c.brandDeep} />
-              <Txt v="h3" style={{ textAlign: 'center' }}>{pendingOut ? "Hamkorlik so'rovi" : 'Suhbatni boshlang'}</Txt>
+              <Txt v="h3" style={{ textAlign: 'center' }}>{pendingOut ? tr("Hamkorlik so'rovi") : tr('Suhbatni boshlang')}</Txt>
               <Txt v="small" muted style={{ textAlign: 'center' }}>
-                {pendingOut ? `${cv.peerName}ga o'zingiz va taklifingiz haqida qisqacha yozing. So'rov qabul qilingach, yozishmani davom ettirasiz.` : "Xabarlar shifrlangan holda yuboriladi. Shaxsiy to'lov ma'lumotlarini hech qachon chatda yubormang."}
+                {pendingOut ? tr("{peerName}ga o'zingiz va taklifingiz haqida qisqacha yozing. So'rov qabul qilingach, yozishmani davom ettirasiz.", { peerName: cv.peerName }) : tr("Xabarlar shifrlangan holda yuboriladi. Shaxsiy to'lov ma'lumotlarini hech qachon chatda yubormang.")}
               </Txt>
             </View>
           )}
@@ -101,29 +102,29 @@ export default function ChatScreen() {
 
         {pendingIn && (
           <View style={[styles.banner, { backgroundColor: c.warnSoft }]}>
-            <Txt v="small" color={c.warn} style={{ fontFamily: F.bold }}>{cv.peerName} siz bilan hamkorlik qilmoqchi</Txt>
+            <Txt v="small" color={c.warn} style={{ fontFamily: F.bold }}>{tr('{peerName} siz bilan hamkorlik qilmoqchi', { peerName: cv.peerName })}</Txt>
             <Row gap={8}>
-              <Button title="Rad etish" kind="ghost" small style={{ flex: 1 }} onPress={() => p.respondRequest(cv.id, false)} />
-              <Button title="Qabul qilish" small icon="checkmark" style={{ flex: 1.4 }} onPress={() => { p.respondRequest(cv.id, true); haptic.success(); }} />
+              <Button title={tr('Rad etish')} kind="ghost" small style={{ flex: 1 }} onPress={() => p.respondRequest(cv.id, false)} />
+              <Button title={tr('Qabul qilish')} small icon="checkmark" style={{ flex: 1.4 }} onPress={() => { p.respondRequest(cv.id, true); haptic.success(); }} />
             </Row>
           </View>
         )}
 
         {canWrite ? (
           <View style={[styles.composer, { paddingBottom: insets.bottom + 10, backgroundColor: c.bg, borderTopColor: c.line }]}>
-            <Pressable onPress={attach} hitSlop={8} style={[styles.round, { backgroundColor: c.surface2 }]} accessibilityLabel="Hujjat biriktirish">
+            <Pressable onPress={attach} hitSlop={8} style={[styles.round, { backgroundColor: c.surface2 }]} accessibilityLabel={tr('Hujjat biriktirish')}>
               <Ionicons name="attach" size={22} color={c.text} />
             </Pressable>
             <TextInput
               value={text}
               onChangeText={setText}
-              placeholder={pendingOut ? "So'rov xabari…" : 'Xabar…'}
+              placeholder={pendingOut ? tr("So'rov xabari…") : tr('Xabar…')}
               placeholderTextColor={c.faint}
               multiline
               numberOfLines={1}
               style={[styles.input, { backgroundColor: c.surface, color: c.text, borderColor: c.line }]}
             />
-            <Pressable onPress={() => send()} disabled={!text.trim()} style={[styles.round, { backgroundColor: text.trim() ? c.brand : c.surface2 }]} accessibilityLabel="Yuborish">
+            <Pressable onPress={() => send()} disabled={!text.trim()} style={[styles.round, { backgroundColor: text.trim() ? c.brand : c.surface2 }]} accessibilityLabel={tr('Yuborish')}>
               <Ionicons name="arrow-up" size={22} color={text.trim() ? c.brandText : c.faint} />
             </Pressable>
           </View>
@@ -131,27 +132,27 @@ export default function ChatScreen() {
           <View style={[styles.locked, { paddingBottom: insets.bottom + 14, borderTopColor: c.line }]}>
             <Ionicons name={cv.blocked ? 'ban' : declined ? 'close-circle-outline' : 'hourglass-outline'} size={18} color={c.muted} />
             <Txt v="small" muted style={{ flex: 1 }}>
-              {cv.blocked ? 'Siz bu suhbatni blokladingiz' : declined ? "So'rov rad etilgan" : pendingIn ? "Yozish uchun so'rovni qabul qiling" : "So'rov yuborildi — javob kutilmoqda"}
+              {cv.blocked ? tr('Siz bu suhbatni blokladingiz') : declined ? tr("So'rov rad etilgan") : pendingIn ? tr("Yozish uchun so'rovni qabul qiling") : tr("So'rov yuborildi — javob kutilmoqda")}
             </Txt>
-            {cv.blocked && <Button title="Blokdan chiqarish" small kind="ghost" onPress={() => p.toggleBlockChat(cv.id)} />}
+            {cv.blocked && <Button title={tr('Blokdan chiqarish')} small kind="ghost" onPress={() => p.toggleBlockChat(cv.id)} />}
           </View>
         )}
       </KeyboardAvoidingView>
 
       <Sheet visible={menu} onClose={() => setMenu(false)} title={cv.peerName}>
         <View style={{ gap: 2 }}>
-          {profileHref && <ListItem icon="person-outline" title="Profilni ko'rish" onPress={() => { setMenu(false); router.push(profileHref); }} />}
-          {canWrite && <ListItem icon="calendar-outline" title="Onlayn uchrashuv belgilash" onPress={() => { setMenu(false); setTimeout(() => setMeet(true), 350); }} />}
-          {canWrite && <ListItem icon="document-attach-outline" title="Hujjat yuborish" onPress={() => { setMenu(false); attach(); }} />}
+          {profileHref && <ListItem icon="person-outline" title={tr("Profilni ko'rish")} onPress={() => { setMenu(false); router.push(profileHref); }} />}
+          {canWrite && <ListItem icon="calendar-outline" title={tr('Onlayn uchrashuv belgilash')} onPress={() => { setMenu(false); setTimeout(() => setMeet(true), 350); }} />}
+          {canWrite && <ListItem icon="document-attach-outline" title={tr('Hujjat yuborish')} onPress={() => { setMenu(false); attach(); }} />}
           {cv.peerKind !== 'support' && (
             <>
-              <ListItem icon={cv.blocked ? 'lock-open-outline' : 'ban-outline'} title={cv.blocked ? 'Blokdan chiqarish' : 'Bloklash'} danger={!cv.blocked} onPress={() => { setMenu(false); p.toggleBlockChat(cv.id); toast(cv.blocked ? 'Blokdan chiqarildi' : 'Foydalanuvchi bloklandi', 'ban'); }} />
-              <ListItem icon="flag-outline" title="Shikoyat qilish" danger onPress={() => { setMenu(false); setTimeout(() => setReporting(true), 350); }} />
+              <ListItem icon={cv.blocked ? 'lock-open-outline' : 'ban-outline'} title={cv.blocked ? tr('Blokdan chiqarish') : tr('Bloklash')} danger={!cv.blocked} onPress={() => { setMenu(false); p.toggleBlockChat(cv.id); toast(cv.blocked ? tr('Blokdan chiqarildi') : tr('Foydalanuvchi bloklandi'), 'ban'); }} />
+              <ListItem icon="flag-outline" title={tr('Shikoyat qilish')} danger onPress={() => { setMenu(false); setTimeout(() => setReporting(true), 350); }} />
             </>
           )}
         </View>
       </Sheet>
-      <MeetingSheet visible={meet} onClose={() => setMeet(false)} onCreate={(at, title, dur) => { p.scheduleMeeting(cv.id, at, title, dur); toast('Uchrashuv belgilandi', 'calendar'); }} />
+      <MeetingSheet visible={meet} onClose={() => setMeet(false)} onCreate={(at, title, dur) => { p.scheduleMeeting(cv.id, at, title, dur); toast(tr('Uchrashuv belgilandi'), 'calendar'); }} />
       <ReportSheet visible={reporting} onClose={() => setReporting(false)} kind={reportKind} id={cv.peerId} title={cv.peerName} />
     </View>
   );
@@ -170,17 +171,16 @@ function Bubble({ m }: { m: Message }) {
     <View style={[styles.bubble, me ? { alignSelf: 'flex-end', backgroundColor: c.brand, borderBottomRightRadius: 6 } : { alignSelf: 'flex-start', backgroundColor: c.surface, borderBottomLeftRadius: 6 }]}>
       {meeting ? (
         <View style={{ gap: 6 }}>
-          <Row gap={8}><Ionicons name="videocam" size={18} color={fg} /><Text style={{ color: fg, fontFamily: F.heavy, fontSize: 15 }}>Onlayn uchrashuv</Text></Row>
+          <Row gap={8}><Ionicons name="videocam" size={18} color={fg} /><Text style={{ color: fg, fontFamily: F.heavy, fontSize: 15 }}>{tr('Onlayn uchrashuv')}</Text></Row>
           <Text style={{ color: fg, fontFamily: F.semi }}>{meeting.title}</Text>
           <Text style={{ color: fg, opacity: 0.75, fontSize: 13 }}>
-            {DAYS[new Date(meeting.at).getDay()]}, {new Date(meeting.at).getDate()}-{['yan', 'fev', 'mar', 'apr', 'may', 'iyun', 'iyul', 'avg', 'sen', 'okt', 'noy', 'dek'][new Date(meeting.at).getMonth()]} · {hhmm(meeting.at)} · {meeting.durationMin} daq
-          </Text>
+            {tr('{day}, {date} · {time} · {min} daq', { day: weekdayShort(new Date(meeting.at)), date: fmtDay(meeting.at), time: hhmm(meeting.at), min: meeting.durationMin })}</Text>
           {meeting.status === 'cancelled'
-            ? <Text style={{ color: fg, fontFamily: F.heavy, fontSize: 13 }}>Bekor qilingan</Text>
-            : <Pressable onPress={() => Linking.openURL(meeting.link).catch(() => toast('Havola ochilmadi', 'alert-circle'))} style={[styles.join, { backgroundColor: me ? 'rgba(14,21,37,0.12)' : c.surface2 }]}><Text style={{ color: fg, fontFamily: F.heavy }}>Qo'shilish</Text></Pressable>}
+            ? <Text style={{ color: fg, fontFamily: F.heavy, fontSize: 13 }}>{tr('Bekor qilingan')}</Text>
+            : <Pressable onPress={() => Linking.openURL(meeting.link).catch(() => toast(tr('Havola ochilmadi'), 'alert-circle'))} style={[styles.join, { backgroundColor: me ? 'rgba(14,21,37,0.12)' : c.surface2 }]}><Text style={{ color: fg, fontFamily: F.heavy }}>{tr("Qo'shilish")}</Text></Pressable>}
         </View>
       ) : m.file ? (
-        <Pressable onPress={() => (m.file?.uri ? Linking.openURL(m.file.uri).catch(() => toast("Faylni ochib bo'lmadi", 'alert-circle')) : toast('Fayl yuklab olindi', 'download'))} style={{ gap: 6 }}>
+        <Pressable onPress={() => (m.file?.uri ? Linking.openURL(m.file.uri).catch(() => toast(tr("Faylni ochib bo'lmadi"), 'alert-circle')) : toast(tr('Fayl yuklab olindi'), 'download'))} style={{ gap: 6 }}>
           <Row gap={10}>
             <View style={[styles.fileIco, { backgroundColor: me ? 'rgba(14,21,37,0.12)' : c.accentSoft }]}><Ionicons name="document-text" size={20} color={me ? fg : c.accent} /></View>
             <View style={{ flexShrink: 1 }}>
@@ -202,31 +202,31 @@ function MeetingSheet({ visible, onClose, onCreate }: { visible: boolean; onClos
   const [day, setDay] = useState(1);
   const [time, setTime] = useState('15:00');
   const [dur, setDur] = useState(30);
-  const [title, setTitle] = useState('Tanishuv qo\'ng\'irog\'i');
+  const [title, setTitle] = useState(() => tr("Tanishuv qo'ng'irog'i"));
   const [base] = useState(() => Date.now());
   const days = [0, 1, 2, 3, 4, 5, 6].map(i => new Date(base + i * 86400000));
   const create = () => {
     const at = new Date(days[day]);
     const [h, mm] = time.split(':').map(Number);
     at.setHours(h, mm, 0, 0);
-    if (at.getTime() < Date.now()) { toast("O'tgan vaqtni tanlab bo'lmaydi", 'alert-circle'); return; }
-    onCreate(at, title.trim() || 'Onlayn uchrashuv', dur);
+    if (at.getTime() < Date.now()) { toast(tr("O'tgan vaqtni tanlab bo'lmaydi"), 'alert-circle'); return; }
+    onCreate(at, title.trim() || tr('Onlayn uchrashuv'), dur);
     onClose();
   };
   return (
-    <Sheet visible={visible} onClose={onClose} title="Onlayn uchrashuv" footer={<Button title="Taklif yuborish" icon="videocam" onPress={create} />}>
-      <Field label="Mavzu" value={title} onChangeText={setTitle} />
-      <Txt v="small" muted style={{ fontFamily: F.bold }}>Kun</Txt>
+    <Sheet visible={visible} onClose={onClose} title={tr('Onlayn uchrashuv')} footer={<Button title={tr('Taklif yuborish')} icon="videocam" onPress={create} />}>
+      <Field label={tr('Mavzu')} value={title} onChangeText={setTitle} />
+      <Txt v="small" muted style={{ fontFamily: F.bold }}>{tr('Kun')}</Txt>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-        {days.map((d, i) => <Chip key={i} label={i === 0 ? 'Bugun' : i === 1 ? 'Ertaga' : `${DAYS[d.getDay()]}, ${d.getDate()}`} active={day === i} onPress={() => setDay(i)} />)}
+        {days.map((d, i) => <Chip key={i} label={i === 0 ? tr('Bugun') : i === 1 ? tr('Ertaga') : `${weekdayShort(d)}, ${d.getDate()}`} active={day === i} onPress={() => setDay(i)} />)}
       </ScrollView>
-      <Txt v="small" muted style={{ fontFamily: F.bold }}>Vaqt</Txt>
+      <Txt v="small" muted style={{ fontFamily: F.bold }}>{tr('Vaqt')}</Txt>
       <Row gap={8} style={{ flexWrap: 'wrap' }}>
         {['09:00', '11:00', '13:00', '15:00', '17:00', '19:00'].map(t => <Chip key={t} label={t} active={time === t} onPress={() => setTime(t)} />)}
       </Row>
-      <Txt v="small" muted style={{ fontFamily: F.bold }}>Davomiyligi</Txt>
-      <Row gap={8}>{[15, 30, 60].map(m => <Chip key={m} label={`${m} daq`} active={dur === m} onPress={() => setDur(m)} />)}</Row>
-      <Txt v="tiny" faint>Video havola avtomatik yaratiladi va suhbatga yuboriladi.</Txt>
+      <Txt v="small" muted style={{ fontFamily: F.bold }}>{tr('Davomiyligi')}</Txt>
+      <Row gap={8}>{[15, 30, 60].map(m => <Chip key={m} label={tr('{m} daq', { m })} active={dur === m} onPress={() => setDur(m)} />)}</Row>
+      <Txt v="tiny" faint>{tr('Video havola avtomatik yaratiladi va suhbatga yuboriladi.')}</Txt>
     </Sheet>
   );
 }

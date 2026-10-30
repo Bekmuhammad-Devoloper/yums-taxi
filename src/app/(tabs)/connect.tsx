@@ -11,14 +11,15 @@ import type { Conversation } from '@/lib/platform-data';
 import { ago, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
+import { tr } from '@/lib/i18n';
 
 type Tab = 'chats' | 'requests' | 'meetings';
 
 const preview = (cv: Conversation): { text: string; icon?: 'calendar-outline' | 'attach' } => {
   const m = cv.messages[cv.messages.length - 1];
-  if (!m) return { text: cv.subject ?? 'Yangi suhbat' };
-  const who = m.from === 'me' ? 'Siz: ' : '';
-  if (m.meetingId) return { text: `${who}Onlayn uchrashuv`, icon: 'calendar-outline' };
+  if (!m) return { text: cv.subject ?? tr('Yangi suhbat') };
+  const who = m.from === 'me' ? tr('Siz: ') : '';
+  if (m.meetingId) return { text: tr('{who}Onlayn uchrashuv', { who }), icon: 'calendar-outline' };
   if (m.file) return { text: who + m.file.name, icon: 'attach' };
   return { text: who + m.text };
 };
@@ -82,30 +83,30 @@ export default function Connect() {
               {cv.unread ? <View style={[styles.unread, { backgroundColor: c.brand }]}><Text style={[styles.unreadText, { color: c.brandText }]}>{cv.unread}</Text></View> : null}
             </View>
           </Pressable>
-        )) : <EmptyState icon="chatbubbles-outline" title="Hali suhbatlar yo'q" sub="Loyiha, kompaniya yoki mutaxassis sahifasidan «Yozish» tugmasini bosing" action="Qidiruvga o'tish" onAction={() => router.push('/world')} />)}
+        )) : <EmptyState icon="chatbubbles-outline" title={tr("Hali suhbatlar yo'q")} sub={tr('Loyiha, kompaniya yoki mutaxassis sahifasidan «Yozish» tugmasini bosing')} action={tr("Qidiruvga o'tish")} onAction={() => router.push('/world')} />)}
 
         {tab === 'requests' && (requests.length ? requests.map(cv => {
-          const status = cv.requestStatus === 'declined' ? { l: 'Rad etilgan', tone: 'danger' as const } : cv.incoming ? { l: 'Yangi so\'rov', tone: 'warn' as const } : { l: 'Javob kutilmoqda', tone: 'muted' as const };
+          const status = cv.requestStatus === 'declined' ? { l: tr('Rad etilgan'), tone: 'danger' as const } : cv.incoming ? { l: tr("Yangi so'rov"), tone: 'warn' as const } : { l: tr('Javob kutilmoqda'), tone: 'muted' as const };
           return (
             <Card key={cv.id} onPress={() => open(cv.id)} style={{ gap: 12 }}>
               <Row>
                 <PeerAvatar conv={cv} size={46} />
                 <View style={{ flex: 1 }}>
                   <Row gap={4}><Txt v="h3" numberOfLines={1} style={{ flexShrink: 1 }}>{cv.peerName}</Txt>{cv.peerVerified && <Verified size={14} />}</Row>
-                  <Txt v="small" muted>{PEER_LABEL[cv.peerKind]} · {cv.subject ?? "Hamkorlik so'rovi"}</Txt>
+                  <Txt v="small" muted>{PEER_LABEL[cv.peerKind]} · {cv.subject ?? tr("Hamkorlik so'rovi")}</Txt>
                 </View>
                 <Badge label={status.l} tone={status.tone} />
               </Row>
               {cv.messages[0] ? <Txt v="small" muted numberOfLines={3} style={{ lineHeight: 19 }}>{cv.messages[0].text}</Txt> : null}
               {cv.incoming && cv.requestStatus === 'pending' && (
                 <Row gap={8}>
-                  <Button title="Rad etish" kind="ghost" small style={{ flex: 1 }} onPress={() => { p.respondRequest(cv.id, false); toast("So'rov rad etildi", 'close-circle'); }} />
-                  <Button title="Qabul qilish" small style={{ flex: 1.4 }} icon="checkmark" onPress={() => { p.respondRequest(cv.id, true); toast("So'rov qabul qilindi", 'people'); open(cv.id); }} />
+                  <Button title={tr('Rad etish')} kind="ghost" small style={{ flex: 1 }} onPress={() => { p.respondRequest(cv.id, false); toast(tr("So'rov rad etildi"), 'close-circle'); }} />
+                  <Button title={tr('Qabul qilish')} small style={{ flex: 1.4 }} icon="checkmark" onPress={() => { p.respondRequest(cv.id, true); toast(tr("So'rov qabul qilindi"), 'people'); open(cv.id); }} />
                 </Row>
               )}
             </Card>
           );
-        }) : <EmptyState icon="people-outline" title="So'rovlar yo'q" sub="Investor, hamkor yoki mijozlardan hamkorlik so'rovlari shu yerda ko'rinadi" />)}
+        }) : <EmptyState icon="people-outline" title={tr("So'rovlar yo'q")} sub={tr("Investor, hamkor yoki mijozlardan hamkorlik so'rovlari shu yerda ko'rinadi")} />)}
 
         {tab === 'meetings' && (upcoming.length ? upcoming.map(m => {
           const d = new Date(m.at);
@@ -119,16 +120,16 @@ export default function Connect() {
                 <View style={{ flex: 1 }}>
                   <Txt v="h3" numberOfLines={1}>{m.title}</Txt>
                   <Txt v="small" muted>{m.with}</Txt>
-                  <Txt v="small" muted>{String(d.getHours()).padStart(2, '0')}:{String(d.getMinutes()).padStart(2, '0')} · {m.durationMin} daqiqa · video</Txt>
+                  <Txt v="small" muted>{tr('{v2}:{v3} · {durationMin} daqiqa · video', { v2: String(d.getHours()).padStart(2, '0'), v3: String(d.getMinutes()).padStart(2, '0'), durationMin: m.durationMin })}</Txt>
                 </View>
               </Row>
               <Row gap={8}>
-                <Button title="Bekor qilish" kind="ghost" small style={{ flex: 1 }} onPress={() => { p.cancelMeeting(m.id); toast('Uchrashuv bekor qilindi', 'calendar-clear'); }} />
-                <Button title="Qo'shilish" icon="videocam" kind="dark" small style={{ flex: 1.4 }} onPress={() => Linking.openURL(m.link).catch(() => toast('Havola ochilmadi', 'alert-circle'))} />
+                <Button title={tr('Bekor qilish')} kind="ghost" small style={{ flex: 1 }} onPress={() => { p.cancelMeeting(m.id); toast(tr('Uchrashuv bekor qilindi'), 'calendar-clear'); }} />
+                <Button title={tr("Qo'shilish")} icon="videocam" kind="dark" small style={{ flex: 1.4 }} onPress={() => Linking.openURL(m.link).catch(() => toast(tr('Havola ochilmadi'), 'alert-circle'))} />
               </Row>
             </Card>
           );
-        }) : <EmptyState icon="calendar-outline" title="Uchrashuvlar rejalashtirilmagan" sub="Suhbat ichidagi kalendar tugmasi orqali onlayn uchrashuv belgilang" />)}
+        }) : <EmptyState icon="calendar-outline" title={tr('Uchrashuvlar rejalashtirilmagan')} sub={tr('Suhbat ichidagi kalendar tugmasi orqali onlayn uchrashuv belgilang')} />)}
       </ScrollView>
     </View>
   );

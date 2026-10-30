@@ -13,6 +13,7 @@ import { SECTOR_ART } from '@/lib/sector-art';
 import { COMPANY_LOGOS } from '@/lib/company-logos';
 import { haptic, useStore } from '@/lib/store';
 import { F, radius, shadow } from '@/lib/theme';
+import { tr } from '@/lib/i18n';
 
 import { toast } from './toast';
 import { Avatar, Badge, BrandMark, Button, Card, DEFAULT_PERSON, FitImage, Flag, IconTile, Row, Sheet, Txt, Verified, alpha, shade, type IconName } from './ui';
@@ -86,8 +87,8 @@ export function FavButton({ k, style, size = 22, round }: { k: string; style?: S
   return (
     <Pressable
       hitSlop={10}
-      accessibilityLabel={on ? 'Saqlanganlardan olib tashlash' : 'Saqlash'}
-      onPress={() => { haptic.tap(); const v = toggleFav(k); toast(v ? 'Saqlanganlarga qo\'shildi' : 'Saqlanganlardan olib tashlandi', v ? 'bookmark' : 'bookmark-outline'); }}
+      accessibilityLabel={on ? tr('Saqlanganlardan olib tashlash') : tr('Saqlash')}
+      onPress={() => { haptic.tap(); const v = toggleFav(k); toast(v ? tr("Saqlanganlarga qo'shildi") : tr('Saqlanganlardan olib tashlandi'), v ? 'bookmark' : 'bookmark-outline'); }}
       style={[round && [styles.favRound, { backgroundColor: on ? c.brandSoft : c.surface2 }], style]}>
       <Ionicons name={on ? 'bookmark' : 'bookmark-outline'} size={round ? 17 : size} color={on ? c.brandDeep : c.muted} />
     </Pressable>
@@ -133,7 +134,7 @@ export function ProjectCard({ p, mine }: { p: Project; mine?: boolean }) {
         <Txt v="small" muted numberOfLines={2} style={{ lineHeight: 19 }}>{p.summary}</Txt>
       </View>
       <View style={styles.wrap}>
-        {p.boosted && <Badge label="TOP" icon="flash" tone="brand" />}
+        {p.boosted && <Badge label={tr('TOP')} icon="flash" tone="brand" />}
         <Badge label={stageName(p.stage)} tone="accent" />
         {p.seeking.slice(0, 2).map(s => <Badge key={s} label={SEEKS.find(x => x.id === s)?.name ?? s} />)}
       </View>
@@ -144,7 +145,7 @@ export function ProjectCard({ p, mine }: { p: Project; mine?: boolean }) {
       {mine && p.status === 'rejected' && p.rejectReason ? (
         <View style={[styles.note, { backgroundColor: c.dangerSoft }]}>
           <Ionicons name="alert-circle" size={16} color={c.danger} />
-          <Txt v="small" color={c.danger} style={{ flex: 1 }}>{p.rejectReason}</Txt>
+          <Txt v="small" color={c.danger} style={{ flex: 1 }}>{tr(p.rejectReason)}</Txt>
         </View>
       ) : null}
     </Card>
@@ -168,7 +169,7 @@ export function ProjectTile({ p }: { p: Project }) {
           <>
             <Ionicons name={sec.icon} size={96} color="rgba(255,255,255,0.13)" style={{ position: 'absolute', right: -10, bottom: -18 }} />
             <Row gap={6}>
-              {p.boosted && <View style={styles.topBadge}><Ionicons name="flash" size={11} color="#0E1525" /><Text style={styles.topBadgeText}>TOP</Text></View>}
+              {p.boosted && <View style={styles.topBadge}><Ionicons name="flash" size={11} color="#0E1525" /><Text style={styles.topBadgeText}>{tr('TOP')}</Text></View>}
               <View style={[styles.topBadge, { backgroundColor: 'rgba(255,255,255,0.9)' }]}><Text style={styles.topBadgeText}>{stageName(p.stage)}</Text></View>
             </Row>
             <Text style={styles.tileSector} numberOfLines={1}>{sec.name}</Text>
@@ -209,7 +210,7 @@ export function CompanyCard({ co }: { co: Company }) {
       <Row style={{ justifyContent: 'space-between' }}>
         <View style={styles.wrap}>
           <Badge label={sectorOf(co.sector).name} />
-          {co.plan === 'business' && <Badge label="Business" tone="violet" icon="diamond" />}
+          {co.plan === 'business' && <Badge label={tr('Business')} tone="violet" icon="diamond" />}
         </View>
         <Row gap={3}><Ionicons name="star" size={14} color="#F5A524" /><Txt v="small" style={{ fontFamily: F.heavy }}>{co.rating.toFixed(1)}</Txt></Row>
       </Row>
@@ -239,7 +240,7 @@ export function SpecialistCard({ sp }: { sp: Specialist }) {
         </View>
         <View style={{ alignItems: 'flex-end' }}>
           <Txt v="h3">${sp.rate}</Txt>
-          <Txt v="tiny" faint>soatiga</Txt>
+          <Txt v="tiny" faint>{tr('soatiga')}</Txt>
         </View>
       </Row>
       <View style={styles.wrap}>
@@ -247,7 +248,7 @@ export function SpecialistCard({ sp }: { sp: Specialist }) {
       </View>
       <Row style={{ justifyContent: 'space-between' }}>
         <Row gap={3}><Ionicons name="star" size={14} color="#F5A524" /><Txt v="small" style={{ fontFamily: F.heavy }}>{sp.rating.toFixed(1)}</Txt><Txt v="small" faint>({sp.reviews})</Txt></Row>
-        <Txt v="small" color={sp.available ? c.ok : c.faint} style={{ fontFamily: F.bold }}>{sp.available ? (sp.remote ? 'Masofaviy · bo\'sh' : 'Bo\'sh') : 'Band'}</Txt>
+        <Txt v="small" color={sp.available ? c.ok : c.faint} style={{ fontFamily: F.bold }}>{sp.available ? (sp.remote ? tr("Masofaviy · bo'sh") : tr("Bo'sh")) : tr('Band')}</Txt>
       </Row>
     </Card>
   );
@@ -282,19 +283,19 @@ export function InvestorCard({ inv, onContact }: { inv: Investor; onContact: () 
       <Txt v="small" muted style={{ lineHeight: 19 }}>{inv.about}</Txt>
       <Row gap={10}>
         <View style={[styles.kv, { backgroundColor: c.surface2 }]}>
-          <Txt v="tiny" faint>Chek</Txt>
+          <Txt v="tiny" faint>{tr('Chek')}</Txt>
           <Txt v="h3" style={{ fontSize: 14 }}>{budget(inv.ticketMin, inv.ticketMax)}</Txt>
         </View>
         <View style={[styles.kv, { backgroundColor: c.surface2 }]}>
-          <Txt v="tiny" faint>Bitimlar</Txt>
+          <Txt v="tiny" faint>{tr('Bitimlar')}</Txt>
           <Txt v="h3" style={{ fontSize: 14 }}>{inv.deals}</Txt>
         </View>
       </Row>
       <View style={styles.wrap}>
-        {inv.licensed ? <Badge label="Litsenziyali" icon="shield-checkmark" tone="ok" /> : <Badge label="Xususiy investor" icon="person" />}
+        {inv.licensed ? <Badge label={tr('Litsenziyali')} icon="shield-checkmark" tone="ok" /> : <Badge label={tr('Xususiy investor')} icon="person" />}
         {inv.sectors.slice(0, 3).map(s => <Badge key={s} label={sectorOf(s).name} />)}
       </View>
-      <Button title="Taklif yuborish" icon="paper-plane" kind="dark" small onPress={onContact} />
+      <Button title={tr('Taklif yuborish')} icon="paper-plane" kind="dark" small onPress={onContact} />
     </Card>
   );
 }
@@ -304,7 +305,7 @@ export { MarketCard, MarketVisual } from './market-ui';
 /* ---------- Suhbatdosh ---------- */
 
 export const PEER_LABEL: Record<Conversation['peerKind'], string> = {
-  company: 'Kompaniya', person: 'Foydalanuvchi', investor: 'Investor', specialist: 'Mutaxassis', support: 'YUMS',
+  get company() { return tr('Kompaniya'); }, get person() { return tr('Foydalanuvchi'); }, get investor() { return tr('Investor'); }, get specialist() { return tr('Mutaxassis'); }, support: 'YUMS',
 };
 
 export function PeerAvatar({ conv, size = 50 }: { conv: Conversation; size?: number }) {
@@ -348,7 +349,7 @@ export function AdBanner() {
       <Pressable onPress={() => { haptic.tap(); router.push('/plans'); }} hitSlop={6} style={{ alignSelf: 'flex-end' }}>
         <Row gap={4}>
           <Ionicons name="megaphone-outline" size={13} color={c.faint} />
-          <Txt v="tiny" faint>Reklama joylashtirish</Txt>
+          <Txt v="tiny" faint>{tr('Reklama joylashtirish')}</Txt>
         </Row>
       </Pressable>
     </View>
@@ -367,18 +368,18 @@ export function ReportSheet({ visible, onClose, kind, id, title }: { visible: bo
     report({ targetKind: kind, targetId: id, targetTitle: title, reason, note: note.trim() || undefined });
     setReason(null); setNote('');
     onClose();
-    toast("Shikoyat moderatorlarga yuborildi", 'shield-checkmark');
+    toast(tr('Shikoyat moderatorlarga yuborildi'), 'shield-checkmark');
   };
   return (
-    <Sheet visible={visible} onClose={onClose} title="Shikoyat qilish" footer={<Button title="Yuborish" kind="danger" disabled={!reason} onPress={send} />}>
-      <Txt v="small" muted>«{title}» — sababni tanlang. Moderatorlar 24 soat ichida ko'rib chiqadi, shikoyatchi ma'lumotlari sir saqlanadi.</Txt>
+    <Sheet visible={visible} onClose={onClose} title={tr('Shikoyat qilish')} footer={<Button title={tr('Yuborish')} kind="danger" disabled={!reason} onPress={send} />}>
+      <Txt v="small" muted>{tr("«{title}» — sababni tanlang. Moderatorlar 24 soat ichida ko'rib chiqadi, shikoyatchi ma'lumotlari sir saqlanadi.", { title })}</Txt>
       <View style={{ gap: 4 }}>
         {REPORT_REASONS.map(r => {
           const on = r === reason;
           return (
             <Pressable key={r} onPress={() => { haptic.tap(); setReason(r); }} style={[styles.option, { backgroundColor: on ? c.dangerSoft : 'transparent' }]}>
               <Ionicons name={on ? 'radio-button-on' : 'radio-button-off'} size={20} color={on ? c.danger : c.faint} />
-              <Txt style={{ flex: 1 }}>{r}</Txt>
+              <Txt style={{ flex: 1 }}>{tr(r)}</Txt>
             </Pressable>
           );
         })}
@@ -386,7 +387,7 @@ export function ReportSheet({ visible, onClose, kind, id, title }: { visible: bo
       <TextInput
         value={note}
         onChangeText={setNote}
-        placeholder="Qo'shimcha izoh (ixtiyoriy)"
+        placeholder={tr("Qo'shimcha izoh (ixtiyoriy)")}
         placeholderTextColor={c.faint}
         multiline
         style={[styles.input, { backgroundColor: c.surface2, color: c.text }]}
@@ -414,11 +415,11 @@ export function PickerSheet({ visible, onClose, title, options, selected, onChan
     onChange(selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id]);
   };
   return (
-    <Sheet visible={visible} onClose={onClose} title={title} footer={multi ? <Button title={`Tayyor${selected.length ? ` · ${selected.length}` : ''}`} onPress={onClose} /> : undefined}>
+    <Sheet visible={visible} onClose={onClose} title={title} footer={multi ? <Button title={tr('Tayyor{v}', { v: selected.length ? ` · ${selected.length}` : '' })} onPress={onClose} /> : undefined}>
       {options.length > 8 && (
         <View style={[styles.pickSearch, { backgroundColor: c.surface2 }]}>
           <Ionicons name="search" size={18} color={c.muted} />
-          <TextInput value={q} onChangeText={setQ} placeholder="Qidirish" placeholderTextColor={c.faint} style={{ flex: 1, minWidth: 0, color: c.text, fontSize: 15, fontFamily: F.semi, height: '100%' }} />
+          <TextInput value={q} onChangeText={setQ} placeholder={tr('Qidirish')} placeholderTextColor={c.faint} style={{ flex: 1, minWidth: 0, color: c.text, fontSize: 15, fontFamily: F.semi, height: '100%' }} />
         </View>
       )}
       <View style={{ gap: 2 }}>

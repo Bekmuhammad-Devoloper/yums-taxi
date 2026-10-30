@@ -10,7 +10,7 @@ import { SECTORS } from '@/lib/platform-data';
 import { usePlatform } from '@/lib/platform';
 import { useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
-import { flipRTL } from '@/lib/i18n';
+import { flipRTL, tr } from '@/lib/i18n';
 
 type Tab = 'companies' | 'offers' | 'services';
 
@@ -24,25 +24,25 @@ export default function Business() {
   const sectors = SECTORS.filter(s => p.companies.some(x => x.sector === s.id));
 
   return (
-    <Screen title="YUMS Business" subtitle="Kompaniyalar, xizmatlar va B2B hamkorlik">
+    <Screen title="YUMS Business" subtitle={tr('Kompaniyalar, xizmatlar va B2B hamkorlik')}>
       {user?.kind === 'company' && p.plan !== 'business' && (
         <Pressable onPress={() => router.push('/plans')} style={({ pressed }) => [styles.promo, { backgroundColor: c.okSoft, opacity: pressed ? 0.85 : 1 }]}>
           <Ionicons name="business" size={24} color={c.ok} />
           <View style={{ flex: 1 }}>
-            <Txt v="h3">Kompaniya profilini kengaytiring</Txt>
-            <Txt v="small" muted>Xizmatlar katalogi, B2B takliflar va xodimlar — Business tarifida</Txt>
+            <Txt v="h3">{tr('Kompaniya profilini kengaytiring')}</Txt>
+            <Txt v="small" muted>{tr('Xizmatlar katalogi, B2B takliflar va xodimlar — Business tarifida')}</Txt>
           </View>
           <Ionicons name="chevron-forward" size={18} color={c.ok} style={flipRTL()} />
         </Pressable>
       )}
 
-      <Segmented<Tab> value={tab} onChange={setTab} items={[{ id: 'companies', label: 'Kompaniyalar' }, { id: 'offers', label: 'B2B takliflar' }, { id: 'services', label: 'Xizmatlar' }]} />
+      <Segmented<Tab> value={tab} onChange={setTab} items={[{ id: 'companies', label: tr('Kompaniyalar') }, { id: 'offers', label: tr('B2B takliflar') }, { id: 'services', label: tr('Xizmatlar') }]} />
 
       {tab === 'companies' && (
         <>
           <View style={{ marginHorizontal: -16 }}>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
-              <Chip label="Barchasi" active={!sector} onPress={() => setSector(null)} />
+              <Chip label={tr('Barchasi')} active={!sector} onPress={() => setSector(null)} />
               {sectors.map(s => <Chip key={s.id} label={s.name} icon={s.icon} active={sector === s.id} onPress={() => setSector(sector === s.id ? null : s.id)} />)}
             </ScrollView>
           </View>
@@ -57,13 +57,13 @@ export default function Business() {
               <Logo name={co.name} color={co.color} size={40} />
               <View style={{ flex: 1 }}>
                 <Row gap={4}><Txt v="small" style={{ fontFamily: F.heavy, flexShrink: 1 }} numberOfLines={1}>{co.name}</Txt>{co.verified && <Verified size={13} />}</Row>
-                <Row gap={5}><Flag code={co.country} size={15} /><Txt v="tiny" faint>{co.city} · B2B taklif</Txt></Row>
+                <Row gap={5}><Flag code={co.country} size={15} /><Txt v="tiny" faint>{tr('{city} · B2B taklif', { city: co.city })}</Txt></Row>
               </View>
             </Row>
           </Pressable>
           <Txt v="h3">{o.title}</Txt>
           <Txt v="small" muted style={{ lineHeight: 19 }}>{o.desc}</Txt>
-          <Button title="Hamkorlik so'rovi" icon="people" kind="dark" small onPress={() => start({ peerId: co.id, peerName: co.name, peerKind: 'company', peerVerified: co.verified }, { request: true, subject: `B2B: ${o.title}` })} />
+          <Button title={tr("Hamkorlik so'rovi")} icon="people" kind="dark" small onPress={() => start({ peerId: co.id, peerName: co.name, peerKind: 'company', peerVerified: co.verified }, { request: true, subject: `B2B: ${o.title}` })} />
         </Card>
       )))}
 
@@ -79,7 +79,7 @@ export default function Business() {
           {co.services.map(s => (
             <Row key={s.title} style={[styles.service, { borderTopColor: c.line }]}>
               <Txt style={{ flex: 1 }} numberOfLines={2}>{s.title}</Txt>
-              <Txt v="small" style={{ fontFamily: F.heavy }}>{s.price ?? 'Kelishuv'}</Txt>
+              <Txt v="small" style={{ fontFamily: F.heavy }}>{s.price ?? tr('Kelishuv')}</Txt>
             </Row>
           ))}
         </Card>

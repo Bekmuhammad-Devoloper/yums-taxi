@@ -1,13 +1,14 @@
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
+import { tr } from '@/lib/i18n';
 
 export type PickResult = { ok: true; uri: string } | { ok: false; reason: 'cancel' | 'denied' | 'error' };
 
 /** Rasm o'lchamlari: profil 1:1, reklama banneri 2:1, mahsulot 4:3. Loyiha muqovasi qirqilmaydi (o'z nisbatida) */
 export const IMAGE_SPECS = {
   avatar: { aspect: [1, 1] as [number, number], width: 400, label: '400×400' },
-  cover: { aspect: [16, 9] as [number, number], width: 1600, label: '16:9 tavsiya · qirqilmaydi', free: true },
+  cover: { aspect: [16, 9] as [number, number], width: 1600, get label() { return tr('16:9 tavsiya · qirqilmaydi'); }, free: true },
   banner: { aspect: [2, 1] as [number, number], width: 1200, label: '1200×600 (2:1)' },
   product: { aspect: [4, 3] as [number, number], width: 1000, label: '1000×750 (4:3)' },
   /** hujjat (ID-1 karta nisbatiga yaqin) */

@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { IMAGE_SPECS, pickImage } from '@/lib/media';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
+import { tr } from '@/lib/i18n';
 
 import { toast } from './toast';
 import { FitImage, Row, Txt } from './ui';
@@ -22,7 +23,7 @@ export function ImageSlot({ kind, value, onChange, label }: { kind: 'cover' | 'b
     const r = await pickImage(kind);
     setBusy(false);
     if (r.ok) onChange(r.uri);
-    else if (r.reason === 'error') toast("Rasmni yuklab bo'lmadi, boshqasini tanlang", 'alert-circle');
+    else if (r.reason === 'error') toast(tr("Rasmni yuklab bo'lmadi, boshqasini tanlang"), 'alert-circle');
   };
 
   return (
@@ -37,11 +38,11 @@ export function ImageSlot({ kind, value, onChange, label }: { kind: 'cover' | 'b
             ? <FitImage source={{ uri: value }} style={StyleSheet.absoluteFill} label={label} />
             : <Image source={{ uri: value }} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel={label} />}
           <Row gap={8} style={styles.actions}>
-            <Pressable onPress={pick} style={styles.action} accessibilityLabel="Rasmni almashtirish">
+            <Pressable onPress={pick} style={styles.action} accessibilityLabel={tr('Rasmni almashtirish')}>
               <Ionicons name="swap-horizontal" size={15} color="#fff" />
-              <Txt v="tiny" color="#fff">Almashtirish</Txt>
+              <Txt v="tiny" color="#fff">{tr('Almashtirish')}</Txt>
             </Pressable>
-            <Pressable onPress={() => { haptic.tap(); onChange(undefined); }} style={styles.action} accessibilityLabel="Rasmni o'chirish">
+            <Pressable onPress={() => { haptic.tap(); onChange(undefined); }} style={styles.action} accessibilityLabel={tr("Rasmni o'chirish")}>
               <Ionicons name="trash-outline" size={15} color="#fff" />
             </Pressable>
           </Row>
@@ -56,8 +57,8 @@ export function ImageSlot({ kind, value, onChange, label }: { kind: 'cover' | 'b
               <View style={[styles.emptyIco, { backgroundColor: c.surface2 }]}>
                 <Ionicons name="image-outline" size={24} color={c.muted} />
               </View>
-              <Txt v="small" style={{ fontFamily: F.bold }}>Rasm yuklash</Txt>
-              <Txt v="tiny" faint>JPG yoki PNG · tavsiya: {spec.label}</Txt>
+              <Txt v="small" style={{ fontFamily: F.bold }}>{tr('Rasm yuklash')}</Txt>
+              <Txt v="tiny" faint>{tr('JPG yoki PNG · tavsiya: {label}', { label: spec.label })}</Txt>
             </>
           )}
         </Pressable>

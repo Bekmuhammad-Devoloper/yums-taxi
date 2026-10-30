@@ -13,16 +13,16 @@ import { SECTIONS, SECTORS } from '@/lib/platform-data';
 import { usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
-import { flipRTL } from '@/lib/i18n';
+import { flipRTL, tr } from '@/lib/i18n';
 
 export default function Home() {
-  const { colors: c, user, t, lang } = useStore();
+  const { colors: c, user, t } = useStore();
   const p = usePlatform();
   const insets = useSafeAreaInsets();
   const featured = p.publicProjects.filter(x => x.boosted);
   const fresh = [...p.publicProjects].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 3);
   const firstName = (user?.name ?? '').split(' ')[0];
-  const sectorName = (s: (typeof SECTORS)[number]) => (lang === 'ru' ? s.ru : lang === 'en' ? s.en : s.name);
+  const sectorName = (s: (typeof SECTORS)[number]) => s.name;
   const stats = [
     [String(p.publicProjects.length * 103 + 4), t('home.statProjects')],
     ['86', t('home.statCountries')],
@@ -84,7 +84,7 @@ export default function Home() {
             onPress={() => { haptic.tap(); router.push('/taxi'); }}
             style={({ pressed }) => [styles.section, { opacity: pressed ? 0.6 : 1 }]}>
             <SectionArt id="taxi" icon="car-sport-outline" color={c.brandDeep} size={54} />
-            <Text style={[styles.sectionName, { color: c.text }]}>TAXI</Text>
+            <Text style={[styles.sectionName, { color: c.text }]}>{tr('TAXI')}</Text>
           </Pressable>
         </View>
       </View>
@@ -97,7 +97,7 @@ export default function Home() {
             <View style={styles.taxiText}>
               {/* mashina tomidagi «YUMS» belgisi uslubida: qora plashka, oltin harflar */}
               <View style={styles.taxiSign}>
-                <Text style={styles.taxiKicker}>YUMS <Text style={{ color: '#FFFFFF' }}>TAXI</Text></Text>
+                <Text style={styles.taxiKicker}>YUMS <Text style={{ color: '#FFFFFF' }}>{tr('TAXI')}</Text></Text>
               </View>
               <Text style={styles.taxiTitle} numberOfLines={2}>{t('home.taxiTitle')}</Text>
               <View style={styles.taxiChip}>
@@ -115,8 +115,8 @@ export default function Home() {
           <Pressable onPress={() => router.push('/verify')} style={({ pressed }) => [styles.verify, { borderColor: c.line, backgroundColor: c.surface, opacity: pressed ? 0.85 : 1 }]}>
             <IconTile name="shield-checkmark-outline" color={c.accent} size={42} />
             <View style={{ flex: 1 }}>
-              <Txt v="h3">{p.myVerification?.status === 'pending' ? "Tasdiqlash ko'rib chiqilmoqda" : t('home.verifyTitle')}</Txt>
-              <Txt v="small" muted>{p.myVerification?.status === 'pending' ? 'Odatda 24 soat ichida' : t('home.verifySub')}</Txt>
+              <Txt v="h3">{p.myVerification?.status === 'pending' ? tr("Tasdiqlash ko'rib chiqilmoqda") : t('home.verifyTitle')}</Txt>
+              <Txt v="small" muted>{p.myVerification?.status === 'pending' ? tr('Odatda 24 soat ichida') : t('home.verifySub')}</Txt>
             </View>
             <Ionicons name="chevron-forward" size={18} color={c.faint} style={flipRTL()} />
           </Pressable>
@@ -181,7 +181,7 @@ export default function Home() {
         </View>
       </View>
 
-      <Txt v="tiny" faint style={{ textAlign: 'center' }}>YUMS · 2026 · Barcha e'lonlar moderatsiyadan o'tadi</Txt>
+      <Txt v="tiny" faint style={{ textAlign: 'center' }}>{tr("YUMS · 2026 · Barcha e'lonlar moderatsiyadan o'tadi")}</Txt>
     </ScrollView>
   );
 }

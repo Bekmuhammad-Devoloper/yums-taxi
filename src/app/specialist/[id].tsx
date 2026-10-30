@@ -10,6 +10,7 @@ import { useStartChat } from '@/lib/actions';
 import { LANGUAGES } from '@/lib/platform-data';
 import { usePlatform } from '@/lib/platform';
 import { useStore } from '@/lib/store';
+import { tr } from '@/lib/i18n';
 
 const REVIEWS = [
   { who: 'AgroSmart LLC', stars: 5, text: "Muddatidan oldin topshirdi, kod sifati a'lo. Yana ishlaymiz." },
@@ -25,7 +26,7 @@ export default function SpecialistScreen() {
   const [reporting, setReporting] = useState(false);
   const sp = p.specialists.find(x => x.id === id);
 
-  if (!sp || p.isBlocked('specialist', sp.id)) return <Screen title="Mutaxassis"><EmptyState icon="person-outline" title="Profil topilmadi" /></Screen>;
+  if (!sp || p.isBlocked('specialist', sp.id)) return <Screen title={tr('Mutaxassis')}><EmptyState icon="person-outline" title={tr('Profil topilmadi')} /></Screen>;
   const peer = { peerId: sp.id, peerName: sp.name, peerKind: 'specialist' as const, peerVerified: sp.verified };
 
   return (
@@ -35,34 +36,34 @@ export default function SpecialistScreen() {
       right={<Row gap={8}><View style={[styles.fav, { backgroundColor: c.surface }]}><FavButton k={'specialist:' + sp.id} /></View><IconButton name="flag-outline" size={42} onPress={() => setReporting(true)} /></Row>}
       footer={
         <Row gap={10}>
-          <Button title="Yozish" kind="ghost" icon="chatbubble-ellipses-outline" style={{ flex: 1 }} onPress={() => start(peer)} />
-          <Button title="Ishga taklif qilish" icon="briefcase" disabled={!sp.available} style={{ flex: 1.4 }} onPress={() => start(peer, { request: true, subject: 'Loyihaga taklif' })} />
+          <Button title={tr('Yozish')} kind="ghost" icon="chatbubble-ellipses-outline" style={{ flex: 1 }} onPress={() => start(peer)} />
+          <Button title={tr('Ishga taklif qilish')} icon="briefcase" disabled={!sp.available} style={{ flex: 1.4 }} onPress={() => start(peer, { request: true, subject: tr('Loyihaga taklif') })} />
         </Row>
       }>
       <SpecialistIdCard sp={sp} />
       <Row gap={6} style={{ flexWrap: 'wrap', marginTop: -4 }}>
-        <Badge label={sp.available ? 'Buyurtma qabul qiladi' : 'Hozir band'} icon={sp.available ? 'checkmark-circle' : 'time-outline'} tone={sp.available ? 'ok' : 'muted'} />
-        {sp.remote && <Badge label="Masofaviy" icon="globe-outline" tone="accent" />}
+        <Badge label={sp.available ? tr('Buyurtma qabul qiladi') : tr('Hozir band')} icon={sp.available ? 'checkmark-circle' : 'time-outline'} tone={sp.available ? 'ok' : 'muted'} />
+        {sp.remote && <Badge label={tr('Masofaviy')} icon="globe-outline" tone="accent" />}
       </Row>
 
       <KeyValue items={[
-        { label: 'Stavka', value: `$${sp.rate} / soat`, icon: 'cash-outline' },
-        { label: 'Reyting', value: `★ ${sp.rating.toFixed(1)} (${sp.reviews})`, icon: 'star-outline' },
-        { label: 'Tajriba', value: `${sp.experience} yil`, icon: 'ribbon-outline' },
-        { label: 'Tillar', value: sp.languages.map(l => LANGUAGES.find(x => x.id === l)?.name ?? l).join(', '), icon: 'language-outline' },
+        { label: tr('Stavka'), value: tr('{rate} / soat', { rate: `$${sp.rate}` }), icon: 'cash-outline' },
+        { label: tr('Reyting'), value: `★ ${sp.rating.toFixed(1)} (${sp.reviews})`, icon: 'star-outline' },
+        { label: tr('Tajriba'), value: tr('{experience} yil', { experience: sp.experience }), icon: 'ribbon-outline' },
+        { label: tr('Tillar'), value: sp.languages.map(l => LANGUAGES.find(x => x.id === l)?.name ?? l).join(', '), icon: 'language-outline' },
       ]} />
 
       <Card style={{ gap: 8 }}>
-        <Txt v="h3">Men haqimda</Txt>
+        <Txt v="h3">{tr('Men haqimda')}</Txt>
         <Txt muted style={{ lineHeight: 22 }}>{sp.about}</Txt>
       </Card>
 
       <Card style={{ gap: 10 }}>
-        <Txt v="h3">Ko'nikmalar</Txt>
+        <Txt v="h3">{tr("Ko'nikmalar")}</Txt>
         <Row gap={6} style={{ flexWrap: 'wrap' }}>{sp.skills.map(s => <Badge key={s} label={s} tone="accent" />)}</Row>
       </Card>
 
-      <SectionHeader title={`Sharhlar · ${sp.reviews}`} />
+      <SectionHeader title={tr('Sharhlar · {reviews}', { reviews: sp.reviews })} />
       {REVIEWS.map(r => (
         <Card key={r.who} style={{ gap: 6 }}>
           <Row style={{ justifyContent: 'space-between' }}>

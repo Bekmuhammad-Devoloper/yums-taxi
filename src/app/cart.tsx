@@ -11,6 +11,7 @@ import type { MarketItem } from '@/lib/platform-data';
 import { usd, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
+import { tr } from '@/lib/i18n';
 
 type Line = { item: MarketItem; qty: number };
 
@@ -33,38 +34,38 @@ export default function Cart() {
     haptic.success();
     sellers.forEach(g => {
       const first = g[0].item;
-      const text = ['Assalomu alaykum! YUMS Market orqali buyurtma:', ...g.map(l => `• ${l.item.title} — ${l.qty}${l.item.unit ? ' ' + l.item.unit : ' ta'} × ${usd(l.item.price)}`), `Jami: ${usd(g.reduce((s, l) => s + l.item.price * l.qty, 0))}`].join('\n');
-      p.openChat({ peerId: first.sellerId, peerName: first.sellerName, peerKind: 'company', peerVerified: first.sellerVerified }, { request: true, subject: `Buyurtma · ${g.length} ta mahsulot`, text });
+      const text = [tr('Assalomu alaykum! YUMS Market orqali buyurtma:'), ...g.map(l => `• ${l.item.title} — ${l.item.unit ? `${l.qty} ${tr(l.item.unit)}` : tr('{n} ta', { n: l.qty })} × ${usd(l.item.price)}`), tr('Jami: {sum}', { sum: usd(g.reduce((s, l) => s + l.item.price * l.qty, 0)) })].join('\n');
+      p.openChat({ peerId: first.sellerId, peerName: first.sellerName, peerKind: 'company', peerVerified: first.sellerVerified }, { request: true, subject: tr('Buyurtma · {n} ta mahsulot', { n: g.length }), text });
     });
     p.clearCart();
-    toast(sellers.length > 1 ? `${sellers.length} ta sotuvchiga buyurtma yuborildi` : 'Buyurtma sotuvchiga yuborildi', 'checkmark-circle');
+    toast(sellers.length > 1 ? tr('{length} ta sotuvchiga buyurtma yuborildi', { length: sellers.length }) : tr('Buyurtma sotuvchiga yuborildi'), 'checkmark-circle');
     router.replace({ pathname: '/connect', params: { tab: 'requests' } });
   };
 
   if (!lines.length) {
     return (
-      <Screen title="Savat">
-        <EmptyState icon="cart-outline" title="Savat hozircha bo'sh" sub="Bozordan yoqqan tovar yoki xizmatni «Savatga» tugmasi bilan qo'shing" action="Bozorga o'tish" onAction={() => router.replace('/market')} />
+      <Screen title={tr('Savat')}>
+        <EmptyState icon="cart-outline" title={tr("Savat hozircha bo'sh")} sub={tr("Bozordan yoqqan tovar yoki xizmatni «Savatga» tugmasi bilan qo'shing")} action={tr("Bozorga o'tish")} onAction={() => router.replace('/market')} />
       </Screen>
     );
   }
 
   return (
     <Screen
-      title="Savat"
-      subtitle={`${p.cartCount} ta mahsulot · ${sellers.length} ta sotuvchi`}
+      title={tr('Savat')}
+      subtitle={tr('{cartCount} ta mahsulot · {length} ta sotuvchi', { cartCount: p.cartCount, length: sellers.length })}
       right={
-        <Pressable hitSlop={8} onPress={() => confirm('Savatni tozalaysizmi?', "Barcha mahsulotlar olib tashlanadi.", () => p.clearCart(), 'Tozalash')}>
-          <Text style={[styles.clear, { color: c.danger }]}>Tozalash</Text>
+        <Pressable hitSlop={8} onPress={() => confirm(tr('Savatni tozalaysizmi?'), tr('Barcha mahsulotlar olib tashlanadi.'), () => p.clearCart(), tr('Tozalash'))}>
+          <Text style={[styles.clear, { color: c.danger }]}>{tr('Tozalash')}</Text>
         </Pressable>
       }
       footer={
         <Row gap={12}>
           <View style={{ flex: 1 }}>
-            <Txt v="tiny" muted>Jami</Txt>
+            <Txt v="tiny" muted>{tr('Jami')}</Txt>
             <Text style={[styles.total, { color: c.text }]}>{usd(total)}</Text>
           </View>
-          <Button title="Buyurtma berish" icon="bag-check-outline" style={{ flex: 1.5 }} onPress={order} />
+          <Button title={tr('Buyurtma berish')} icon="bag-check-outline" style={{ flex: 1.5 }} onPress={order} />
         </Row>
       }>
       {sellers.map(g => {
@@ -98,18 +99,19 @@ export default function Cart() {
       })}
 
       <Card style={{ gap: 10 }}>
-        <Txt v="h3">Buyurtma</Txt>
-        <Row style={{ justifyContent: 'space-between' }}><Txt muted>Mahsulotlar ({p.cartCount})</Txt><Txt>{usd(before)}</Txt></Row>
-        {saved > 0 && <Row style={{ justifyContent: 'space-between' }}><Txt muted>Chegirma</Txt><Txt color={SALE} style={{ fontFamily: F.bold }}>−{usd(saved)}</Txt></Row>}
-        <Row style={{ justifyContent: 'space-between' }}><Txt muted>Yetkazish</Txt><Txt muted>Sotuvchi bilan kelishiladi</Txt></Row>
+        <Txt v="h3">{tr('Buyurtma')}</Txt>
+        <Row style={{ justifyContent: 'space-between' }}><Txt muted>{tr('Mahsulotlar ({cartCount})', { cartCount: p.cartCount })}</Txt><Txt>{usd(before)}</Txt></Row>
+        {saved > 0 && <Row style={{ justifyContent: 'space-between' }}><Txt muted>{tr('Chegirma')}</Txt><Txt color={SALE} style={{ fontFamily: F.bold }}>−{usd(saved)}</Txt></Row>}
+        <Row style={{ justifyContent: 'space-between' }}><Txt muted>{tr('Yetkazish')}</Txt><Txt muted>{tr('Sotuvchi bilan kelishiladi')}</Txt></Row>
         <Divider />
-        <Row style={{ justifyContent: 'space-between' }}><Txt v="h3">Jami</Txt><Txt v="h2">{usd(total)}</Txt></Row>
+        <Row style={{ justifyContent: 'space-between' }}><Txt v="h3">{tr('Jami')}</Txt><Txt v="h2">{usd(total)}</Txt></Row>
       </Card>
 
       <View style={[styles.note, { backgroundColor: c.okSoft }]}>
         <Ionicons name="shield-checkmark" size={20} color={c.ok} />
         <Txt v="small" color={c.ok} style={{ flex: 1, lineHeight: 19 }}>
-          Buyurtma har bir sotuvchiga alohida so'rov bo'lib boradi. To'lov shartnoma tuzilgach litsenziyalangan to'lov hamkori orqali amalga oshiriladi — oldindan shaxsiy kartaga pul o'tkazmang.
+          
+          {tr("Buyurtma har bir sotuvchiga alohida so'rov bo'lib boradi. To'lov shartnoma tuzilgach litsenziyalangan to'lov hamkori orqali amalga oshiriladi — oldindan shaxsiy kartaga pul o'tkazmang.")}
         </Txt>
       </View>
     </Screen>

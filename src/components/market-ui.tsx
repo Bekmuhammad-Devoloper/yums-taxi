@@ -10,6 +10,7 @@ import { sectorOf, short, usd, usePlatform } from '@/lib/platform';
 import { SECTOR_ART } from '@/lib/sector-art';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
+import { tr } from '@/lib/i18n';
 
 import { toast } from './toast';
 import { Txt, Verified, alpha } from './ui';
@@ -23,7 +24,7 @@ export const discountOf = (m: Pick<MarketItem, 'price' | 'oldPrice'>) =>
 
 /** Yetkazish haqida qisqa yozuv */
 export const deliveryShort = (m: Pick<MarketItem, 'kind' | 'delivery'>) =>
-  m.kind === 'digital' ? 'Raqamli · darhol' : m.kind === 'service' ? 'Xizmat · kelishuv bo\'yicha' : (m.delivery ?? 'Yetkazish kelishiladi');
+  m.kind === 'digital' ? tr('Raqamli · darhol') : m.kind === 'service' ? tr("Xizmat · kelishuv bo'yicha") : (m.delivery ?? tr('Yetkazish kelishiladi'));
 
 /** E'lon rasmi; rasm bo'lmasa soha rangidagi fon va 3D belgi. Ota-ona o'lchamini to'ldiradi */
 export function MarketVisual({ m, icon = 40, plain }: { m: Pick<MarketItem, 'image' | 'sector' | 'title'>; icon?: number; plain?: boolean }) {
@@ -43,7 +44,7 @@ export function MarketVisual({ m, icon = 40, plain }: { m: Pick<MarketItem, 'ima
 /** ★ 4.8 (126) */
 export function Stars({ m, size = 12.5 }: { m: Pick<MarketItem, 'rating' | 'reviews'>; size?: number }) {
   const { colors: c } = useStore();
-  if (!m.rating) return <Txt v="tiny" style={{ color: c.ok, fontFamily: F.bold }}>Yangi</Txt>;
+  if (!m.rating) return <Txt v="tiny" style={{ color: c.ok, fontFamily: F.bold }}>{tr('Yangi')}</Txt>;
   return (
     <View style={styles.row}>
       <Ionicons name="star" size={size} color={STAR} />
@@ -63,8 +64,8 @@ export function HeartButton({ id, size = 22, style }: { id: string; size?: numbe
     <Pressable
       hitSlop={10}
       accessibilityRole="button"
-      accessibilityLabel={on ? 'Sevimlilardan olib tashlash' : 'Sevimlilarga qo\'shish'}
-      onPress={() => { haptic.tap(); const v = toggleFav(k); toast(v ? 'Sevimlilarga qo\'shildi' : 'Sevimlilardan olib tashlandi', v ? 'heart' : 'heart-outline'); }}
+      accessibilityLabel={on ? tr('Sevimlilardan olib tashlash') : tr("Sevimlilarga qo'shish")}
+      onPress={() => { haptic.tap(); const v = toggleFav(k); toast(v ? tr("Sevimlilarga qo'shildi") : tr('Sevimlilardan olib tashlandi'), v ? 'heart' : 'heart-outline'); }}
       style={style}>
       <Ionicons name={on ? 'heart' : 'heart-outline'} size={size} color={on ? SALE : c.faint} />
     </Pressable>
@@ -81,20 +82,20 @@ export function CartControl({ m, big, style }: { m: MarketItem; big?: boolean; s
     return (
       <Pressable
         accessibilityRole="button"
-        onPress={() => { haptic.tap(); setCartQty(m.id, 1); toast('Savatga qo\'shildi', 'cart'); }}
+        onPress={() => { haptic.tap(); setCartQty(m.id, 1); toast(tr("Savatga qo'shildi"), 'cart'); }}
         style={({ pressed }) => [styles.cartBtn, { height: h, borderRadius: big ? 16 : 12, backgroundColor: c.brand, opacity: pressed ? 0.85 : 1 }, style]}>
         {big && <Ionicons name="cart-outline" size={19} color={c.brandText} />}
-        <Text style={[styles.cartText, { color: c.brandText, fontSize: big ? 15.5 : 13.5 }]}>{big ? 'Savatga qo\'shish' : 'Savatga'}</Text>
+        <Text style={[styles.cartText, { color: c.brandText, fontSize: big ? 15.5 : 13.5 }]}>{big ? tr("Savatga qo'shish") : tr('Savatga')}</Text>
       </Pressable>
     );
   }
   return (
     <View style={[styles.stepper, { height: h, borderRadius: big ? 16 : 12, backgroundColor: c.brandSoft }, style]}>
-      <Pressable accessibilityLabel="Kamaytirish" hitSlop={6} onPress={() => { haptic.tap(); setCartQty(m.id, qty - 1); }} style={[styles.stepBtn, { width: h }]}>
+      <Pressable accessibilityLabel={tr('Kamaytirish')} hitSlop={6} onPress={() => { haptic.tap(); setCartQty(m.id, qty - 1); }} style={[styles.stepBtn, { width: h }]}>
         <Ionicons name={qty === 1 ? 'trash-outline' : 'remove'} size={big ? 20 : 17} color={c.text} />
       </Pressable>
       <Text style={[styles.qty, { color: c.text, fontSize: big ? 16 : 14 }]}>{qty}</Text>
-      <Pressable accessibilityLabel="Ko'paytirish" hitSlop={6} onPress={() => { haptic.tap(); setCartQty(m.id, qty + 1); }} style={[styles.stepBtn, { width: h }]}>
+      <Pressable accessibilityLabel={tr("Ko'paytirish")} hitSlop={6} onPress={() => { haptic.tap(); setCartQty(m.id, qty + 1); }} style={[styles.stepBtn, { width: h }]}>
         <Ionicons name="add" size={big ? 21 : 18} color={c.text} />
       </Pressable>
     </View>
@@ -108,7 +109,7 @@ export function PriceLine({ m, size = 18 }: { m: Pick<MarketItem, 'price' | 'old
   return (
     <View style={[styles.row, { flexWrap: 'wrap', columnGap: 6, alignItems: 'baseline' }]}>
       <Text style={[styles.price, { color: off ? SALE : c.text, fontSize: size }]}>{usd(m.price)}</Text>
-      {m.unit ? <Text style={[styles.unit, { color: c.faint, fontSize: size * 0.68 }]}>/ {m.unit}</Text> : null}
+      {m.unit ? <Text style={[styles.unit, { color: c.faint, fontSize: size * 0.68 }]}>/ {tr(m.unit)}</Text> : null}
       {off ? <Text style={[styles.old, { color: c.faint, fontSize: size * 0.68 }]}>{usd(m.oldPrice!)}</Text> : null}
     </View>
   );

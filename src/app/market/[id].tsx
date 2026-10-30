@@ -14,6 +14,7 @@ import { MARKET_KINDS } from '@/lib/platform-data';
 import { ago, countryOf, sectorOf, short, usd, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
+import { tr } from '@/lib/i18n';
 
 export default function MarketItemScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -28,7 +29,7 @@ export default function MarketItemScreen() {
   const staff = user?.role === 'moderator' || user?.role === 'admin';
 
   if (!m || (!mine && !staff && (m.status !== 'published' || p.isBlocked('market', m.id)))) {
-    return <Screen title="E'lon"><EmptyState icon="pricetag-outline" title="E'lon topilmadi" sub="U sotilgan, o'chirilgan yoki moderatsiyada bo'lishi mumkin" /></Screen>;
+    return <Screen title={tr("E'lon")}><EmptyState icon="pricetag-outline" title={tr("E'lon topilmadi")} sub={tr("U sotilgan, o'chirilgan yoki moderatsiyada bo'lishi mumkin")} /></Screen>;
   }
   const k = countryOf(m.country);
   const sec = sectorOf(m.sector);
@@ -38,21 +39,21 @@ export default function MarketItemScreen() {
   const fav = p.isFav('market:' + m.id);
   const peer = { peerId: m.sellerId, peerName: m.sellerName, peerKind: 'company' as const, peerVerified: m.sellerVerified };
   const similar = p.publicMarket.filter(x => x.id !== m.id && (x.sector === m.sector || x.kind === m.kind)).slice(0, 6);
-  const share = () => Share.share({ message: `YUMS Market: ${m.title} — ${usd(m.price)}` }).catch(() => {});
+  const share = () => Share.share({ message: tr('YUMS Market: {title} — {usd}', { title: m.title, usd: usd(m.price) }) }).catch(() => {});
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={[styles.top, { paddingTop: insets.top + 8 }]}>
-        <NavButton icon="chevron-back" label="Orqaga" onPress={() => (router.canGoBack() ? router.back() : router.replace('/market'))} />
+        <NavButton icon="chevron-back" label={tr('Orqaga')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/market'))} />
         <NavGroup items={[
-          { icon: 'share-outline', label: 'Ulashish', onPress: share },
+          { icon: 'share-outline', label: tr('Ulashish'), onPress: share },
           ...(!mine ? [{
             icon: (fav ? 'heart' : 'heart-outline') as 'heart',
-            label: fav ? 'Sevimlilardan olib tashlash' : "Sevimlilarga qo'shish",
+            label: fav ? tr('Sevimlilardan olib tashlash') : tr("Sevimlilarga qo'shish"),
             color: fav ? SALE : undefined,
-            onPress: () => { const v = p.toggleFav('market:' + m.id); toast(v ? "Sevimlilarga qo'shildi" : 'Sevimlilardan olib tashlandi', v ? 'heart' : 'heart-outline'); },
+            onPress: () => { const v = p.toggleFav('market:' + m.id); toast(v ? tr("Sevimlilarga qo'shildi") : tr('Sevimlilardan olib tashlandi'), v ? 'heart' : 'heart-outline'); },
           }] : []),
-          { icon: 'ellipsis-horizontal', label: 'Amallar', onPress: () => setMenu(true) },
+          { icon: 'ellipsis-horizontal', label: tr('Amallar'), onPress: () => setMenu(true) },
         ]} />
       </View>
 
@@ -66,17 +67,17 @@ export default function MarketItemScreen() {
         {/* Narx va nom */}
         <View style={{ gap: 8 }}>
           <PriceLine m={m} size={28} />
-          {off ? <Text style={[styles.save, { color: SALE }]}>Tejaysiz: {usd(m.oldPrice! - m.price)}</Text> : null}
+          {off ? <Text style={[styles.save, { color: SALE }]}>{tr('Tejaysiz: {usd}', { usd: usd(m.oldPrice! - m.price) })}</Text> : null}
           <Txt v="h2" style={{ lineHeight: 26 }}>{m.title}</Txt>
           <Row gap={10} style={{ flexWrap: 'wrap' }}>
             {m.rating ? (
               <Row gap={4}>
                 {[1, 2, 3, 4, 5].map(i => <Ionicons key={i} name={m.rating! >= i - 0.25 ? 'star' : m.rating! >= i - 0.75 ? 'star-half' : 'star-outline'} size={15} color={STAR} />)}
                 <Txt v="small" style={{ fontFamily: F.bold, marginLeft: 2 }}>{m.rating.toFixed(1)}</Txt>
-                <Txt v="small" faint>· {short(m.reviews ?? 0)} baho</Txt>
+                <Txt v="small" faint>{tr('· {short} baho', { short: short(m.reviews ?? 0) })}</Txt>
               </Row>
-            ) : <Txt v="small" color={c.ok} style={{ fontFamily: F.bold }}>Yangi e'lon</Txt>}
-            {m.sold ? <Txt v="small" faint>{short(m.sold)}+ marta buyurtma qilingan</Txt> : null}
+            ) : <Txt v="small" color={c.ok} style={{ fontFamily: F.bold }}>{tr("Yangi e'lon")}</Txt>}
+            {m.sold ? <Txt v="small" faint>{tr('{short}+ marta buyurtma qilingan', { short: short(m.sold) })}</Txt> : null}
           </Row>
           <Row gap={6} style={{ flexWrap: 'wrap' }}>
             {(mine || staff) && <StatusBadge status={m.status} />}
@@ -93,10 +94,10 @@ export default function MarketItemScreen() {
 
         {/* Yetkazish va shartlar */}
         <Card style={{ gap: 0, padding: 6 }}>
-          <InfoRow icon={m.kind === 'goods' ? 'cube-outline' : m.kind === 'digital' ? 'flash-outline' : 'briefcase-outline'} title={deliveryShort(m)} sub={m.kind === 'goods' ? 'Yetkazib berish' : m.kind === 'digital' ? "To'lovdan so'ng havola beriladi" : 'Muddat sotuvchi bilan kelishiladi'} />
-          {m.minOrder ? <InfoRow icon="layers-outline" title={m.minOrder} sub="Minimal buyurtma" /> : null}
-          <InfoRow icon="location-outline" title={k.name} sub="Sotuvchi mamlakati" flag={k.code} />
-          <InfoRow icon="shield-checkmark-outline" title="Xavfsiz bitim" sub="Shartnoma va litsenziyalangan to'lov hamkori orqali" tint={c.ok} last />
+          <InfoRow icon={m.kind === 'goods' ? 'cube-outline' : m.kind === 'digital' ? 'flash-outline' : 'briefcase-outline'} title={deliveryShort(m)} sub={m.kind === 'goods' ? tr('Yetkazib berish') : m.kind === 'digital' ? tr("To'lovdan so'ng havola beriladi") : tr('Muddat sotuvchi bilan kelishiladi')} />
+          {m.minOrder ? <InfoRow icon="layers-outline" title={m.minOrder} sub={tr('Minimal buyurtma')} /> : null}
+          <InfoRow icon="location-outline" title={k.name} sub={tr('Sotuvchi mamlakati')} flag={k.code} />
+          <InfoRow icon="shield-checkmark-outline" title={tr('Xavfsiz bitim')} sub={tr("Shartnoma va litsenziyalangan to'lov hamkori orqali")} tint={c.ok} last />
         </Card>
 
         {/* Sotuvchi */}
@@ -105,12 +106,12 @@ export default function MarketItemScreen() {
             <Logo name={m.sellerName} size={46} />
             <View style={{ flex: 1 }}>
               <Row gap={4}><Txt v="h3" numberOfLines={1} style={{ flexShrink: 1 }}>{m.sellerName}</Txt>{m.sellerVerified && <Verified />}</Row>
-              <Txt v="small" muted>{m.sellerVerified ? 'Tasdiqlangan sotuvchi' : 'Sotuvchi'} · {ago(m.createdAt)}</Txt>
+              <Txt v="small" muted>{m.sellerVerified ? tr('Tasdiqlangan sotuvchi') : tr('Sotuvchi')} · {ago(m.createdAt)}</Txt>
             </View>
             {!mine && (
               <Pressable onPress={() => { haptic.tap(); start(peer, { subject: m.title }); }} style={({ pressed }) => [styles.chatBtn, { backgroundColor: c.surface2, opacity: pressed ? 0.7 : 1 }]}>
                 <Ionicons name="chatbubble-ellipses-outline" size={17} color={c.text} />
-                <Text style={[styles.chatText, { color: c.text }]}>Yozish</Text>
+                <Text style={[styles.chatText, { color: c.text }]}>{tr('Yozish')}</Text>
               </Pressable>
             )}
           </Row>
@@ -118,13 +119,13 @@ export default function MarketItemScreen() {
 
         {/* Tavsif */}
         <Card style={{ gap: 8 }}>
-          <Txt v="h3">Tavsif</Txt>
+          <Txt v="h3">{tr('Tavsif')}</Txt>
           <Txt muted style={{ lineHeight: 22 }}>{m.desc}</Txt>
         </Card>
 
         {similar.length > 0 && (
           <View style={{ gap: 12 }}>
-            <Txt v="h2">O'xshash takliflar</Txt>
+            <Txt v="h2">{tr("O'xshash takliflar")}</Txt>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16 }} contentContainerStyle={{ gap: 12, paddingHorizontal: 16 }}>
               {similar.map(x => <MarketCard key={x.id} m={x} style={{ width: 160 }} />)}
             </ScrollView>
@@ -137,12 +138,12 @@ export default function MarketItemScreen() {
         <View style={[styles.footer, { paddingBottom: insets.bottom + 12, backgroundColor: c.bg, borderTopColor: c.line }]}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <PriceLine m={m} size={19} />
-            <Txt v="tiny" muted numberOfLines={1}>{inCart ? `Savatda: ${inCart} · ${usd(inCart * m.price)}` : deliveryShort(m)}</Txt>
+            <Txt v="tiny" muted numberOfLines={1}>{inCart ? tr('Savatda: {inCart} · {usd}', { inCart, usd: usd(inCart * m.price) }) : deliveryShort(m)}</Txt>
           </View>
           {inCart ? (
             <Row gap={8}>
               <CartControl m={m} big style={{ width: 132 }} />
-              <Pressable onPress={() => { haptic.tap(); router.push('/cart'); }} accessibilityLabel="Savatga o'tish" style={({ pressed }) => [styles.toCart, { backgroundColor: c.ink, opacity: pressed ? 0.85 : 1 }]}>
+              <Pressable onPress={() => { haptic.tap(); router.push('/cart'); }} accessibilityLabel={tr("Savatga o'tish")} style={({ pressed }) => [styles.toCart, { backgroundColor: c.ink, opacity: pressed ? 0.85 : 1 }]}>
                 <Ionicons name="cart" size={21} color={c.bg} />
               </Pressable>
             </Row>
@@ -158,23 +159,23 @@ export default function MarketItemScreen() {
             <View style={[styles.menuThumb, { backgroundColor: dark ? c.surface2 : '#FFFFFF' }]}><MarketVisual m={m} icon={20} plain /></View>
             <View style={{ flex: 1, gap: 2 }}>
               <Txt v="h3" numberOfLines={1}>{m.title}</Txt>
-              <Txt v="small" muted numberOfLines={1}>{usd(m.price)}{m.unit ? ` / ${m.unit}` : ''} · {m.sellerName}</Txt>
+              <Txt v="small" muted numberOfLines={1}>{usd(m.price)}{m.unit ? ` / ${tr(m.unit)}` : ''} · {m.sellerName}</Txt>
             </View>
           </>
         }
         groups={mine ? [
-          [{ icon: 'share-social-outline', title: 'Ulashish', sub: 'Havolani yuborish', color: c.accent, onPress: () => { setMenu(false); share(); } }],
-          [{ icon: 'trash-outline', title: "E'lonni o'chirish", sub: "Qaytarib bo'lmaydi", danger: true, onPress: () => {
+          [{ icon: 'share-social-outline', title: tr('Ulashish'), sub: tr('Havolani yuborish'), color: c.accent, onPress: () => { setMenu(false); share(); } }],
+          [{ icon: 'trash-outline', title: tr("E'lonni o'chirish"), sub: tr("Qaytarib bo'lmaydi"), danger: true, onPress: () => {
             setMenu(false);
-            confirm("E'lonni o'chirasizmi?", m.title, () => { p.deleteMarketItem(m.id); toast("E'lon o'chirildi", 'trash'); router.back(); }, "O'chirish");
+            confirm(tr("E'lonni o'chirasizmi?"), m.title, () => { p.deleteMarketItem(m.id); toast(tr("E'lon o'chirildi"), 'trash'); router.back(); }, tr("O'chirish"));
           } }],
         ] : [
           [
-            { icon: 'share-social-outline', title: 'Ulashish', sub: 'Havolani yuborish', color: c.accent, onPress: () => { setMenu(false); share(); } },
-            { icon: 'chatbubble-ellipses-outline', title: 'Sotuvchiga yozish', sub: m.sellerName, color: c.ok, onPress: () => { setMenu(false); start(peer, { subject: m.title }); } },
-            { icon: 'document-text-outline', title: "Ulgurji narx so'rash", sub: 'Hamkorlik so\'rovi yuboriladi', color: c.violet, onPress: () => { setMenu(false); start(peer, { request: true, subject: `Ulgurji narx: ${m.title}` }); } },
+            { icon: 'share-social-outline', title: tr('Ulashish'), sub: tr('Havolani yuborish'), color: c.accent, onPress: () => { setMenu(false); share(); } },
+            { icon: 'chatbubble-ellipses-outline', title: tr('Sotuvchiga yozish'), sub: m.sellerName, color: c.ok, onPress: () => { setMenu(false); start(peer, { subject: m.title }); } },
+            { icon: 'document-text-outline', title: tr("Ulgurji narx so'rash"), sub: tr("Hamkorlik so'rovi yuboriladi"), color: c.violet, onPress: () => { setMenu(false); start(peer, { request: true, subject: tr('Ulgurji narx: {title}', { title: m.title }) }); } },
           ],
-          [{ icon: 'flag-outline', title: 'Shikoyat qilish', sub: "Qoidalarni buzgan bo'lsa", danger: true, onPress: () => { setMenu(false); setTimeout(() => setReporting(true), 350); } }],
+          [{ icon: 'flag-outline', title: tr('Shikoyat qilish'), sub: tr("Qoidalarni buzgan bo'lsa"), danger: true, onPress: () => { setMenu(false); setTimeout(() => setReporting(true), 350); } }],
         ]}
       />
       <ReportSheet visible={reporting} onClose={() => setReporting(false)} kind="market" id={m.id} title={m.title} />

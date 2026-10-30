@@ -5,14 +5,15 @@ import { ScrollView, View } from 'react-native';
 import { SpecialistCard } from '@/components/platform-ui';
 import { Card, Chip, EmptyState, ListItem, Screen, SearchBar, Txt } from '@/components/ui';
 import { usePlatform } from '@/lib/platform';
+import { tr } from '@/lib/i18n';
 
 const ROLES: { id: string; label: string; match: RegExp }[] = [
-  { id: 'dev', label: 'Dasturchilar', match: /dasturchi|developer|backend|frontend|react/i },
-  { id: 'design', label: 'Dizaynerlar', match: /dizayn|design|ui|ux/i },
-  { id: 'eng', label: 'Muhandislar', match: /muhandis|engineer|mexatronika|devops/i },
-  { id: 'ai', label: 'AI / Data', match: /machine|ai|data|ml/i },
-  { id: 'biz', label: 'Biznes va huquq', match: /tahlilchi|product|yurist|manager/i },
-  { id: 'qa', label: 'QA', match: /qa|test/i },
+  { id: 'dev', get label() { return tr('Dasturchilar'); }, match: /dasturchi|developer|backend|frontend|react/i },
+  { id: 'design', get label() { return tr('Dizaynerlar'); }, match: /dizayn|design|ui|ux/i },
+  { id: 'eng', get label() { return tr('Muhandislar'); }, match: /muhandis|engineer|mexatronika|devops/i },
+  { id: 'ai', get label() { return tr('AI / Data'); }, match: /machine|ai|data|ml/i },
+  { id: 'biz', get label() { return tr('Biznes va huquq'); }, match: /tahlilchi|product|yurist|manager/i },
+  { id: 'qa', get label() { return tr('QA'); }, match: /qa|test/i },
 ];
 
 export default function Tech() {
@@ -32,20 +33,20 @@ export default function Tech() {
   ).sort((a, b) => Number(b.verified) - Number(a.verified) || b.rating - a.rating);
 
   return (
-    <Screen title="YUMS Technology" subtitle="Dasturchi, muhandis, dizayner va boshqa mutaxassislar">
-      <SearchBar value={q} onChangeText={setQ} placeholder="Ko'nikma: React, Figma, PLC…" />
+    <Screen title="YUMS Technology" subtitle={tr('Dasturchi, muhandis, dizayner va boshqa mutaxassislar')}>
+      <SearchBar value={q} onChangeText={setQ} placeholder={tr("Ko'nikma: React, Figma, PLC…")} />
       <View style={{ marginHorizontal: -16 }}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingHorizontal: 16 }}>
-          <Chip label="Bo'sh" icon="checkmark-circle-outline" active={available} onPress={() => setAvailable(v => !v)} />
-          <Chip label="Masofaviy" icon="globe-outline" active={remote} onPress={() => setRemote(v => !v)} />
+          <Chip label={tr("Bo'sh")} icon="checkmark-circle-outline" active={available} onPress={() => setAvailable(v => !v)} />
+          <Chip label={tr('Masofaviy')} icon="globe-outline" active={remote} onPress={() => setRemote(v => !v)} />
           {ROLES.map(x => <Chip key={x.id} label={x.label} active={role === x.id} onPress={() => setRole(role === x.id ? null : x.id)} />)}
         </ScrollView>
       </View>
-      <Txt v="small" faint>{list.length} ta mutaxassis · tasdiqlanganlar birinchi</Txt>
-      {list.length ? list.map(s => <SpecialistCard key={s.id} sp={s} />) : <EmptyState icon="people-outline" title="Mutaxassis topilmadi" sub="Filtrlarni o'zgartiring" />}
+      <Txt v="small" faint>{tr('{length} ta mutaxassis · tasdiqlanganlar birinchi', { length: list.length })}</Txt>
+      {list.length ? list.map(s => <SpecialistCard key={s.id} sp={s} />) : <EmptyState icon="people-outline" title={tr('Mutaxassis topilmadi')} sub={tr("Filtrlarni o'zgartiring")} />}
       <Card style={{ padding: 6 }}>
-        <ListItem icon="person-add-outline" title="Mutaxassis sifatida ro'yxatdan o'tish" sub="Profilingizni to'ldiring va buyurtmalar oling" onPress={() => router.push('/profile-edit')} />
-        <ListItem icon="briefcase-outline" title="Vakansiya joylashtirish" sub="Loyiha sifatida — «Mutaxassis izlanmoqda»" onPress={() => router.push('/project/edit')} />
+        <ListItem icon="person-add-outline" title={tr("Mutaxassis sifatida ro'yxatdan o'tish")} sub={tr("Profilingizni to'ldiring va buyurtmalar oling")} onPress={() => router.push('/profile-edit')} />
+        <ListItem icon="briefcase-outline" title={tr('Vakansiya joylashtirish')} sub={tr('Loyiha sifatida — «Mutaxassis izlanmoqda»')} onPress={() => router.push('/project/edit')} />
       </Card>
     </Screen>
   );
