@@ -200,7 +200,8 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 18 },
   section: { width: '25%', alignItems: 'center', gap: 8 },
   sectionName: { fontSize: 10.5, fontFamily: F.bold, letterSpacing: 0.6 },
-  taxi: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: radius.l, overflow: 'hidden', aspectRatio: 3, minHeight: 112 },
+  // rasm kompozitsiyasi (mashina o'ngda) saqlanadi: arab tilida ham matn chap tomonda, mashina ustiga tushmaydi
+  taxi: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: radius.l, overflow: 'hidden', aspectRatio: 3, minHeight: 112, direction: 'ltr' },
   taxiText: { flex: 1, maxWidth: '58%', gap: 7, alignItems: 'flex-start' },
   taxiSign: { backgroundColor: '#0E1525', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   taxiChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(14,21,37,0.12)', paddingHorizontal: 9, height: 24, borderRadius: 12, maxWidth: '100%' },
