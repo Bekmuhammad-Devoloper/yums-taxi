@@ -8,9 +8,10 @@ import { Platform, Vibration } from 'react-native';
 
 import { toast } from '@/components/toast';
 import { DEFAULT_CENTER, PLACES, TARIFFS, type Driver, type LatLng, type Place } from '@/lib/data';
-import { DispatchClient, DISPATCH_URL, type ConnState, type OrderOffer } from '@/lib/dispatch';
+import { DispatchClient, DISPATCH_URL, type ConnState, type DocSync, type OrderOffer } from '@/lib/dispatch';
 import { bearing, distanceKm, fetchRoute, nearbyPoint, pathLength, pointAt, priceFor } from '@/lib/geo';
 import { nameGender } from '@/lib/registry';
+import { commissionOf, surgeLevel, zoneRing, type RemoteConfig } from '@/lib/remote-config';
 import { haptic } from '@/lib/store';
 
 import { demandSlot, demandZones, surgeAt, type DemandZone } from './demand';
@@ -125,6 +126,13 @@ type Ctx = {
   live: boolean;
   lastRating: { stars: number; tip: number } | null;
   clearRating: () => void;
+  /** Operator bloklagan bo'lsa — sababi (liniyaga chiqib bo'lmaydi) */
+  blocked: { reason: string } | null;
+  /** Operatordan kelgan so'nggi xabar (bosh ekranda yopilguncha turadi) */
+  notice: { title: string; text: string; at: string } | null;
+  dismissNotice: () => void;
+  /** YUMS komissiyasi ulushi (server ulangan bo'lsa — admin belgilagan) */
+  commission: number;
 };
 
 const DCtx = createContext<Ctx | null>(null);
@@ -137,6 +145,7 @@ export const useDriver = () => {
 const K = {
   profile: 'yd:profile', earnings: 'yd:earnings', autopilot: 'yd:autopilot', activity: 'yd:activity', payouts: 'yd:payouts',
   online: 'yd:onlineLog', home: 'yd:home', homeUses: 'yd:homeUses', navApp: 'yd:navApp', voice: 'yd:voice', voiceLang: 'yd:voiceLang', session: 'yd:session', docs: 'yd:docs',
+  blocked: 'yd:blocked',
 };
 /** Ilova qayta ochilganda safar davom etishi uchun saqlanadigan holat */
 type Session = { trip: Trip | null; next: OrderOffer | null; summary: Summary | null; online: boolean; pos: LatLng; savedAt: number };
@@ -184,6 +193,10 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   const [lastRating, setLastRating] = useState<{ stars: number; tip: number } | null>(null);
   const [slot, setSlot] = useState(() => demandSlot());
   const [docs, setDocs] = useState<Docs>(emptyDocs);
+  /** Admin panel sozlamalari (narx, komissiya, yuqori talab hududlari) — server ulanganda keladi */
+  const [remote, setRemote] = useState<RemoteConfig | null>(null);
+  const [blocked, setBlocked] = useState<{ reason: string } | null>(null);
+  const [notice, setNotice] = useState<{ title: string; text: string; at: string } | null>(null);
 
   const posRef = useRef(pos);
   useEffect(() => { posRef.current = pos; }, [pos]);
@@ -220,6 +233,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
         if (typeof e[K.autopilot] === 'boolean') setAutopilotState(e[K.autopilot]);
         if (e[K.online]?.date === dayKey()) setOnlineLog(e[K.online]);
         if (e[K.home]) setHomeDestState(e[K.home]);
+        if (e[K.blocked]?.reason) setBlocked(e[K.blocked]);
         if (e[K.homeUses]?.date === dayKey()) setHomeUses(e[K.homeUses]);
         if (e[K.navApp]) setNavAppState(e[K.navApp]);
         if (typeof e[K.voice] === 'boolean') { setVoiceState(e[K.voice]); setVoiceEnabled(e[K.voice]); }
@@ -267,7 +281,10 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     const iv = setInterval(() => setSlot(demandSlot()), 60000);
     return () => clearInterval(iv);
   }, []);
-  const zones = useMemo(() => demandZones(slot), [slot]);
+  // Server ulangan bo'lsa — admin belgilagan hududlar, aks holda taxminiy talab xaritasi
+  const zones = useMemo<DemandZone[]>(() => (remote
+    ? remote.zones.map(z => ({ id: z.id, center: z.center, ring: zoneRing(z), level: surgeLevel(z.surge), surge: z.surge, radiusKm: z.radiusKm }))
+    : demandZones(slot)), [slot, remote]);
   const zonesRef = useRef(zones);
   useEffect(() => { zonesRef.current = zones; }, [zones]);
 
@@ -283,8 +300,9 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   const docsRef = useRef(docs);
   useEffect(() => { docsRef.current = docs; }, [docs]);
 
-  // Demo moderator: yuborilgan hujjat bir necha soniyada tekshiriladi
+  // Demo moderator: yuborilgan hujjat bir necha soniyada tekshiriladi (server ulangan bo'lsa — qarorni moderator/server beradi)
   useEffect(() => {
+    if (client) return;
     const pending = DOC_KINDS.filter(k => docs[k].status === 'review');
     if (!pending.length) return;
     const timers = pending.map(k => setTimeout(() => {
@@ -298,16 +316,20 @@ export function DriverProvider({ children }: { children: ReactNode }) {
       }
     }, Math.max(0, new Date(docs[k].submittedAt ?? 0).getTime() + REVIEW_MS - Date.now())));
     return () => timers.forEach(clearTimeout);
-  }, [docs, updateDocs]);
+  }, [docs, updateDocs, client]);
 
   const submitDoc = useCallback((d: DriverDoc) => {
-    updateDocs(cur => ({ ...cur, [d.kind]: { ...d, status: 'review', note: undefined, submittedAt: new Date().toISOString(), checkedAt: undefined } }));
-  }, [updateDocs]);
+    const doc: DriverDoc = { ...d, status: 'review', note: undefined, submittedAt: new Date().toISOString(), checkedAt: undefined };
+    updateDocs(cur => ({ ...cur, [d.kind]: doc }));
+    client?.send({ t: 'doc', doc });
+  }, [updateDocs, client]);
 
   const fillDemoDocs = useCallback(() => {
     const t = Date.now();
-    updateDocs(() => Object.fromEntries(DOC_KINDS.map((k, i) => [k, { ...sampleDoc(k), status: 'review', submittedAt: new Date(t + i * 700).toISOString() }])) as Docs);
-  }, [updateDocs]);
+    const all = Object.fromEntries(DOC_KINDS.map((k, i) => [k, { ...sampleDoc(k), status: 'review', submittedAt: new Date(t + i * 700).toISOString() }])) as Docs;
+    updateDocs(() => all);
+    for (const k of DOC_KINDS) client?.send({ t: 'doc', doc: all[k] });
+  }, [updateDocs, client]);
 
   /* ---------- Tariflar: shartlar bajarilganda yoqiladi ---------- */
   const rating = useMemo(() => {
@@ -336,6 +358,21 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     return () => { off(); cl.close(); setClient(null); };
   }, [driverId]);
   const live = conn === 'online';
+
+  // Ulanganda profil va hujjatlar holati yuboriladi — server qarorlarini, kerak bo'lsa hujjat so'rovini qaytaradi
+  useEffect(() => {
+    if (!client || !live || !profile) return;
+    const cur = docsRef.current;
+    const docsSync: DocSync = Object.fromEntries(DOC_KINDS.map(k => [k, { status: cur[k].status, submittedAt: cur[k].submittedAt, note: cur[k].note }]));
+    client.send({ t: 'sync', profile, docs: docsSync });
+  }, [client, live, profile]);
+  const blockedRef = useRef(blocked);
+  useEffect(() => { blockedRef.current = blocked; }, [blocked]);
+  const commission = commissionOf(remote);
+  const commissionRef = useRef(commission);
+  useEffect(() => { commissionRef.current = commission; }, [commission]);
+  /** Server sababli liniyadan chiqarish (blok, rad etilgan hujjat) — setOnline pastda e'lon qilingan */
+  const goOfflineRef = useRef<() => void>(() => {});
 
   /* ---------- Joylashuv: GPS yoki avtopilot ---------- */
   useEffect(() => {
@@ -464,9 +501,54 @@ export function DriverProvider({ children }: { children: ReactNode }) {
           });
           if (m.stars) setLastRating({ stars: m.stars, tip: m.tip });
           break;
+        case 'config':
+          setRemote(m.config);
+          break;
+        case 'docStatus': {
+          const prev = docsRef.current[m.kind];
+          if (prev.status === m.status && prev.note === m.note) break;
+          updateDocs(c => ({ ...c, [m.kind]: { ...c[m.kind], status: m.status, note: m.note, checkedAt: m.checkedAt } }));
+          if (m.status === 'approved') {
+            toast(`${DOC_META[m.kind].short} tasdiqlandi`, 'checkmark-circle');
+            if (DOC_KINDS.every(x => x === m.kind || docsRef.current[x].status === 'approved')) {
+              setTimeout(() => toast('Hujjatlar tasdiqlandi — liniyaga chiqishingiz mumkin', 'shield-checkmark'), 1600);
+            }
+          } else if (m.status === 'rejected') {
+            haptic.error();
+            toast(`${DOC_META[m.kind].short} rad etildi: ${m.note ?? ''}`, 'close-circle');
+            if (!tripRef.current) goOfflineRef.current();
+          }
+          break;
+        }
+        case 'needDoc': {
+          const doc = docsRef.current[m.kind];
+          if (doc.status !== 'missing') client.send({ t: 'doc', doc });
+          break;
+        }
+        case 'blocked':
+          if (blockedRef.current?.reason !== m.reason) {
+            haptic.error();
+            toast(`Hisobingiz bloklandi: ${m.reason}`, 'lock-closed');
+            setBlocked({ reason: m.reason });
+            persist(K.blocked, { reason: m.reason });
+          }
+          if (!tripRef.current) goOfflineRef.current();
+          break;
+        case 'unblocked':
+          if (blockedRef.current) {
+            toast('Hisobingiz blokdan chiqarildi — liniyaga chiqishingiz mumkin', 'lock-open');
+            setBlocked(null);
+            persist(K.blocked, null);
+          }
+          break;
+        case 'notice':
+          haptic.success();
+          setNotice({ title: m.title, text: m.text, at: new Date().toISOString() });
+          toast(m.title || m.text, 'megaphone');
+          break;
       }
     });
-  }, [client, startTrip]);
+  }, [client, startTrip, updateDocs]);
 
   // Server ulanganda liniyadagi holatni qayta e'lon qilish
   useEffect(() => {
@@ -610,7 +692,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     const total = t.order.price + t.waitFee;
     if (live) client?.send({ t: 'finished', orderId: t.order.id, price: total });
     const e: Earning = {
-      id: t.order.id, at: new Date().toISOString(), price: t.order.price, waitFee: t.waitFee, fee: Math.round(total * COMMISSION), tip: 0,
+      id: t.order.id, at: new Date().toISOString(), price: t.order.price, waitFee: t.waitFee, fee: Math.round(total * commissionRef.current), tip: 0,
       km: Math.round(t.order.route.km * 10) / 10,
       min: t.startedAt ? Math.max(1, Math.round((Date.now() - t.startedAt) / 60000)) : t.order.route.min,
       from: t.order.pickup.title, to: t.order.destination.title, payment: t.order.payment, tariffId: t.order.tariffId, surge: t.order.surge,
@@ -654,7 +736,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     const fee = waitFeeOf(t.arrivedAt, Date.now());
     if (fee > 0) {
       addEarning({
-        id: t.order.id, at: new Date().toISOString(), price: 0, waitFee: fee, fee: Math.round(fee * COMMISSION), tip: 0, km: 0, min: 0,
+        id: t.order.id, at: new Date().toISOString(), price: 0, waitFee: fee, fee: Math.round(fee * commissionRef.current), tip: 0, km: 0, min: 0,
         from: t.order.pickup.title, to: 'Mijoz chiqmadi', payment: 'card', tariffId: t.order.tariffId, noShow: true,
       });
     }
@@ -674,6 +756,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
 
   const setOnline = useCallback((v: boolean) => {
     haptic.tap();
+    if (v && blockedRef.current) { toast(`Hisobingiz bloklangan: ${blockedRef.current.reason}`, 'lock-closed'); return; }
     if (v && !docsApproved) { toast('Avval hujjatlaringiz tasdiqlanishi kerak', 'document-text'); return; }
     if (v && !activeRef.current.length) { toast('Kamida bitta tarifni yoqing', 'car'); return; }
     setOnlineState(v);
@@ -690,6 +773,8 @@ export function DriverProvider({ children }: { children: ReactNode }) {
       setOnlineSince(null);
     }
   }, [client, docsApproved]);
+
+  useEffect(() => { goOfflineRef.current = () => { if (sinceRef.current != null) setOnline(false); }; }, [setOnline]);
 
   const onlineMsToday = useCallback((now: number) => (onlineLog.date === dayKey() ? onlineLog.ms : 0) + (onlineSince ? Math.max(0, now - onlineSince) : 0), [onlineLog, onlineSince]);
 
@@ -753,8 +838,8 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     updateProfile: p => setProfile(cur => { if (!cur) return cur; const n = { ...cur, ...p }; persist(K.profile, n); return n; }),
     logout: () => {
       if (online) setOnline(false);
-      setOffer(null); setTrip(null); setNext(null); setSummary(null); setProfile(null); setDocs(emptyDocs());
-      AsyncStorage.multiRemove([K.profile, K.session, K.docs]).catch(() => {});
+      setOffer(null); setTrip(null); setNext(null); setSummary(null); setProfile(null); setDocs(emptyDocs()); setBlocked(null); setNotice(null);
+      AsyncStorage.multiRemove([K.profile, K.session, K.docs, K.blocked]).catch(() => {});
     },
     online, setOnline, pos, heading, gps: gpsState, retryGps: () => setGpsTry(n => n + 1),
     offer, accept, decline, trip, next, leftKm, arrived, startRide, finishRide, cancelTrip, noShow, cancelNext, summary, closeSummary,
@@ -765,6 +850,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     voiceLang, setVoiceLang: l => { setVoiceLangState(l); setVoiceLang(l); persist(K.voiceLang, l); },
     autopilot, setAutopilot: v => { setAutopilotState(v); persist(K.autopilot, v); },
     conn, live, lastRating, clearRating: () => setLastRating(null),
+    blocked, notice, dismissNotice: () => setNotice(null), commission,
   };
   return <DCtx.Provider value={value}>{children}</DCtx.Provider>;
 }

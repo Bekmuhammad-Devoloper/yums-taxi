@@ -12,7 +12,7 @@ import { ActionSheet, PersonAvatar, Row, Sheet, Txt, alpha } from '@/components/
 import { SlideButton } from '@/driver/components/slide-button';
 import { nearestHot, surgeAt, ZONE_COLOR } from '@/driver/lib/demand';
 import { DOC_KINDS } from '@/driver/lib/docs';
-import { ACTIVITY, COMMISSION, FREE_WAIT_SEC, HOME_USES_PER_DAY, NO_SHOW_AFTER_SEC, WAIT_PER_MIN, useDriver, waitFeeOf, type Offer, type Trip } from '@/driver/lib/driver-store';
+import { ACTIVITY, FREE_WAIT_SEC, HOME_USES_PER_DAY, NO_SHOW_AFTER_SEC, WAIT_PER_MIN, useDriver, waitFeeOf, type Offer, type Trip } from '@/driver/lib/driver-store';
 import { fmtDist, MANEUVER_TEXT, nextManeuver, type ManeuverKind } from '@/driver/lib/nav';
 import { callNumber } from '@/driver/lib/support';
 import { activityColor, GREEN, ORANGE, VIOLET } from '@/driver/lib/theme';
@@ -270,13 +270,26 @@ function HomePanel() {
   const tariffNames = d.activeTariffs.map(id => TARIFFS.find(t => t.id === id)?.name ?? id);
   const approvedDocs = DOC_KINDS.filter(k => d.docs[k].status === 'approved').length;
   const inReview = DOC_KINDS.some(k => d.docs[k].status === 'review');
-  // liniyaga chiqishdan oldingi to'siq: hujjatlar yoki faol tarif yo'q
-  const block = !d.docsApproved
+  // liniyaga chiqishdan oldingi to'siq: blok, hujjatlar yoki faol tarif yo'q
+  const block = d.blocked
+    ? { title: 'Hisob bloklangan', sub: d.blocked.reason, icon: 'lock-closed' as const, to: '/support' }
+    : !d.docsApproved
     ? { title: inReview ? 'Hujjatlar tekshirilmoqda' : 'Hujjatlarni yuklang', sub: `${approvedDocs} / ${DOC_KINDS.length} tasdiqlangan · liniyaga chiqish uchun kerak`, icon: inReview ? 'time' as const : 'document-text' as const, to: '/documents' }
     : !d.activeTariffs.length ? { title: 'Tarifni yoqing', sub: 'Shartlari bajarilgan tarif yo\'q yoki hammasi o\'chiq', icon: 'car' as const, to: '/profile' } : null;
 
   return (
     <View style={{ gap: 14 }}>
+      {d.notice ? (
+        <View style={[styles.notice, { backgroundColor: c.accentSoft }]} accessibilityLabel="Operator xabari">
+          <View style={[styles.noticeIcon, { backgroundColor: c.accent }]}><Ionicons name="megaphone" size={18} color="#fff" /></View>
+          <View style={{ flex: 1, gap: 2 }}>
+            {d.notice.title ? <Txt v="h3" color={c.accent}>{d.notice.title}</Txt> : null}
+            {d.notice.text ? <Txt v="small" color={c.text}>{d.notice.text}</Txt> : null}
+            <Txt v="tiny" faint>YUMS operatori · {new Date(d.notice.at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</Txt>
+          </View>
+          <Pressable onPress={d.dismissNotice} hitSlop={10} accessibilityLabel="Xabarni yopish"><Ionicons name="close" size={20} color={c.muted} /></Pressable>
+        </View>
+      ) : null}
       {d.online ? (
         <Pressable onPress={() => setSure(true)} style={[styles.mainBtn, { backgroundColor: alpha(GREEN, 0.12), borderColor: GREEN, borderWidth: 2 }]} accessibilityLabel="Liniyada">
           <View style={styles.pulseWrap}>
@@ -285,7 +298,7 @@ function HomePanel() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.mainTitle, { color: GREEN }]}>Liniyadasiz</Text>
-            <Txt v="small" muted>{d.live ? 'Buyurtma qidirilmoqda · YUMS yo\'lovchilari' : 'Buyurtma qidirilmoqda · demo'}{d.homeDest ? ` · uyga: ${d.homeDest.title}` : ''}</Txt>
+            <Txt v="small" muted>{!d.docsApproved ? 'Hujjatlar qayta tekshirilmoqda — buyurtmalar tekshiruvdan so\'ng keladi' : d.live ? 'Buyurtma qidirilmoqda · YUMS yo\'lovchilari' : 'Buyurtma qidirilmoqda · demo'}{d.homeDest ? ` · uyga: ${d.homeDest.title}` : ''}</Txt>
           </View>
           <Ionicons name="power" size={22} color={GREEN} />
         </Pressable>
@@ -405,7 +418,7 @@ function OfferPanel({ offer }: { offer: Offer }) {
       <Row style={{ alignItems: 'flex-end' }}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.price, { color: c.text }]}>{som(o.price)}</Text>
-          <Txt v="small" muted>Sizga ≈ {som(Math.round(o.price * (1 - COMMISSION)))} · komissiya {COMMISSION * 100}%</Txt>
+          <Txt v="small" muted>Sizga ≈ {som(Math.round(o.price * (1 - d.commission)))} · komissiya {Math.round(d.commission * 100)}%</Txt>
         </View>
         <Image source={TARIFF_ART[o.tariffId] ?? TARIFF_ART.start} style={{ width: 92, height: 50 }} contentFit="contain" />
       </Row>
@@ -581,7 +594,7 @@ function SummaryPanel() {
   if (!d.summary) return null;
   const e = d.summary.earning;
   const total = e.price + (e.waitFee ?? 0);
-  const fee = e.fee ?? Math.round(total * COMMISSION);
+  const fee = e.fee ?? Math.round(total * d.commission);
   const cash = e.payment === 'cash';
   return (
     <View style={{ gap: 14 }}>
@@ -602,7 +615,7 @@ function SummaryPanel() {
       <View style={{ gap: 6 }}>
         <Line label="Safar narxi" value={som(e.price)} />
         {e.waitFee ? <Line label="Pullik kutish" value={som(e.waitFee)} /> : null}
-        <Line label={`YUMS komissiyasi ${COMMISSION * 100}%`} value={`−${som(fee)}`} color={c.danger} />
+        <Line label={`YUMS komissiyasi ${Math.round((fee / Math.max(1, total)) * 100)}%`} value={`−${som(fee)}`} color={c.danger} />
         <Line label="Sizning daromadingiz" value={som(total - fee)} bold />
       </View>
       <View style={{ alignItems: 'center', gap: 6 }}>
@@ -663,6 +676,8 @@ const styles = StyleSheet.create({
   navEtaText: { color: 'rgba(255,255,255,0.75)', fontFamily: F.semi, fontSize: 13 },
   // bosh panel
   mainBtn: { height: 72, borderRadius: 22, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16 },
+  notice: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 18 },
+  noticeIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   mainTitle: { fontFamily: F.heavy, fontSize: 19, letterSpacing: -0.4 },
   mainSub: { fontFamily: F.semi, fontSize: 12.5, color: 'rgba(14,21,37,0.65)' },
   powerIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },

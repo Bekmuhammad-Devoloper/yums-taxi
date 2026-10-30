@@ -4,7 +4,8 @@
 import { DEFAULT_CENTER, PLACES, type LatLng } from '@/lib/data';
 import { distanceKm } from '@/lib/geo';
 
-export type DemandZone = { id: string; center: LatLng; ring: LatLng[]; level: 1 | 2 | 3; surge: number };
+/** radiusKm — admin belgilagan doira hudud (berilmasa — olti burchakli katak) */
+export type DemandZone = { id: string; center: LatLng; ring: LatLng[]; level: 1 | 2 | 3; surge: number; radiusKm?: number };
 
 const R_KM = 0.42; // katak radiusi (markazdan uchigacha)
 const N = 6; // markazdan nechta katak uzoqlikkacha
@@ -50,14 +51,15 @@ export function demandZones(slot: number, origin: LatLng = DEFAULT_CENTER): Dema
   return out;
 }
 
-/** Nuqta joylashgan katak koeffitsienti (katakdan tashqarida — 1) */
+/** Nuqta joylashgan katak (yoki admin hududi) koeffitsienti (tashqarida — 1) */
 export function surgeAt(zones: DemandZone[], p: LatLng) {
-  let best: DemandZone | null = null, bestD = Infinity;
+  let best: DemandZone | null = null, bestD = Infinity, inCircle = 1;
   for (const z of zones) {
     const d = distanceKm(z.center, p);
+    if (z.radiusKm != null) { if (d <= z.radiusKm) inCircle = Math.max(inCircle, z.surge); continue; }
     if (d < bestD) { bestD = d; best = z; }
   }
-  return best && bestD <= R_KM * 0.95 ? best.surge : 1;
+  return Math.max(inCircle, best && bestD <= R_KM * 0.95 ? best.surge : 1);
 }
 
 /** Eng yaqin yuqori talab katagi (×1.4 va undan yuqori) */

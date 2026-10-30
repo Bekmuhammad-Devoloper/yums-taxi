@@ -60,14 +60,23 @@ export type Stats = { docsApproved: boolean; rating: number; trips: number; acti
 /** fix — shartni bajarish uchun qayerga borish kerak */
 export type Check = { label: string; ok: boolean; now?: string; fix?: 'documents' | 'car' | 'terms' };
 
-const CLASS_OK: Record<string, CarClass[]> = {
+/** Tarif uchun mos avtomobil sinflari */
+export const CLASS_OK: Record<string, CarClass[]> = {
   start: ['economy', 'comfort', 'business', 'minivan'],
   comfort: ['comfort', 'business'],
   business: ['business'],
   minivan: ['minivan'],
   delivery: ['economy', 'comfort', 'business', 'minivan', 'cargo'],
 };
-const MIN_YEAR: Record<string, number> = { start: 2008, comfort: 2016, business: 2019, minivan: 2012, delivery: 2005 };
+/** Avtomobil ishlab chiqarilgan eng eski yil */
+export const MIN_YEAR: Record<string, number> = { start: 2008, comfort: 2016, business: 2019, minivan: 2012, delivery: 2005 };
+/** Qo'shimcha shartlar: reyting, safarlar soni, faollik, o'rindiqlar (sayt ham shu qiymatlarni ko'rsatadi) */
+export const EXTRA: Record<string, { rating?: number; trips?: number; activity?: number; seats?: number; terms?: boolean }> = {
+  comfort: { rating: 4.7, activity: 50 },
+  business: { rating: 4.85, trips: 200, activity: 70 },
+  minivan: { seats: 6, rating: 4.7 },
+  delivery: { terms: true },
+};
 
 /** Tarif uchun shartlar ro'yxati va har birining holati */
 export function tariffChecks(tariffId: string, carName: string | undefined, year: number | undefined, s: Stats): Check[] {
@@ -83,22 +92,12 @@ export function tariffChecks(tariffId: string, carName: string | undefined, year
     },
     { label: `Ishlab chiqarilgan yili: ${MIN_YEAR[tariffId]} va yangiroq`, ok: !!year && year >= MIN_YEAR[tariffId], now: year ? String(year) : "ko'rsatilmagan", fix: 'car' },
   ];
-  if (tariffId === 'comfort') {
-    checks.push({ label: 'Reyting 4.70 dan yuqori', ok: s.rating >= 4.7, now: s.rating.toFixed(2) });
-    checks.push({ label: 'Faollik 50 dan yuqori', ok: s.activity >= 50, now: String(s.activity) });
-  }
-  if (tariffId === 'business') {
-    checks.push({ label: 'Reyting 4.85 dan yuqori', ok: s.rating >= 4.85, now: s.rating.toFixed(2) });
-    checks.push({ label: 'Kamida 200 ta safar', ok: s.trips >= 200, now: `${s.trips} ta` });
-    checks.push({ label: 'Faollik 70 dan yuqori', ok: s.activity >= 70, now: String(s.activity) });
-  }
-  if (tariffId === 'minivan') {
-    checks.push({ label: "Kamida 6 o'rindiq", ok: !!car && car.seats >= 6, now: car ? `${car.seats} ta` : '—', fix: 'car' });
-    checks.push({ label: 'Reyting 4.70 dan yuqori', ok: s.rating >= 4.7, now: s.rating.toFixed(2) });
-  }
-  if (tariffId === 'delivery') {
-    checks.push({ label: 'Yetkazish qoidalari qabul qilingan', ok: s.deliveryTerms, fix: 'terms' });
-  }
+  const x = EXTRA[tariffId] ?? {};
+  if (x.seats) checks.push({ label: `Kamida ${x.seats} o'rindiq`, ok: !!car && car.seats >= x.seats, now: car ? `${car.seats} ta` : '—', fix: 'car' });
+  if (x.rating) checks.push({ label: `Reyting ${x.rating.toFixed(2)} dan yuqori`, ok: s.rating >= x.rating, now: s.rating.toFixed(2) });
+  if (x.trips) checks.push({ label: `Kamida ${x.trips} ta safar`, ok: s.trips >= x.trips, now: `${s.trips} ta` });
+  if (x.activity) checks.push({ label: `Faollik ${x.activity} dan yuqori`, ok: s.activity >= x.activity, now: String(s.activity) });
+  if (x.terms) checks.push({ label: 'Yetkazish qoidalari qabul qilingan', ok: s.deliveryTerms, fix: 'terms' });
   return checks;
 }
 

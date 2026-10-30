@@ -2,7 +2,10 @@
 // Server manzili: EXPO_PUBLIC_DISPATCH_URL (masalan ws://192.168.1.10:8787). Berilmasa ilovalar demo rejimda ishlaydi.
 import { useEffect, useState } from 'react';
 
+import type { DocKind, DocStatus, DriverDoc } from '@/driver/lib/docs';
+
 import type { Driver, Gender, LatLng, PaymentId, Place } from './data';
+import type { RemoteConfig } from './remote-config';
 
 export const DISPATCH_URL = process.env.EXPO_PUBLIC_DISPATCH_URL;
 
@@ -39,7 +42,19 @@ export type ServerMsg =
   | { t: 'offer'; order: OrderOffer; expiresIn: number; distanceKm: number; chain?: boolean }
   | { t: 'offerGone' | 'cancelled'; orderId: string }
   | { t: 'assigned'; order: OrderOffer; status?: string; chain?: boolean }
-  | { t: 'rated'; orderId: string; stars: number; tip: number };
+  | { t: 'rated'; orderId: string; stars: number; tip: number }
+  // admin panel: narx sozlamalari (hammaga), operator bekor qilgan buyurtma (yo'lovchiga)
+  | { t: 'config'; config: RemoteConfig }
+  | { t: 'adminCancelled'; orderId: string }
+  // haydovchiga: hujjat qarori, hujjatni qayta yuborish so'rovi, blok holati, operator xabari
+  | { t: 'docStatus'; kind: DocKind; status: Exclude<DocStatus, 'missing'>; note?: string; checkedAt?: string }
+  | { t: 'needDoc'; kind: DocKind }
+  | { t: 'blocked'; reason: string }
+  | { t: 'unblocked' }
+  | { t: 'notice'; title: string; text: string };
+
+/** Ilova ulanganda serverga yuboriladigan hujjatlar holati (rasmlarsiz) */
+export type DocSync = Partial<Record<DocKind, { status: DocStatus; submittedAt?: string; note?: string }>>;
 
 export type ClientMsg =
   | { t: 'online'; driver: Driver; pos?: LatLng; heading?: number; tariffs: string[] }
@@ -52,22 +67,28 @@ export type ClientMsg =
   | { t: 'chain'; on: boolean; from?: LatLng }
   | { t: 'finished'; orderId: string; price: number }
   | { t: 'order'; order: OrderOffer }
-  | { t: 'rate'; orderId: string; stars: number; tip: number };
+  | { t: 'rate'; orderId: string; stars: number; tip: number }
+  // haydovchi: ulanganda profil va hujjatlar holati, tekshiruvga yuborilgan hujjat (rasmlari bilan)
+  | { t: 'sync'; profile: Driver & { tariffs: string[]; year?: number; city?: string; joinedAt?: string }; docs: DocSync }
+  | { t: 'doc'; doc: DriverDoc };
 
 export type ConnState = 'off' | 'connecting' | 'online';
 
-/** Qayta ulanadigan WebSocket klienti */
-export class DispatchClient {
+/**
+ * Qayta ulanadigan WebSocket klienti.
+ * S/C — kiruvchi va chiquvchi xabar turlari (admin panel o'z xabarlari bilan ishlatadi), hello — salomlashuvga qo'shimcha (token).
+ */
+export class DispatchClient<S extends { t: string } = ServerMsg, C extends { t: string } = ClientMsg> {
   private ws: WebSocket | null = null;
-  private listeners = new Set<(m: ServerMsg) => void>();
+  private listeners = new Set<(m: S) => void>();
   private stateListeners = new Set<(s: ConnState) => void>();
-  private queue: ClientMsg[] = [];
+  private queue: C[] = [];
   private retry = 0;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private closed = false;
   state: ConnState = 'off';
 
-  constructor(private role: 'driver' | 'passenger', private id: string, private url = DISPATCH_URL) {
+  constructor(private role: 'driver' | 'passenger' | 'admin', private id: string, private url = DISPATCH_URL, private hello: Record<string, unknown> = {}) {
     if (this.url) this.open();
   }
 
@@ -86,14 +107,14 @@ export class DispatchClient {
     this.ws = ws;
     ws.onopen = () => {
       this.retry = 0;
-      ws.send(JSON.stringify({ t: 'hello', role: this.role, id: this.id }));
+      ws.send(JSON.stringify({ ...this.hello, t: 'hello', role: this.role, id: this.id }));
       this.setState('online');
       const q = this.queue.splice(0);
       q.forEach(m => ws.send(JSON.stringify(m)));
     };
     ws.onmessage = e => {
       try {
-        const m = JSON.parse(String(e.data)) as ServerMsg;
+        const m = JSON.parse(String(e.data)) as S;
         this.listeners.forEach(f => f(m));
       } catch {
         // noto'g'ri xabar — e'tiborsiz
@@ -110,13 +131,13 @@ export class DispatchClient {
     this.timer = setTimeout(() => this.open(), wait);
   }
 
-  send(m: ClientMsg) {
+  send(m: C) {
     if (!this.url) return;
     if (this.ws?.readyState === 1) this.ws.send(JSON.stringify(m));
     else if (m.t !== 'pos') this.queue.push(m); // joylashuvni navbatga qo'ymaymiz — eskiradi
   }
 
-  on(f: (m: ServerMsg) => void) { this.listeners.add(f); return () => { this.listeners.delete(f); }; }
+  on(f: (m: S) => void) { this.listeners.add(f); return () => { this.listeners.delete(f); }; }
   onState(f: (s: ConnState) => void) { this.stateListeners.add(f); return () => { this.stateListeners.delete(f); }; }
 
   close() {
@@ -128,7 +149,7 @@ export class DispatchClient {
 }
 
 /** Ulanish holatini kuzatish */
-export function useConnState(client: DispatchClient | null) {
+export function useConnState(client: { state: ConnState; onState: (f: (s: ConnState) => void) => () => void } | null) {
   const [s, setS] = useState<ConnState>(client?.state ?? 'off');
   useEffect(() => {
     if (!client) return;

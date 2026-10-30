@@ -5,9 +5,10 @@ import { Platform, useColorScheme } from 'react-native';
 
 import { toast } from '@/components/toast';
 
-import { DRIVERS, SEED_RIDES, TARIFFS, type Card, type Driver, type LatLng, type PaymentId, type Place, type Ride } from './data';
+import { DRIVERS, SEED_RIDES, type Card, type Driver, type LatLng, type PaymentId, type Place, type Ride } from './data';
 import { DispatchClient, DISPATCH_URL, type ConnState, type FleetCar } from './dispatch';
 import { distanceKm, fetchRoute, nearbyPoint, pathLength, pointAt, priceFor, type RouteInfo } from './geo';
+import { tariffOf, zoneSurgeAt, type RemoteConfig } from './remote-config';
 import { DICTS, type Lang, type TKey } from './i18n';
 import { pinflGender } from './registry';
 import { palette, type Colors } from './theme';
@@ -121,6 +122,8 @@ type Ctx = {
   finishRide: (rating: number, tip: number) => void;
   priceOf: (tariffId: string) => number;
   finalPrice: number;
+  /** Joriy narx koeffitsienti (server ulangan bo'lsa — admin belgilagan hudud bo'yicha) */
+  surge: number;
   payment: PaymentId;
   cardId?: string;
   setPayment: (p: PaymentId, cardId?: string) => void;
@@ -189,6 +192,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [client, setClient] = useState<DispatchClient | null>(null);
   const [dispatchState, setDispatchState] = useState<ConnState>('off');
   const [fleet, setFleet] = useState<FleetCar[]>([]);
+  /** Admin panel narx sozlamalari (server ulanganda keladi) */
+  const [remote, setRemote] = useState<RemoteConfig | null>(null);
   const fleetRef = useRef<FleetCar[]>([]);
   useEffect(() => { fleetRef.current = fleet; }, [fleet]);
   const passengerId = user?.id ?? null;
@@ -256,12 +261,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [loadRoute]);
 
   /* ---------- Narx ---------- */
+  // Server ulangan bo'lsa — admin narxlari va olish nuqtasidagi yuqori talab hududi, aks holda kun vaqtiga qarab
+  const surge = remote ? zoneSurgeAt(remote.zones, order.pickup) : surgeNow();
+  const surgeRef = useRef(surge);
+  useEffect(() => { surgeRef.current = surge; }, [surge]);
   const priceOf = useCallback((tariffId: string) => {
-    const t = TARIFFS.find(x => x.id === tariffId) ?? TARIFFS[0];
     const r = order.route;
     if (!r) return 0;
-    return priceFor(t, r.km, r.min, surgeNow());
-  }, [order.route]);
+    return priceFor(tariffOf(tariffId, remote), r.km, r.min, surge);
+  }, [order.route, remote, surge]);
 
   const finalPrice = useMemo(() => {
     const p = priceOf(order.tariffId);
@@ -276,6 +284,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return client.on(m => {
       const o = orderRef.current;
       if (m.t === 'fleet') { setFleet(m.drivers); return; }
+      if (m.t === 'config') { setRemote(m.config); return; }
       if (!('orderId' in m) || m.orderId !== o.liveId) return;
       switch (m.t) {
         case 'accepted': {
@@ -325,6 +334,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           toast('Haydovchi sizni kutdi, lekin chiqmadingiz — buyurtma yopildi', 'person-remove');
           setOrder(x => ({ ...x, phase: x.destination ? 'choosing' : 'idle', driver: undefined, driverPos: undefined, driverPath: undefined, progress: 0, liveId: undefined }));
           break;
+        case 'adminCancelled':
+          haptic.error();
+          toast("Buyurtma operator tomonidan bekor qilindi — qo'llab-quvvatlash xizmatiga yozishingiz mumkin", 'information-circle');
+          setOrder(x => ({ ...x, phase: x.destination ? 'choosing' : 'idle', driver: undefined, driverPos: undefined, driverPath: undefined, progress: 0, liveId: undefined }));
+          break;
       }
     });
   }, [client]);
@@ -353,7 +367,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       client.send({ t: 'order', order: {
         id, pickup: o.pickup, destination: o.destination,
         route: { km: o.route.km, min: o.route.min, coords: o.route.coords.filter((_, i, a) => i % Math.max(1, Math.floor(a.length / 120)) === 0 || i === a.length - 1) },
-        tariffId: o.tariffId, price: finalPriceRef.current, payment: paymentRef.current, options: o.options, comment: o.comment,
+        tariffId: o.tariffId, price: finalPriceRef.current, surge: surgeRef.current > 1 ? surgeRef.current : undefined, payment: paymentRef.current, options: o.options, comment: o.comment,
         passenger: { name: u?.name ?? 'Yo\'lovchi', phone: u?.phone, rating: u?.rating ?? 5, photo: u?.avatar, gender: pinflGender(u?.pinfl) }, createdAt: new Date().toISOString(),
       } });
       setOrder(x => ({ ...x, phase: 'searching', progress: 0, liveId: id }));
@@ -464,7 +478,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setTariff: id => { haptic.tap(); setOrder(o => ({ ...o, tariffId: id })); },
     toggleOption: id => setOrder(o => ({ ...o, options: o.options.includes(id) ? o.options.filter(x => x !== id) : [...o.options, id] })),
     setComment: s => setOrder(o => ({ ...o, comment: s })),
-    placeOrder, cancelOrder, finishRide, priceOf, finalPrice,
+    placeOrder, cancelOrder, finishRide, priceOf, finalPrice, surge,
     payment: payment.id, cardId: payment.cardId,
     setPayment: (id, cardId) => { const p = { id, cardId }; setPaymentState(p); persist(K.payment, p); },
     cards,

@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { toast } from '@/components/toast';
 import { Button, Card, Chip, Divider, EmptyState, Row, Screen, Segmented, Sheet, Txt } from '@/components/ui';
 import { CARD_ART, CardBg, useCardInk } from '@/driver/components/card-bg';
-import { COMMISSION, feeOf, useDriver, type Earning } from '@/driver/lib/driver-store';
+import { feeOf, useDriver, type Earning } from '@/driver/lib/driver-store';
 import { GREEN } from '@/driver/lib/theme';
 import { TARIFFS } from '@/lib/data';
 import { fmtDate } from '@/lib/format';
@@ -93,7 +93,7 @@ export default function Earnings() {
       <Card style={{ gap: 10 }}>
         <Line label="Safarlar summasi" value={som(gross)} />
         {wait ? <Line label="shundan pullik kutish" value={som(wait)} /> : null}
-        <Line label={`YUMS komissiyasi (${COMMISSION * 100}%)`} value={`−${som(fee)}`} color={c.danger} />
+        <Line label={`YUMS komissiyasi (${Math.round(d.commission * 100)}%)`} value={`−${som(fee)}`} color={c.danger} />
         <Line label="Choy puli" value={`+${som(tips)}`} color={GREEN} />
         <Divider />
         <Line label="Naqd olingan" value={som(cash)} />
@@ -194,7 +194,7 @@ function TripSheet({ e, onClose }: { e: Earning | null; onClose: () => void }) {
       </View>
       {e.price ? <Line label="Safar narxi" value={som(e.price)} /> : null}
       {e.waitFee ? <Line label={e.noShow ? 'Kutish uchun kompensatsiya' : 'Pullik kutish'} value={som(e.waitFee)} /> : null}
-      <Line label={`YUMS komissiyasi (${COMMISSION * 100}%)`} value={`−${som(fee)}`} color={c.danger} />
+      <Line label={`YUMS komissiyasi (${Math.round((fee / Math.max(1, total)) * 100)}%)`} value={`−${som(fee)}`} color={c.danger} />
       {e.tip ? <Line label="Choy puli" value={`+${som(e.tip)}`} color={GREEN} /> : null}
       <Divider />
       <Line label="Sizga" value={som(total - fee + e.tip)} bold />

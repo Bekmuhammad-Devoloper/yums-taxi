@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TARIFF_ART } from '@/lib/cars';
 import { RATING_TAGS, RIDE_OPTIONS, TARIFFS, type Place } from '@/lib/data';
 import { som } from '@/lib/geo';
-import { haptic, surgeNow, useStore } from '@/lib/store';
+import { haptic, useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
 
 import { toast } from './toast';
@@ -85,10 +85,9 @@ export function IdleSheet() {
 /* ---------- 2. Tarif tanlash ---------- */
 export function ChoosingSheet({ onOptions }: { onOptions: () => void }) {
   const s = useStore();
-  const { colors: c, order, priceOf, finalPrice, promo } = s;
+  const { colors: c, order, priceOf, finalPrice, promo, surge } = s;
   const pay = usePaymentLabel();
   const r = order.route;
-  const surge = surgeNow();
   return (
     <View style={{ gap: 12 }}>
       <Row style={{ justifyContent: 'space-between' }}>
