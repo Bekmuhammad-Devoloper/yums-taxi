@@ -115,15 +115,17 @@ export class DemoSim {
   /* ---------- Boshlang'ich holat ---------- */
 
   private async boot() {
-    const [config, content, leads] = await Promise.all([demoRead.config(), demoRead.content(), demoRead.leads()]);
+    const [config, content, leads, seeded] = await Promise.all([demoRead.config(), demoRead.content(), demoRead.leads(), demoRead.seeded()]);
     if (this.closed) return;
     this.config = { ...EMPTY_CONFIG, ...config, zones: (config.zones ?? []).filter(z => zoneActive(z)) };
     this.content = content;
     const now = Date.now();
     this.seedDrivers(now);
     this.seedHistory(now);
-    this.leads = leads.length ? leads : this.seedLeads(now);
-    if (!leads.length) demoWrite(DEMO_KEYS.leads, this.leads);
+    // namunaviy arizalar bir marta qo'shiladi (sayt orqali panel ochilishidan oldin yuborilganlari ham saqlanadi)
+    this.leads = seeded ? leads : [...this.seedLeads(now), ...leads];
+    if (!seeded) { demoWrite(DEMO_KEYS.leads, this.leads); demoWrite(DEMO_KEYS.seeded, true); }
+    this.seedLog(now);
     this.ready = true;
     const init = this.initMsg();
     for (const f of this.listeners) f(init);
@@ -301,19 +303,59 @@ export class DemoSim {
     this.orders.set(o.id, o);
   }
 
+  /** Jurnal tarixi: so'nggi kunlardagi hujjat qarorlari (ko'pi avtomatik), arizalar, xabarlar va hududlar */
+  private seedLog(now: number) {
+    const d0 = new Date(now); d0.setHours(0, 0, 0, 0);
+    const yesterday = d0.getTime() - DAY;
+    const calm = [...this.drivers.values()].filter(d => !d.blocked && DOC_KINDS.every(k => d.docs[k]?.status === 'approved'));
+    const REJECT = ["rasm xira — raqam o'qilmaydi", "muddati o'tgan hujjat", "hujjatdagi ism profildagi ismga mos emas"];
+    // haydovchilar yangilagan hujjatlar: avval rad etilib, tuzatilgach tasdiqlanganlari ham bor
+    calm.slice(0, 16).forEach((d, i) => {
+      const kind: DocKind = i % 3 === 0 ? 'taxiLicense' : 'osago';
+      const at = now - (1.5 + this.r() * 70) * H;
+      const by = i % 4 === 3 ? 'admin' : 'auto';
+      if (i % 5 === 1) this.addLog(`${d.name}: ${DOC_META[kind].title.toLowerCase()} rad etildi (${REJECT[i % REJECT.length]})`, 'auto', { driverId: d.id }, at - (40 + this.r() * 200) * MIN);
+      d.docs[kind] = { ...d.docs[kind]!, submittedAt: iso(at - 3 * MIN - 20000), receivedAt: iso(at - 3 * MIN), checkedAt: iso(at), by };
+      this.addLog(`${d.name}: ${DOC_META[kind].title.toLowerCase()} tekshiruvga yuborildi`, 'system', { driverId: d.id }, at - 3 * MIN);
+      this.addLog(`${d.name}: ${DOC_META[kind].title.toLowerCase()} tasdiqlandi`, by, { driverId: d.id }, at);
+    });
+    // hozir navbatda turgan hujjatlar
+    for (const d of this.drivers.values()) for (const k of DOC_KINDS) {
+      const doc = d.docs[k];
+      if (doc?.status === 'review' && doc.receivedAt) this.addLog(`${d.name}: ${DOC_META[k].title.toLowerCase()} tekshiruvga yuborildi`, 'system', { driverId: d.id }, Date.parse(doc.receivedAt));
+    }
+    for (const d of this.drivers.values()) if (d.blocked) this.addLog(`${d.name} bloklandi: ${d.blocked.reason}`, 'admin', { driverId: d.id }, Date.parse(d.blocked.at));
+    const st: Record<Lead['status'], string> = { new: 'yangi', contacted: "bog'lanildi", approved: 'qabul qilindi', rejected: 'rad etildi' };
+    for (const l of this.leads) {
+      const at = Date.parse(l.at);
+      if (now - at > 7 * DAY) continue;
+      this.addLog(`Saytdan yangi ariza: ${l.name}${l.car ? `, ${l.car}` : ''}`, 'system', { leadId: l.id }, at);
+      if (l.status !== 'new' && l.updatedAt) this.addLog(`Ariza «${l.name}»: ${st[l.status]}`, 'admin', { leadId: l.id }, Date.parse(l.updatedAt));
+    }
+    // operator amallari: tig'iz soat oldidan xabar va vaqtinchalik hudud
+    this.addLog("Xabar (liniyadagilarga): Tig'iz soat yaqinlashmoqda — 17 ta haydovchiga", 'admin', {}, yesterday + 17 * H + 25 * MIN);
+    this.addLog('Yuqori talab hududi «Toshkent vokzali»: ×1.5, 19:10 gacha', 'admin', {}, yesterday + 18 * H + 10 * MIN);
+    this.addLog("Hudud o'chirildi: «Toshkent vokzali»", 'system', {}, yesterday + 19 * H + 10 * MIN);
+    this.addLog("Sozlamalar: avtomatik tekshiruv yoqildi", 'admin', {}, d0.getTime() - 5 * DAY + 10 * H);
+    if (now > d0.getTime() + 8 * H) this.addLog('Xabar (bo\'shlarga): Talab yuqori — 9 ta haydovchiga', 'admin', {}, d0.getTime() + 7 * H + 50 * MIN);
+    this.log.sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+  }
+
   private seedLeads(now: number): Lead[] {
-    const mk = (name: string, phone: string, car: string, year: number, agoH: number, status: Lead['status'], note?: string): Lead => {
+    // replyMin — operator necha daqiqada javob bergani (yangi arizalarda yo'q)
+    const mk = (name: string, phone: string, car: string, year: number, agoH: number, status: Lead['status'], replyMin = 0, note?: string): Lead => {
       const tariffs = ['start', 'comfort', 'business', 'minivan', 'delivery'].filter(t => tariffChecks(t, car, year, { docsApproved: true, rating: 5, trips: 0, activity: 100, deliveryTerms: true }).every(c => c.ok));
-      return { id: this.uid('a'), at: iso(now - agoH * H), name, phone, city: 'Toshkent', car, year, tariffs, lang: 'uz', status, note };
+      const at = now - agoH * H;
+      return { id: this.uid('a'), at: iso(at), name, phone, city: 'Toshkent', car, year, tariffs, lang: 'uz', status, note, updatedAt: status === 'new' ? undefined : iso(at + replyMin * MIN) };
     };
     return [
-      mk('Umid Qodirov', '+998901234501', 'Chevrolet Cobalt', 2021, 1.5, 'new'),
+      mk('Umid Qodirov', '+998901234501', 'Chevrolet Cobalt', 2021, 0.3, 'new'),
       mk('Ravshan Tojiev', '+998935557711', 'Kia K5', 2022, 5, 'new'),
       mk('Lobar Saidova', '+998977203040', 'Hyundai Elantra', 2019, 30, 'new'),
-      mk('Murod Ergashev', '+998946662211', 'Chevrolet Nexia 3', 2017, 52, 'contacted', 'Ertaga ofisga keladi'),
-      mk('Ilhom Nazarov', '+998998887766', 'Chevrolet Orlando', 2016, 80, 'contacted'),
-      mk('Kamol Usmonov', '+998901110022', 'Chevrolet Spark', 2006, 120, 'rejected', "Avtomobil 2008-yildan eski"),
-      mk('Asror Rahimov', '+998933334455', 'Toyota Camry', 2021, 150, 'approved', "Ro'yxatdan o'tdi, hujjatlari tasdiqlandi"),
+      mk('Murod Ergashev', '+998946662211', 'Chevrolet Nexia 3', 2017, 52, 'contacted', 35, 'Ertaga ofisga keladi'),
+      mk('Ilhom Nazarov', '+998998887766', 'Chevrolet Orlando', 2016, 80, 'contacted', 18),
+      mk('Kamol Usmonov', '+998901110022', 'Chevrolet Spark', 2006, 120, 'rejected', 50, 'Avtomobil 2008-yildan eski'),
+      mk('Asror Rahimov', '+998933334455', 'Toyota Camry', 2021, 150, 'approved', 12, "Ro'yxatdan o'tdi, hujjatlari tasdiqlandi"),
     ];
   }
 

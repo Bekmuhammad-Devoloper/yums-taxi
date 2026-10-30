@@ -105,12 +105,11 @@ export default function Leads() {
 
   const current = sel ? infos.find(i => i.lead.id === sel) : undefined;
   const columns: Column<Info>[] = [
-    { key: 'name', title: 'Ariza', flex: 1.6, render: i => <Cell strong text={i.lead.name} sub={phoneText(i.lead.phone)} /> },
-    { key: 'car', title: 'Avtomobil', flex: 1.3, render: i => <Cell text={i.lead.car ?? '—'} sub={[i.lead.year, i.lead.city].filter(Boolean).join(' · ')} /> },
-    { key: 'fit', title: 'Mos tariflar', flex: 1.3, render: i => (i.fitNow.length ? <Cell text={i.fitNow.map(tName).join(', ')} sub={i.fitLater.length ? `keyin: ${i.fitLater.map(tName).join(', ')}` : undefined} /> : <Pill text="Mos emas" tone="critical" icon="close-circle" />) },
-    { key: 'at', title: 'Yuborildi', width: 130, render: i => <Cell text={ago(i.lead.at, now)} sub={dateHM(i.lead.at)} /> },
-    { key: 'flags', title: 'Belgilar', width: 170, render: i => <Flags i={i} /> },
-    { key: 'status', title: 'Holat', width: 130, render: i => <Pill text={STATUS[i.lead.status].label} tone={STATUS[i.lead.status].tone} /> },
+    { key: 'name', title: 'Ariza', flex: 1.5, render: i => <Cell strong text={i.lead.name} sub={phoneText(i.lead.phone)} /> },
+    { key: 'car', title: 'Avtomobil', flex: 1.2, render: i => <Cell text={i.lead.car ?? '—'} sub={[i.lead.year, i.lead.city].filter(Boolean).join(' · ')} /> },
+    { key: 'fit', title: 'Mos tariflar', flex: 1.2, render: i => (i.fitNow.length ? <Cell text={i.fitNow.map(tName).join(', ')} sub={i.fitLater.length ? `keyin: ${i.fitLater.map(tName).join(', ')}` : undefined} /> : <Pill text="Mos emas" tone="critical" icon="close-circle" />) },
+    { key: 'status', title: 'Holat', width: 150, render: i => <View style={{ gap: 4, maxWidth: '100%' }}><Pill text={STATUS[i.lead.status].label} tone={STATUS[i.lead.status].tone} /><Flags i={i} /></View> },
+    { key: 'at', title: 'Yuborildi', width: 104, align: 'right', render: i => <Cell text={ago(i.lead.at, now).replace(' oldin', '')} sub={dateHM(i.lead.at)} /> },
   ];
 
   const detail = current ? <LeadDetail key={current.lead.id + (current.lead.updatedAt ?? '')} info={current} now={now} onClose={() => setSel(null)} /> : null;

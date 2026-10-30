@@ -446,7 +446,7 @@ export function Table<T>({ rows, columns, onRow, empty = "Ma'lumot yo'q", rowKey
           <Pressable key={k} onPress={onRow ? () => onRow(r) : undefined} disabled={!onRow} accessibilityRole={onRow ? 'button' : undefined}
             style={({ hovered }: { hovered?: boolean }) => [mid ? styles.tr : styles.trCard, { borderBottomColor: c.line, backgroundColor: k === selected ? c.brandSoft : hovered && onRow ? c.surface2 : 'transparent' }]}>
             {columns.map(col => (
-              <View key={col.key} style={mid ? { flex: col.width ? undefined : col.flex ?? 1, width: col.width, alignItems: col.align === 'right' ? 'flex-end' : 'flex-start', justifyContent: 'center' } : styles.cardCell}>
+              <View key={col.key} style={mid ? { flex: col.width ? undefined : col.flex ?? 1, width: col.width, minWidth: 0, alignItems: col.align === 'right' ? 'flex-end' : 'flex-start', justifyContent: 'center' } : styles.cardCell}>
                 {!mid ? <Text style={[styles.cardLabel, { color: c.faint }]}>{col.title}</Text> : null}
                 {col.render(r)}
               </View>
@@ -466,7 +466,7 @@ export function Table<T>({ rows, columns, onRow, empty = "Ma'lumot yo'q", rowKey
 export function Cell({ text, sub, strong, mono }: { text: string; sub?: string; strong?: boolean; mono?: boolean }) {
   const { colors: c } = useStore();
   return (
-    <View style={{ gap: 1, flexShrink: 1 }}>
+    <View style={{ gap: 1, flexShrink: 1, maxWidth: '100%' }}>
       <Text style={[strong ? styles.cellStrong : styles.cell, { color: c.text }, mono && { fontVariant: ['tabular-nums'] }]} numberOfLines={1}>{text}</Text>
       {sub ? <Text style={[styles.cellSub, { color: c.faint }]} numberOfLines={1}>{sub}</Text> : null}
     </View>
@@ -497,9 +497,9 @@ const styles = StyleSheet.create({
   btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, height: 40, paddingHorizontal: 14, borderRadius: 12 },
   btnSmall: { height: 34, paddingHorizontal: 11, borderRadius: 10 },
   btnText: { fontFamily: F.bold, fontSize: 14 },
-  pill: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99 },
+  pill: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 6, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 99, maxWidth: '100%' },
   pillDot: { width: 7, height: 7, borderRadius: 4 },
-  pillText: { fontFamily: F.bold, fontSize: 12 },
+  pillText: { fontFamily: F.bold, fontSize: 12, flexShrink: 1 },
   seg: { flexDirection: 'row', borderRadius: 12, padding: 3, gap: 2 },
   segItem: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 32, borderRadius: 9 },
   segText: { fontFamily: F.bold, fontSize: 13 },

@@ -23,7 +23,7 @@ export type Lead = { id: string; at: string; name: string; phone: string; city?:
 
 /* ---------- Demo xotira (server yo'q) ---------- */
 
-export const DEMO_KEYS = { config: 'yums:demo:config', content: 'yums:demo:content', leads: 'yums:demo:leads' };
+export const DEMO_KEYS = { config: 'yums:demo:config', content: 'yums:demo:content', leads: 'yums:demo:leads', seeded: 'yums:demo:seeded' };
 export const EMPTY_CONFIG: AdminConfig = { tariffs: {}, commission: null, zones: [], autoApprove: true };
 
 async function readJson<T>(key: string, fallback: T): Promise<T> {
@@ -38,6 +38,8 @@ export const demoRead = {
   config: () => readJson<AdminConfig>(DEMO_KEYS.config, EMPTY_CONFIG),
   content: () => readJson<ContentOverrides>(DEMO_KEYS.content, {}),
   leads: () => readJson<Lead[]>(DEMO_KEYS.leads, []),
+  /** namunaviy arizalar bir marta qo'shilgan */
+  seeded: () => readJson<boolean>(DEMO_KEYS.seeded, false),
 };
 export const demoWrite = (key: string, v: unknown) => AsyncStorage.setItem(key, JSON.stringify(v)).catch(() => {});
 
