@@ -8,11 +8,13 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { LangButton } from '@/components/lang-picker';
 import { toast } from '@/components/toast';
 import { LOGO_EMBLEM } from '@/components/ui';
 import { TARIFF_ART } from '@/lib/cars';
 import type { Tariff } from '@/lib/data';
 import { som } from '@/lib/geo';
+import { flipRTL, isRTL, tr } from '@/lib/i18n';
 import { commissionOf } from '@/lib/remote-config';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
@@ -20,7 +22,7 @@ import { Container, openUrl, useLayout } from '@/site/components/kit';
 import { DriverJoin } from '@/site/components/landing/driver-join';
 import { Estimator } from '@/site/components/landing/estimator';
 import type { Lang } from '@/site/lib/content';
-import { T, TARIFF_RU } from '@/site/lib/i18n';
+import { T } from '@/site/lib/i18n';
 import { useLang, useSiteData } from '@/site/lib/use-site';
 
 const HERO = { night: require('@/assets/site/hero-night.webp'), day: require('@/assets/site/hero-day.webp') };
@@ -43,7 +45,7 @@ type SectionId = 'estimate' | 'tariffs' | 'drivers' | 'faq';
 export default function Landing() {
   const { colors: c, dark, setTheme } = useStore();
   const { wide, mid } = useLayout();
-  const [lang, setLang] = useLang();
+  const [lang] = useLang();
   const site = useSiteData();
   const t = T[lang];
   const content = site.content[lang];
@@ -52,9 +54,10 @@ export default function Landing() {
   const [solid, setSolid] = useState(false);
   const [menu, setMenu] = useState(false);
   const commission = commissionOf(site.config);
+  const rtl = isRTL(lang);
 
   useEffect(() => {
-    if (typeof document !== 'undefined') document.title = lang === 'ru' ? 'YUMS Taxi — такси по Ташкенту' : "YUMS Taxi — Toshkent bo'ylab taksi";
+    if (typeof document !== 'undefined') document.title = T[lang].meta.title;
   }, [lang]);
 
   const go = (id: SectionId) => {
@@ -71,10 +74,10 @@ export default function Landing() {
       <ScrollView ref={scroll} onScroll={e => setSolid(e.nativeEvent.contentOffset.y > 24)} scrollEventThrottle={64} contentContainerStyle={{ paddingBottom: 0 }}>
         {/* ---------- Bosh qism ---------- */}
         <View style={[styles.hero, { minHeight: wide ? 680 : undefined }]}>
-          <Image source={dark ? HERO.night : HERO.day} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={wide ? 'right center' : 'center'} accessible={false} />
+          <Image source={dark ? HERO.night : HERO.day} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={wide ? (rtl ? 'left center' : 'right center') : 'center'} accessible={false} />
           <LinearGradient
             colors={dark ? ['rgba(10,13,20,0.97)', 'rgba(10,13,20,0.82)', 'rgba(10,13,20,0.2)'] : ['rgba(244,245,248,0.98)', 'rgba(244,245,248,0.86)', 'rgba(244,245,248,0.1)']}
-            locations={[0, 0.48, 1]} start={wide ? { x: 0, y: 0 } : { x: 0, y: 0 }} end={wide ? { x: 1, y: 0 } : { x: 0, y: 1 }} style={StyleSheet.absoluteFill} />
+            locations={[0, 0.48, 1]} start={wide && rtl ? { x: 1, y: 0 } : { x: 0, y: 0 }} end={wide ? { x: rtl ? 0 : 1, y: 0 } : { x: 0, y: 1 }} style={StyleSheet.absoluteFill} />
           <Container style={[styles.heroInner, wide && { flexDirection: 'row', alignItems: 'center' }]}>
             <View style={[{ gap: 22 }, wide && { flex: 1.15 }]}>
               <View style={[styles.badge, { backgroundColor: dark ? 'rgba(255,200,0,0.14)' : 'rgba(15,30,61,0.07)' }]}>
@@ -101,8 +104,8 @@ export default function Landing() {
               {site.content.showPromo && content.promoText ? <Promo lang={lang} text={content.promoText} code={content.promoCode} /> : null}
             </View>
             <View style={[styles.phones, !wide && { marginTop: 36, alignSelf: 'center' }]} accessible={false}>
-              <Phone source={PHONES.driver} width={wide ? 236 : 168} style={{ transform: [{ rotate: '-6deg' }, { translateX: wide ? 40 : 30 }, { translateY: 24 }], opacity: 0.96 }} />
-              <Phone source={PHONES.passenger} width={wide ? 268 : 190} style={{ transform: [{ rotate: '4deg' }, { translateX: wide ? -24 : -18 }], zIndex: 2 }} />
+              <Phone source={PHONES.driver} width={wide ? 236 : 168} style={{ transform: [{ rotate: rtl ? '6deg' : '-6deg' }, { translateX: (wide ? 40 : 30) * (rtl ? -1 : 1) }, { translateY: 24 }], opacity: 0.96 }} />
+              <Phone source={PHONES.passenger} width={wide ? 268 : 190} style={{ transform: [{ rotate: rtl ? '-4deg' : '4deg' }, { translateX: (wide ? -24 : -18) * (rtl ? -1 : 1) }], zIndex: 2 }} />
             </View>
           </Container>
         </View>
@@ -193,7 +196,7 @@ export default function Landing() {
             </View>
           ) : null}
           <View style={styles.navRight}>
-            <LangSwitch lang={lang} onChange={setLang} />
+            <LangButton />
             <Pressable onPress={() => setTheme(dark ? 'light' : 'dark')} style={[styles.iconBtn, { backgroundColor: c.surface2 }]} accessibilityLabel={dark ? t.theme.light : t.theme.dark}>
               <Ionicons name={dark ? 'sunny' : 'moon'} size={17} color={c.text} />
             </Pressable>
@@ -202,7 +205,7 @@ export default function Landing() {
                 <Text style={[styles.navCtaText, { color: NAVY }]}>{t.hero.become}</Text>
               </Pressable>
             ) : (
-              <Pressable onPress={() => setMenu(m => !m)} style={[styles.iconBtn, { backgroundColor: c.surface2 }]} accessibilityLabel="Menyu">
+              <Pressable onPress={() => setMenu(m => !m)} style={[styles.iconBtn, { backgroundColor: c.surface2 }]} accessibilityLabel={t.nav.menu}>
                 <Ionicons name={menu ? 'close' : 'menu'} size={20} color={c.text} />
               </Pressable>
             )}
@@ -213,7 +216,7 @@ export default function Landing() {
             {(['estimate', 'tariffs', 'drivers', 'faq'] as const).map(id => (
               <Pressable key={id} onPress={() => go(id)} style={[styles.menuItem, { backgroundColor: c.surface2 }]} accessibilityRole="link">
                 <Text style={[styles.navLinkText, { color: c.text, fontSize: 16 }]}>{t.nav[id]}</Text>
-                <Ionicons name="chevron-forward" size={18} color={c.faint} />
+                <Ionicons name="chevron-forward" size={18} color={c.faint} style={flipRTL()} />
               </Pressable>
             ))}
           </Container>
@@ -294,7 +297,7 @@ function StatsStrip({ lang, stats }: { lang: Lang; stats: { driversOnline: numbe
   return (
     <View style={[styles.stats, { backgroundColor: c.surface, borderColor: c.line, flexDirection: wide ? 'row' : 'column' }]} accessibilityLabel={stats ? t.stats.live : undefined}>
       {items.map((it, i) => (
-        <View key={it.small} style={[styles.statItem, wide && i > 0 && { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: c.line }]}>
+        <View key={it.small} style={[styles.statItem, wide && i > 0 && { borderStartWidth: StyleSheet.hairlineWidth, borderStartColor: c.line }]}>
           <View style={[styles.statIcon, { backgroundColor: c.brandSoft }]}><Ionicons name={it.icon} size={18} color={c.brandDeep} /></View>
           <View style={{ flex: 1 }}>
             <Text style={[stats ? styles.statBig : styles.statTitle, { color: c.text }]} numberOfLines={1}>{it.big}</Text>
@@ -311,8 +314,8 @@ function TariffCard({ lang, t: tf }: { lang: Lang; t: Tariff }) {
   const { colors: c } = useStore();
   const { wide, mid } = useLayout();
   const t = T[lang].tariffs;
-  const name = lang === 'ru' ? TARIFF_RU[tf.id]?.name ?? tf.name : tf.name;
-  const desc = lang === 'ru' ? TARIFF_RU[tf.id]?.desc ?? tf.desc : tf.desc;
+  const name = tr(tf.name);
+  const desc = tr(tf.desc);
   return (
     <View style={[styles.tariff, { backgroundColor: c.surface, borderColor: c.line, flexBasis: wide ? '18%' : mid ? '30%' : '46%' }, !mid && { padding: 12, borderRadius: 22 }]}>
       <Image source={TARIFF_ART[tf.id]} style={styles.tariffArt} contentFit="contain" accessible={false} />
@@ -363,19 +366,6 @@ function FaqItem({ q, a }: { q: string; a: string }) {
       </View>
       {open ? <Text style={[styles.body, { color: c.muted }]}>{a}</Text> : null}
     </Pressable>
-  );
-}
-
-function LangSwitch({ lang, onChange }: { lang: Lang; onChange: (l: Lang) => void }) {
-  const { colors: c } = useStore();
-  return (
-    <View style={[styles.lang, { backgroundColor: c.surface2 }]}>
-      {(['uz', 'ru'] as const).map(l => (
-        <Pressable key={l} onPress={() => onChange(l)} style={[styles.langBtn, l === lang && { backgroundColor: c.surface }]} accessibilityLabel={l === 'uz' ? "O'zbekcha" : 'Русский'} accessibilityState={{ selected: l === lang }}>
-          <Text style={[styles.langText, { color: l === lang ? c.text : c.muted }]}>{l.toUpperCase()}</Text>
-        </Pressable>
-      ))}
-    </View>
   );
 }
 
@@ -478,12 +468,9 @@ const styles = StyleSheet.create({
   navLinks: { flex: 1, flexDirection: 'row', justifyContent: 'center', gap: 4 },
   navLink: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 12 },
   navLinkText: { fontFamily: F.bold, fontSize: 14.5 },
-  navRight: { flexDirection: 'row', alignItems: 'center', gap: 8, marginLeft: 'auto' },
+  navRight: { flexDirection: 'row', alignItems: 'center', gap: 8, marginStart: 'auto' },
   iconBtn: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   navCta: { height: 40, paddingHorizontal: 16, borderRadius: 12, justifyContent: 'center' },
   navCtaText: { fontFamily: F.heavy, fontSize: 14 },
   menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingVertical: 14, borderRadius: 14 },
-  lang: { flexDirection: 'row', borderRadius: 12, padding: 3 },
-  langBtn: { paddingHorizontal: 9, paddingVertical: 6, borderRadius: 9 },
-  langText: { fontFamily: F.heavy, fontSize: 12.5 },
 });

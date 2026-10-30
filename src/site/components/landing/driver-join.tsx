@@ -6,16 +6,16 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 
 import { CAR_MODELS, CLASS_NAME, CLASS_OK, carFit, carTitle, EXTRA, MIN_YEAR } from '@/driver/lib/requirements';
 import type { Tariff } from '@/lib/data';
 import { priceFor, som } from '@/lib/geo';
+import { tr } from '@/lib/i18n';
 import { useColors } from '@/lib/store';
 import { F } from '@/lib/theme';
 import { submitLead } from '@/site/lib/api';
 import type { Lang } from '@/site/lib/content';
-import { T, TARIFF_RU } from '@/site/lib/i18n';
+import { T } from '@/site/lib/i18n';
 
 import { PickerModal, useLayout } from '../kit';
 
 const AVG_KM = 7, AVG_MIN = 18, TRIPS_PER_HOUR = 1.6, WEEKS_PER_MONTH = 4.33;
-const CLASS_RU: Record<string, string> = { economy: 'Эконом', comfort: 'Комфорт', business: 'Бизнес', minivan: 'Минивэн', cargo: 'Грузовой' };
 
 export function DriverJoin({ lang, tariffs, commission }: { lang: Lang; tariffs: Tariff[]; commission: number }) {
   const { wide } = useLayout();
@@ -32,7 +32,7 @@ export function DriverJoin({ lang, tariffs, commission }: { lang: Lang; tariffs:
   );
 }
 
-const tName = (lang: Lang, t: Tariff) => (lang === 'ru' ? TARIFF_RU[t.id]?.name ?? t.name : t.name);
+const tName = (t: Tariff) => tr(t.name);
 
 function Calculator({ lang, tariffs, commission }: { lang: Lang; tariffs: Tariff[]; commission: number }) {
   const c = useColors();
@@ -58,7 +58,7 @@ function Calculator({ lang, tariffs, commission }: { lang: Lang; tariffs: Tariff
         <View style={styles.chips}>
           {tariffs.filter(x => ['start', 'comfort', 'business'].includes(x.id)).map(x => (
             <Pressable key={x.id} onPress={() => setTariffId(x.id)} style={[styles.chip, { backgroundColor: x.id === tariffId ? c.ink : c.surface2 }]} accessibilityLabel={`Kalkulyator: ${x.name}`}>
-              <Text style={[styles.chipText, { color: x.id === tariffId ? c.bg : c.text }]}>{tName(lang, x)}</Text>
+              <Text style={[styles.chipText, { color: x.id === tariffId ? c.bg : c.text }]}>{tName(x)}</Text>
             </Pressable>
           ))}
         </View>
@@ -115,7 +115,7 @@ function Line({ label, value }: { label: string; value: string }) {
 function Requirements({ lang, tariffs }: { lang: Lang; tariffs: Tariff[] }) {
   const c = useColors();
   const t = T[lang].driver;
-  const cls = (k: string) => (lang === 'ru' ? CLASS_RU[k] : CLASS_NAME[k as keyof typeof CLASS_NAME]);
+  const cls = (k: string) => tr(CLASS_NAME[k as keyof typeof CLASS_NAME]);
   return (
     <View style={[styles.card, { backgroundColor: c.surface, borderColor: c.line }]}>
       <Text style={[styles.h3, { color: c.text }]}>{t.reqTitle}</Text>
@@ -130,7 +130,7 @@ function Requirements({ lang, tariffs }: { lang: Lang; tariffs: Tariff[] }) {
         ].filter(Boolean);
         return (
           <View key={tf.id} style={[styles.reqRow, { borderTopColor: c.line }]}>
-            <Text style={[styles.reqName, { color: c.text }]}>{tName(lang, tf)}</Text>
+            <Text style={[styles.reqName, { color: c.text }]}>{tName(tf)}</Text>
             <Text style={[styles.reqText, { color: c.muted }]}>{parts.join(' · ')}</Text>
           </View>
         );
@@ -144,7 +144,7 @@ function LeadForm({ lang, tariffs }: { lang: Lang; tariffs: Tariff[] }) {
   const t = T[lang].driver;
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [city, setCity] = useState('Toshkent');
+  const [city, setCity] = useState(() => tr('Toshkent'));
   const [car, setCar] = useState<string | undefined>();
   const [year, setYear] = useState('');
   const [trap, setTrap] = useState('');
@@ -155,7 +155,7 @@ function LeadForm({ lang, tariffs }: { lang: Lang; tariffs: Tariff[] }) {
   const y = Number(year);
   const yearOk = /^\d{4}$/.test(year) && y >= 1990 && y <= new Date().getFullYear() + 1;
   const fit = useMemo(() => carFit(car, yearOk ? y : undefined), [car, y, yearOk]);
-  const carItems = useMemo(() => CAR_MODELS.map(m => ({ id: carTitle(m), title: carTitle(m), sub: `${m.seats} o'rin`, group: lang === 'ru' ? CLASS_RU[m.cls] : CLASS_NAME[m.cls] })), [lang]);
+  const carItems = useMemo(() => CAR_MODELS.map(m => ({ id: carTitle(m), title: carTitle(m), sub: `${m.seats} ${T[lang].tariffs.seats}`, group: tr(CLASS_NAME[m.cls]) })), [lang]);
   const digits = phone.replace(/\D/g, '');
 
   const send = async () => {
@@ -194,7 +194,7 @@ function LeadForm({ lang, tariffs }: { lang: Lang; tariffs: Tariff[] }) {
       </View>
       <Input label={t.name} value={name} onChange={setName} placeholder={t.namePh} error={errors.name} />
       <Input label={t.phone} value={phone} onChange={v => setPhone(maskPhone(v))} placeholder="90 123 45 67" prefix="+998" error={errors.phone} keyboard="phone-pad" />
-      <Input label={t.city} value={city} onChange={setCity} placeholder="Toshkent" />
+      <Input label={t.city} value={city} onChange={setCity} placeholder={tr('Toshkent')} />
       <View style={{ gap: 6 }}>
         <Text style={[styles.label, { color: c.muted }]}>{t.car}</Text>
         <Pressable onPress={() => setPicking(true)} style={[styles.input, styles.select, { backgroundColor: c.surface2, borderColor: errors.car ? c.danger : 'transparent' }]} accessibilityLabel={t.car}>
@@ -212,8 +212,8 @@ function LeadForm({ lang, tariffs }: { lang: Lang; tariffs: Tariff[] }) {
           <Text style={[styles.label, { color: c.muted }]}>{t.fits}</Text>
           {fit.now.length || fit.later.length ? (
             <View style={styles.chips}>
-              {fit.now.map(id => <Badge key={id} text={tName(lang, tariffs.find(x => x.id === id)!)} ok />)}
-              {fit.later.map(id => <Badge key={id} text={`${tName(lang, tariffs.find(x => x.id === id)!)} · ${t.later}`} />)}
+              {fit.now.map(id => <Badge key={id} text={tName(tariffs.find(x => x.id === id)!)} ok />)}
+              {fit.later.map(id => <Badge key={id} text={`${tName(tariffs.find(x => x.id === id)!)} · ${t.later}`} />)}
             </View>
           ) : <Text style={[styles.body, { color: c.danger }]}>{t.none}</Text>}
         </View>
@@ -242,7 +242,7 @@ function Input({ label, value, onChange, placeholder, error, prefix, keyboard }:
   return (
     <View style={{ gap: 6 }}>
       <Text style={[styles.label, { color: c.muted }]}>{label}</Text>
-      <View style={[styles.input, { backgroundColor: c.surface2, borderColor: error ? c.danger : 'transparent' }]}>
+      <View style={[styles.input, { backgroundColor: c.surface2, borderColor: error ? c.danger : 'transparent' }, keyboard === 'phone-pad' && { direction: 'ltr' }]}>
         {prefix ? <Text style={[styles.inputText, { color: c.muted }]}>{prefix}</Text> : null}
         <TextInput value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={c.faint} keyboardType={keyboard}
           style={[styles.inputText, styles.inputField, { color: c.text }]} accessibilityLabel={label} />

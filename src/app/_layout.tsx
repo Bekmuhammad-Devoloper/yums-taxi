@@ -13,6 +13,7 @@ import { useEffect } from 'react';
 import { Platform, View } from 'react-native';
 
 import { ToastHost } from '@/components/toast';
+import { dirProps } from '@/lib/i18n';
 import { PlatformProvider } from '@/lib/platform';
 import { StoreProvider, useStore } from '@/lib/store';
 
@@ -40,7 +41,7 @@ function Root() {
   return (
     <ThemeProvider value={dark ? DarkTheme : DefaultTheme}>
       <StatusBar style={dark ? 'light' : 'dark'} />
-      <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <View {...dirProps(lang)} style={{ flex: 1, backgroundColor: colors.bg }}>
         {/* til almashganda ekranlar qayta chiziladi (barcha matnlar yangi tilda) */}
         <Stack key={lang} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'slide_from_right' }}>
           <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />

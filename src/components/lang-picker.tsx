@@ -21,6 +21,7 @@ export function LangList({ onPicked }: { onPicked?: () => void }) {
             style={({ pressed }) => [styles.row, { backgroundColor: pressed ? c.surface2 : 'transparent' }]}>
             <Flag code={l.country} size={28} />
             <Text style={[styles.label, { color: c.text }]}>{l.label}</Text>
+            <View style={{ flex: 1 }} />
             {on ? <Ionicons name="checkmark-circle" size={22} color={c.brandDeep} /> : null}
           </Pressable>
         );
@@ -51,7 +52,7 @@ export function LangButton({ light }: { light?: boolean }) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 12, borderRadius: 16 },
-  label: { flex: 1, fontFamily: F.bold, fontSize: 16 },
+  label: { fontFamily: F.bold, fontSize: 16 },
   btn: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 34, paddingHorizontal: 10, borderRadius: 12 },
   btnText: { fontFamily: F.heavy, fontSize: 12.5, letterSpacing: 0.4 },
 });

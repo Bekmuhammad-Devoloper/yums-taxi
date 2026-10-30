@@ -11,12 +11,13 @@ import {
 import { useStore } from './store';
 import { tr, tx } from '@/lib/i18n';
 import { fmtDay } from '@/lib/format';
+import { groupDigits } from '@/lib/geo';
 
 /* ---------- Yordamchi formatlar ---------- */
 
 export const usd = (n: number) => {
   if (n < 10 && n % 1) return `$${n.toFixed(2)}`;
-  return `$${String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')}`;
+  return `$${groupDigits(n)}`;
 };
 
 export const short = (n: number) =>

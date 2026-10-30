@@ -1,4 +1,4 @@
-// Sayt matni: bosh qism, aksiya, «Haydovchi bo'ling» bo'limi, savol-javoblar (o'zbek va rus tillarida), aloqa va bo'limlarni yoqish.
+// Sayt matni: bosh qism, aksiya, «Haydovchi bo'ling» bo'limi, savol-javoblar (saytning 5 tilida), aloqa va bo'limlarni yoqish.
 // Faqat standartdan farq qiladigan maydonlar serverga yuboriladi; saqlangach sayt ochiq turgan brauzerlarda ham yangilanadi.
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
@@ -8,12 +8,14 @@ import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-na
 
 import { IOSSwitch } from '@/components/ui';
 import { confirm } from '@/lib/confirm';
+import { isRTL } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
 import { openUrl, useLayout } from '@/site/components/kit';
 import { Btn, Cols, Page, Panel, Pill, Seg, STATUS_COLOR } from '@/site/components/admin/ui';
 import { useAdmin, useRun } from '@/site/lib/admin-store';
-import { DEFAULT_CONTENT, mergeContent, type ContentOverrides, type Faq, type Lang, type LangBlock, type SiteContent } from '@/site/lib/content';
+import { DEFAULT_CONTENT, LANG_NAME, langLabel, mergeContent, SITE_LANGS, type ContentOverrides, type Faq, type Lang, type LangBlock, type SiteContent } from '@/site/lib/content';
+import { T } from '@/site/lib/i18n';
 
 type TextKey = Exclude<keyof LangBlock, 'faq'>;
 const TEXTS: { k: TextKey; label: string; max: number; multiline?: boolean; soft?: number }[] = [
@@ -24,14 +26,15 @@ const TEXTS: { k: TextKey; label: string; max: number; multiline?: boolean; soft
   { k: 'driverTitle', label: "«Haydovchi bo'ling» sarlavhasi", max: 120, soft: 60 },
   { k: 'driverSub', label: "«Haydovchi bo'ling» matni", max: 300, multiline: true, soft: 220 },
 ];
-const LANGS: { id: Lang; label: string }[] = [{ id: 'uz', label: "O'zbekcha" }, { id: 'ru', label: 'Ruscha' }];
+const LANGS: { id: Lang; label: string }[] = SITE_LANGS.map(id => ({ id, label: langLabel(id) }));
+const names = (ls: Lang[]) => ls.map(l => LANG_NAME[l]).join(', ');
 const HERO = { night: require('@/assets/site/hero-night.webp'), day: require('@/assets/site/hero-day.webp') };
 const YELLOW = '#FFC800';
 
 /** Standartdan farq qiladigan maydonlar (serverga shu yuboriladi) */
 function overridesOf(d: SiteContent): ContentOverrides {
   const o: ContentOverrides = {};
-  for (const lang of ['uz', 'ru'] as const) {
+  for (const lang of SITE_LANGS) {
     const b: Partial<LangBlock> = {};
     for (const { k } of TEXTS) {
       const v = d[lang][k].trim();
@@ -54,22 +57,25 @@ function overridesOf(d: SiteContent): ContentOverrides {
 function checksOf(d: SiteContent) {
   const out: { level: 'warn' | 'info'; text: string }[] = [];
   for (const { k, label } of TEXTS) {
-    const uz = d.uz[k].trim() !== DEFAULT_CONTENT.uz[k], ru = d.ru[k].trim() !== DEFAULT_CONTENT.ru[k];
-    if (k !== 'promoCode' && uz !== ru) out.push({ level: 'warn', text: `«${label}» faqat ${uz ? "o'zbekcha" : 'ruscha'} o'zgartirilgan — ${uz ? 'rus' : "o'zbek"} tilidagi sahifada eski matn qoladi` });
+    if (k === 'promoCode') continue;
+    const changed = SITE_LANGS.filter(l => d[l][k].trim() !== DEFAULT_CONTENT[l][k]);
+    const rest = SITE_LANGS.filter(l => !changed.includes(l));
+    if (changed.length && rest.length) out.push({ level: 'warn', text: `«${label}» faqat ${names(changed)} o'zgartirilgan — ${names(rest)} ${rest.length > 1 ? 'sahifalarda' : 'sahifada'} eski matn qoladi` });
   }
-  if (d.uz.faq.length !== d.ru.faq.length) out.push({ level: 'warn', text: `Savol-javoblar soni tillarda har xil: o'zbekcha ${d.uz.faq.length} ta, ruscha ${d.ru.faq.length} ta` });
-  for (const lang of ['uz', 'ru'] as const) {
+  if (new Set(SITE_LANGS.map(l => d[l].faq.length)).size > 1) out.push({ level: 'warn', text: `Savol-javoblar soni tillarda har xil: ${SITE_LANGS.map(l => `${LANG_NAME[l]} ${d[l].faq.length} ta`).join(', ')}` });
+  for (const lang of SITE_LANGS) {
     const code = d[lang].promoCode.trim();
-    if (code && !/^[A-Z0-9]{3,16}$/.test(code)) out.push({ level: 'warn', text: `Promokod (${lang}) faqat katta lotin harflari va raqamlardan, 3–16 belgi bo'lsin` });
+    if (code && !/^[A-Z0-9]{3,16}$/.test(code)) out.push({ level: 'warn', text: `Promokod (${LANG_NAME[lang]}) faqat katta lotin harflari va raqamlardan, 3–16 belgi bo'lsin` });
   }
-  if (d.uz.promoCode.trim() !== d.ru.promoCode.trim()) out.push({ level: 'warn', text: 'Promokod tillarda har xil — mijozlar adashishi mumkin' });
-  if (d.showPromo && (!d.uz.promoText.trim() || !d.ru.promoText.trim())) out.push({ level: 'warn', text: "Aksiya yoqilgan, lekin matni bo'sh" });
+  if (new Set(SITE_LANGS.map(l => d[l].promoCode.trim())).size > 1) out.push({ level: 'warn', text: 'Promokod tillarda har xil — mijozlar adashishi mumkin' });
+  const noPromo = SITE_LANGS.filter(l => !d[l].promoText.trim());
+  if (d.showPromo && noPromo.length) out.push({ level: 'warn', text: `Aksiya yoqilgan, lekin matni bo'sh: ${names(noPromo)}` });
   const digits = d.phone.replace(/\D/g, '');
   if (digits.length !== 12 || !digits.startsWith('998')) out.push({ level: 'warn', text: 'Telefon +998 XX XXX XX XX shaklida bo\'lsin' });
   if (!/^[A-Za-z0-9_]{5,32}$/.test(d.telegram.trim())) out.push({ level: 'warn', text: "Telegram — @ belgisisiz foydalanuvchi nomi (5–32 belgi, lotin harflari, raqam va _)" });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email.trim())) out.push({ level: 'warn', text: "Elektron pochta manzili noto'g'ri" });
-  for (const lang of ['uz', 'ru'] as const) {
-    for (const t of TEXTS) if (t.soft && d[lang][t.k].trim().length > t.soft) out.push({ level: 'info', text: `«${t.label}» (${lang}) ${d[lang][t.k].trim().length} belgi — telefonda uzun ko'rinadi, ${t.soft} gacha tavsiya etiladi` });
+  for (const lang of SITE_LANGS) {
+    for (const t of TEXTS) if (t.soft && d[lang][t.k].trim().length > t.soft) out.push({ level: 'info', text: `«${t.label}» (${LANG_NAME[lang]}) ${d[lang][t.k].trim().length} belgi — telefonda uzun ko'rinadi, ${t.soft} gacha tavsiya etiladi` });
   }
   return out;
 }
@@ -91,9 +97,11 @@ function Editor({ saved }: { saved: ContentOverrides }) {
   const next = useMemo(() => overridesOf(d), [d]);
   const dirty = JSON.stringify(next) !== JSON.stringify(overridesOf(base));
   const checks = useMemo(() => checksOf(d), [d]);
-  const changedCount = (['uz', 'ru'] as const).reduce((n, l) => n + Object.keys(next[l] ?? {}).length, 0) + (['phone', 'telegram', 'email', 'showStats', 'showPromo'] as const).filter(k => k in next).length;
+  const changedCount = SITE_LANGS.reduce((n, l) => n + Object.keys(next[l] ?? {}).length, 0) + (['phone', 'telegram', 'email', 'showStats', 'showPromo'] as const).filter(k => k in next).length;
 
   const block = d[lang];
+  // arabcha matn o'ngdan chapga yoziladi
+  const dir = isRTL(lang) ? { textAlign: 'right' as const, writingDirection: 'rtl' as const } : null;
   const setText = (k: TextKey, v: string) => setD(s => ({ ...s, [lang]: { ...s[lang], [k]: k === 'promoCode' ? v.toUpperCase().replace(/\s/g, '') : v } }));
   const setFaq = (faq: Faq[]) => setD(s => ({ ...s, [lang]: { ...s[lang], faq } }));
 
@@ -136,7 +144,7 @@ function Editor({ saved }: { saved: ContentOverrides }) {
                     <Text style={[styles.count, { color: t.soft && v.length > t.soft ? STATUS_COLOR.serious : c.faint }]}>{v.length}/{t.max}</Text>
                   </View>
                   <TextInput value={v} onChangeText={x => setText(t.k, x)} placeholder={def} placeholderTextColor={c.faint} multiline={t.multiline} maxLength={t.max} accessibilityLabel={t.label}
-                    style={[styles.input, { backgroundColor: c.surface2, color: c.text, borderColor: changed ? c.brand : 'transparent' }, t.multiline && styles.multi]} />
+                    style={[styles.input, { backgroundColor: c.surface2, color: c.text, borderColor: changed ? c.brand : 'transparent' }, t.multiline && styles.multi, t.k !== 'promoCode' && dir]} />
                 </View>
               );
             })}
@@ -153,9 +161,9 @@ function Editor({ saved }: { saved: ContentOverrides }) {
                   <IconBtn icon="trash-outline" label="O'chirish" danger onPress={() => setFaq(block.faq.filter((_, j) => j !== i))} />
                 </View>
                 <TextInput value={f.q} onChangeText={q => setFaq(block.faq.map((x, j) => (j === i ? { ...x, q } : x)))} placeholder="Savol" placeholderTextColor={c.faint} maxLength={200} accessibilityLabel={`${i + 1}-savol`}
-                  style={[styles.input, { backgroundColor: c.surface2, color: c.text, fontFamily: F.bold }]} />
+                  style={[styles.input, { backgroundColor: c.surface2, color: c.text, fontFamily: F.bold }, dir]} />
                 <TextInput value={f.a} onChangeText={a => setFaq(block.faq.map((x, j) => (j === i ? { ...x, a } : x)))} placeholder="Javob" placeholderTextColor={c.faint} multiline maxLength={1000} accessibilityLabel={`${i + 1}-javob`}
-                  style={[styles.input, styles.multi, { backgroundColor: c.surface2, color: c.text }]} />
+                  style={[styles.input, styles.multi, { backgroundColor: c.surface2, color: c.text }, dir]} />
                 {!f.q.trim() || !f.a.trim() ? <Text style={[styles.hint, { color: STATUS_COLOR.serious }]}>Savol va javob to&apos;ldirilmasa saqlanmaydi</Text> : null}
               </View>
             ))}
@@ -165,7 +173,7 @@ function Editor({ saved }: { saved: ContentOverrides }) {
             </View>
           </Panel>
 
-          <Panel title="Aloqa va bo'limlar" sub="Ikkala til uchun umumiy">
+          <Panel title="Aloqa va bo'limlar" sub="Barcha tillar uchun umumiy">
             <Row label="Telefon" value={d.phone} placeholder={DEFAULT_CONTENT.phone} onChange={phone => setD(s => ({ ...s, phone }))} max={24} />
             <Row label="Telegram" value={d.telegram} placeholder={DEFAULT_CONTENT.telegram} onChange={v => setD(s => ({ ...s, telegram: v.replace(/^@|^https?:\/\/t\.me\//, '') }))} max={64} />
             <Row label="Elektron pochta" value={d.email} placeholder={DEFAULT_CONTENT.email} onChange={email => setD(s => ({ ...s, email }))} max={80} />
@@ -200,20 +208,21 @@ function Editor({ saved }: { saved: ContentOverrides }) {
 function Preview({ d, lang }: { d: SiteContent; lang: Lang }) {
   const { dark } = useStore();
   const b = d[lang];
+  const rtl = isRTL(lang);
   const fg = dark ? '#fff' : '#0E1525';
   const muted = dark ? 'rgba(255,255,255,0.7)' : 'rgba(14,21,37,0.68)';
   return (
-    <View style={{ gap: 12 }}>
+    <View style={{ gap: 12, direction: rtl ? 'rtl' : 'ltr' }}>
       <View style={styles.preview}>
-        <Image source={dark ? HERO.night : HERO.day} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="right center" accessible={false} />
+        <Image source={dark ? HERO.night : HERO.day} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition={rtl ? 'left center' : 'right center'} accessible={false} />
         <LinearGradient colors={dark ? ['rgba(10,13,20,0.97)', 'rgba(10,13,20,0.78)', 'rgba(10,13,20,0.25)'] : ['rgba(244,245,248,0.98)', 'rgba(244,245,248,0.85)', 'rgba(244,245,248,0.2)']}
-          locations={[0, 0.55, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+          locations={[0, 0.55, 1]} start={{ x: rtl ? 1 : 0, y: 0 }} end={{ x: rtl ? 0 : 1, y: 0 }} style={StyleSheet.absoluteFill} />
         <View style={{ gap: 10, maxWidth: '78%' }}>
           <Text style={[styles.pTitle, { color: fg }]}>{b.heroTitle || DEFAULT_CONTENT[lang].heroTitle}</Text>
           <Text style={[styles.pSub, { color: muted }]} numberOfLines={4}>{b.heroSub || DEFAULT_CONTENT[lang].heroSub}</Text>
           <View style={styles.pCtas}>
-            <View style={[styles.pCta, { backgroundColor: YELLOW }]}><Text style={[styles.pCtaText, { color: '#0E1525' }]}>{lang === 'ru' ? 'Заказать' : 'Buyurtma'}</Text></View>
-            <View style={[styles.pCta, { borderWidth: 1, borderColor: muted }]}><Text style={[styles.pCtaText, { color: fg }]}>{lang === 'ru' ? 'Стать водителем' : "Haydovchi bo'lish"}</Text></View>
+            <View style={[styles.pCta, { backgroundColor: YELLOW }]}><Text style={[styles.pCtaText, { color: '#0E1525' }]}>{T[lang].estimate.title}</Text></View>
+            <View style={[styles.pCta, { borderWidth: 1, borderColor: muted }]}><Text style={[styles.pCtaText, { color: fg }]}>{T[lang].hero.become}</Text></View>
           </View>
           {d.showPromo && b.promoText.trim() ? (
             <View style={[styles.pPromo, { backgroundColor: dark ? 'rgba(255,255,255,0.08)' : '#fff' }]}>

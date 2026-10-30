@@ -8,6 +8,7 @@ import { ImageSlot } from '@/components/image-slot';
 import { toast } from '@/components/toast';
 import { Badge, Button, Card, Chip, Field, ListItem, Row, Screen, SectionHeader, Segmented, Sheet, Txt } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
+import { fmtDay } from '@/lib/format';
 import { PLANS, PRO_SERVICES, type Plan } from '@/lib/platform-data';
 import { usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
@@ -79,7 +80,7 @@ export default function Plans() {
               p.setPlan('free', false);
               toast(tr('Free tarifiga qaytdingiz'), 'leaf');
             }} />}
-            {current && p.planUntil && <Txt v="tiny" faint>{tr('Amal qiladi: {v2} gacha · TOP kreditlari: {boostCredits}', { v2: new Date(p.planUntil).toLocaleDateString(), boostCredits: p.boostCredits })}</Txt>}
+            {current && p.planUntil && <Txt v="tiny" faint>{tr('Amal qiladi: {v2} gacha · TOP kreditlari: {boostCredits}', { v2: `${fmtDay(p.planUntil)} ${new Date(p.planUntil).getFullYear()}`, boostCredits: p.boostCredits })}</Txt>}
           </Card>
         );
       })}

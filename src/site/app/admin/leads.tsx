@@ -16,6 +16,7 @@ import { Btn, Cell, Cols, Empty, Page, Panel, Pill, Seg, StatTile, STATUS_COLOR,
 import { useAdmin, useRun } from '@/site/lib/admin-store';
 import type { AdminDriver } from '@/site/lib/admin-types';
 import type { Lead, LeadStatus } from '@/site/lib/api';
+import { langLabel } from '@/site/lib/content';
 
 type Tab = LeadStatus | 'all';
 const STATUS: Record<LeadStatus, { label: string; tone: Tone }> = {
@@ -194,7 +195,7 @@ function LeadDetail({ info, now, onClose }: { info: Info; now: number; onClose: 
           <Text style={[styles.phone, { color: c.text }]}>{phoneText(lead.phone)}</Text>
           <View style={styles.chips}>
             <Pill text={STATUS[lead.status].label} tone={STATUS[lead.status].tone} />
-            <Pill text={lead.lang === 'ru' ? 'Ruscha' : "O'zbekcha"} tone="muted" icon="language" />
+            <Pill text={langLabel(lead.lang ?? 'uz')} tone="muted" icon="language" />
             {info.late ? <Pill text={`${Math.round(info.waitMin)} daqiqadan beri javobsiz`} tone="critical" icon="alarm" /> : null}
           </View>
         </View>

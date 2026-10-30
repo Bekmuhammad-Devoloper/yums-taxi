@@ -12,6 +12,7 @@ import { useEffect } from 'react';
 import { Platform, View } from 'react-native';
 
 import { ToastHost } from '@/components/toast';
+import { dirProps } from '@/lib/i18n';
 import { StoreProvider, useStore } from '@/lib/store';
 
 SplashScreen.preventAutoHideAsync();
@@ -29,7 +30,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
 }
 
 function Root() {
-  const { ready, dark, colors } = useStore();
+  const { ready, dark, colors, lang } = useStore();
   const [fontsLoaded, fontError] = useFonts({ Unbounded_700Bold, Onest_500Medium, Onest_600SemiBold, Onest_700Bold, Onest_800ExtraBold, ShareTechMono_400Regular });
   const loaded = ready && (fontsLoaded || !!fontError);
 
@@ -42,8 +43,8 @@ function Root() {
   return (
     <ThemeProvider value={dark ? DarkTheme : DefaultTheme}>
       <StatusBar style={dark ? 'light' : 'dark'} />
-      <View style={{ flex: 1, backgroundColor: colors.bg }}>
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'fade' }}>
+      <View {...dirProps(lang)} style={{ flex: 1, backgroundColor: colors.bg }}>
+        <Stack key={lang} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'fade' }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="admin" />
         </Stack>

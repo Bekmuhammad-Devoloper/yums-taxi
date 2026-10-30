@@ -27,7 +27,7 @@ React Native + Expo (SDK 58), Expo Router, TypeScript.
 - Huquqiy hujjatlar (`/legal`): foydalanish shartlari, maxfiylik, cookie, ma'lumotlarni saqlash, moderatsiya qoidalari, investitsiya ogohlantirishi
 - Xavfsizlik (`/security`): ruxsat darajalari (foydalanuvchi / moderator / administrator), 2 bosqichli himoya, kirishlar tarixi, ma'lumotlar nusxasini eksport qilish
 - Daromad modeli (`/plans`): Free / Pro / Business tariflar, TOPga chiqarish, reklama kampaniyalari, professional xizmatlar, savdo komissiyasi
-- 25 ta soha, 28 mamlakat, ko'p tilli interfeys (o'zbek, rus, ingliz), yorug'/qorong'i mavzu
+- 25 ta soha, 28 mamlakat, 5 tilli interfeys (o'zbek, rus, ingliz, tojik, arab — arabchada o'ngdan chapga), yorug'/qorong'i mavzu
 
 > Taksidan tashqari server qismi hozircha yo'q: ma'lumotlar qurilmada saqlanadi, moderatsiya, javoblar, SMS kod va to'lovlar demo rejimida ishlaydi.
 
@@ -97,7 +97,7 @@ YUMS (yo'lovchi)  ──order──▶  dispetcher (server/dispatch.mjs)  ──
   - **Yordam markazi** — savol-javoblar (qidiruv bilan), chat (operator javoblari), qo'ng'iroq, Telegram, favqulodda 112.
   - **Zanjir buyurtma** — safar tugashiga 2 km qolganda keyingi buyurtma shu manzil yaqinidan taklif qilinadi; yakunlangach haydovchi darhol keyingi mijozga yo'l oladi (server ham qo'llab-quvvatlaydi).
   - **Mijoz chiqmadi** — pullik kutish boshlangandan 2 daqiqa o'tib, faollik kamaymasdan buyurtmani yopish va kutish uchun kompensatsiya.
-  - **Ovozli yo'riqnoma** — ayol ovozi, o'zbek va rus tilida (Sozlamalar → Ovoz tili): yangi buyurtma, burilishlar (200/300/400 m oldin va burilishda), pullik kutish, «naqd pul oling» va h.k. Batafsil — pastda «Ovoz to'plami».
+  - **Ovozli yo'riqnoma** — ayol ovozi, ilovaning 5 tilida (ovoz tili ilova tili bilan birga almashadi; Sozlamalar → Ovoz tili): yangi buyurtma, burilishlar (200/300/400 m oldin va burilishda), pullik kutish, «naqd pul oling» va h.k. Batafsil — pastda «Ovoz to'plami».
   - Liniyada ekran o'chmaydi (expo-keep-awake), yangi buyurtmada tebranish; boshqa sahifada bo'lsangiz ham taklif xarita ekranida ochiladi.
   - Ilova yopilib qayta ochilsa, faol safar, zanjir va liniyadagi holat tiklanadi.
   - Telefonda navigator kamerasi mashina yo'nalishiga burilib, qiya ko'rinishda ergashadi; GPS ruxsati yo'q yoki aloqa uzilganda ogohlantirish chiqadi.
@@ -120,9 +120,9 @@ EAS build: `npx eas-cli@latest build --profile driver-preview` (yoki `driver-pro
 
 Ovozli yo'riqnoma oldindan yozilgan kliplar bilan ishlaydi — har qanday telefonda bir xil eshitiladi, internet kerak emas:
 
-- Iboralar: `src/driver/lib/voice-phrases.json` (37 ta, o'zbek va rus tilida).
+- Iboralar: `src/driver/lib/voice-phrases.json` (37 ta, 5 tilda).
 - Kliplar: `assets/voice/<uz|ru>/<kalit>.mp3`, ro'yxati `src/driver/lib/voice-clips.ts` (avtomatik yaratiladi).
-- Biror til uchun kliplar bo'lmasa, qurilmaning shu tildagi ayol ovozi, u ham bo'lmasa — ikkinchi tildagi kliplar ishlatiladi.
+- Biror til uchun kliplar bo'lmasa, qurilmaning shu tildagi ayol ovozi, u ham bo'lmasa — zaxira til ishlatiladi (o'zbek ↔ rus, ingliz va tojik → rus, arab → ingliz). Hozir kliplar o'zbek va rus tilida.
 
 Kliplarni yaratish — `scripts/voice/generate.py` (python3, numpy, ffmpeg):
 
@@ -138,6 +138,66 @@ python3 scripts/voice/generate.py --lang ru --engine piper --model ./vits-piper-
 ```
 
 Hozirgi holat: rus tili — Piper «Irina» ovozi (oflayn neyron model). **Uning litsenziyasi noma'lum** — demo va sinov uchun; do'konga chiqarishdan oldin Azure ovozi yoki diktor yozuvi bilan almashtiring. O'zbek tili uchun kliplar hali yo'q (Azure kaliti kerak) — hozircha ruscha kliplar ishlatiladi. Diktor yozdirgan fayllarni ham shu nomlar bilan `assets/voice/<til>/` ga qo'yib, `--map-only` bilan ro'yxatni yangilash kifoya.
+
+## Tillar
+
+Ilovalar (YUMS, YUMS Driver) va sayt 5 tilda: **o'zbek, rus, ingliz, tojik, arab**.
+
+- Birinchi ochilishda qurilma (brauzer) tili tanlanadi, mos kelmasa — o'zbekcha. Tilni Sozlamalardan (saytda — yuqori paneldagi bayroq tugmasidan) almashtirish mumkin; tanlov saqlanadi.
+- Arab tilida interfeys o'ngdan chapga: vebda darhol, telefonda ilova bir marta qayta yuklanadi (`I18nManager`).
+- Admin panel faqat o'zbek tilida — sayt boshqa tilda ochilgan bo'lsa ham.
+- Haydovchi ilovasining ovozli yo'riqnomasi ham ilova tili bilan birga almashadi.
+
+Matn qo'shish:
+
+```tsx
+import { tr, tx } from '@/lib/i18n';
+
+<Txt>{tr('Buyurtma qabul qilindi')}</Txt>
+<Txt>{tr('{n} ta buyurtma', { n: count })}</Txt>
+
+// modul darajasidagi ro'yxatlar: tx() bilan belgilanadi, ekranda tr(qiymat) bilan chiqariladi
+const REASONS = [tx('Spam'), tx('Boshqa')];
+```
+
+O'zbekcha matnning o'zi kalit. Tarjimalar `src/lib/locales/*.ts` jadvallarida — `"o'zbekcha": ["ruscha", "inglizcha", "tojikcha", "arabcha"]`. `node scripts/i18n-check.mjs --list` yetishmayotgan matnlarni jadvalga qo'shish uchun qolip ko'rinishida chiqaradi, `--unused` esa ishlatilmayotganlarini ko'rsatadi.
+
+> Tarjimalar dastur bilan tayyorlangan. Ishga tushirishdan oldin har bir tilni shu tilni biladigan odam, huquqiy hujjatlarni (`/legal`) esa yurist tekshirishi kerak.
+
+## YUMS sayti va admin panel
+
+Bitta veb-ilova: `/` — YUMS Taxi landing sahifasi, `/admin` — taksi xizmatini boshqarish paneli.
+
+```bash
+npm run site                                                       # http://localhost:8083 (demo rejim)
+ADMIN_PASSWORD=parol npm run dispatch                              # jonli ma'lumotlar uchun server
+EXPO_PUBLIC_DISPATCH_URL=ws://localhost:8787 npm run site          # sayt + admin server bilan
+APP_VARIANT=site npx expo export --platform web                    # statik fayllar (dist/) — hostingga
+```
+
+- **Landing**: narx kalkulyatori (admin narxlari va yuqori talab hududlari bilan), tariflar, haydovchilar uchun daromad kalkulyatori, tarif talablari va ariza, savol-javoblar, jonli ko'rsatkichlar. 5 tilda.
+- **Admin panel**: Boshqaruv (jonli xarita, ko'rsatkichlar, maslahatlar), Buyurtmalar, Haydovchilar (bloklash, profil), Hujjatlar (tekshirish, avtomatik tasdiqlash), Narx va hududlar, Arizalar (saytdan kelgan haydovchi arizalari), Sayt matni (5 til uchun, ko'rinish va tekshiruv bilan), Jurnal. Tezkor buyruqlar oynasi — `Ctrl K`.
+- Server manzili berilmasa sayt va panel **demo rejimida** ishlaydi: panelga «Demo rejimda kirish» tugmasi bilan kiriladi, ma'lumotlar brauzerda saqlanadi va simulyatsiya qilinadi.
+- Ilova do'konlari havolalari: `EXPO_PUBLIC_APPSTORE_URL`, `EXPO_PUBLIC_PLAY_URL`, `EXPO_PUBLIC_WEBAPP_URL` (berilmasa tugmalar «tez orada»). Server manzilini `EXPO_PUBLIC_API_URL` bilan alohida berish ham mumkin.
+- Statik hostingda barcha yo'llar `index.html` ga yo'naltirilishi kerak (SPA).
+
+## Server
+
+`server/dispatch.mjs` — bitta portda WebSocket (ilovalar va admin panel) va REST API:
+
+| So'rov | Vazifasi |
+| --- | --- |
+| `GET /api/public` | Narxlar, hududlar, sayt matni va jonli ko'rsatkichlar (sayt uchun) |
+| `POST /api/leads` | Saytdan haydovchi arizasi (IP bo'yicha cheklov: 10 daqiqada 5 ta) |
+| `POST /api/admin/login` | Admin paneliga kirish: parol → vaqtinchalik token (12 soat) |
+
+Muhit o'zgaruvchilari:
+
+| O'zgaruvchi | Standart | Vazifasi |
+| --- | --- | --- |
+| `PORT` | `8787` | Server porti |
+| `ADMIN_PASSWORD` | — | Admin paroli. Berilmasa, har ishga tushishda tasodifiy parol yaratilib konsolga chiqariladi |
+| `YUMS_DB` | `server/data/db.json` | Ma'lumotlar fayli (haydovchilar, hujjatlar, arizalar, narxlar, sayt matni, jurnal) |
 
 ## Tuzilma
 
@@ -156,9 +216,17 @@ src/
     store.tsx         hisob, mavzu, til, taksi holati
     platform.tsx      platforma holati: loyihalar, chatlar, moderatsiya, tariflar
     platform-data.ts  turlar, sohalar, mamlakatlar, namuna ma'lumotlar
-    i18n.ts           o'zbek / rus / ingliz matnlari
+    i18n.ts           til: tr(), tanlangan til, yo'nalish (arabcha — o'ngdan chapga), sana/son yordamchilari
+    locales/          tarjima jadvallari: common (umumiy va taksi), driver, platform
+  site/
+    app/          sayt marshrutlari: index (landing), admin/ (boshqaruv paneli)
+    components/   landing bo'limlari (kalkulyator, haydovchi arizasi) va admin UI
+    lib/          sayt matni (content.ts), sayt lug'ati (i18n.ts), server bilan aloqa, demo simulyatsiya
 server/
-  dispatch.mjs    dispetcher serveri (Node + ws): buyurtmalarni haydovchilarga taqsimlash
+  dispatch.mjs    dispetcher serveri (Node + ws): buyurtmalarni haydovchilarga taqsimlash, REST API, admin kanali
+  registry.mjs    haydovchilar, hujjatlar, arizalar, narxlar, sayt matni, jurnal
+scripts/
+  i18n-check.mjs  tarjimalar to'liqligini tekshirish
 ```
 
 ## Tekshiruvlar
@@ -167,4 +235,5 @@ server/
 npx tsc --noEmit
 npx expo lint
 npx expo-doctor
+node scripts/i18n-check.mjs        # har bir matnning 4 tilga tarjimasi bormi
 ```

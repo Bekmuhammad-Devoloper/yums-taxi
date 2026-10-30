@@ -8,11 +8,12 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { TARIFF_ART } from '@/lib/cars';
 import { PLACES, type Tariff } from '@/lib/data';
 import { fetchRoute, priceFor, som, type RouteInfo } from '@/lib/geo';
+import { tr, trPlace } from '@/lib/i18n';
 import { zoneSurgeAt, type RemoteConfig } from '@/lib/remote-config';
 import { useColors } from '@/lib/store';
 import { F } from '@/lib/theme';
 import type { Lang } from '@/site/lib/content';
-import { T, TARIFF_RU } from '@/site/lib/i18n';
+import { T } from '@/site/lib/i18n';
 
 import { PickerModal, useLayout } from '../kit';
 
@@ -35,16 +36,16 @@ export function Estimator({ lang, tariffs, config }: { lang: Lang; tariffs: Tari
   }, [a, b]);
 
   const surge = zoneSurgeAt(config?.zones, a);
-  const items = PLACES.map(p => ({ id: p.id!, title: p.title, sub: p.subtitle }));
+  const items = PLACES.map(p => ({ id: p.id!, title: trPlace(p.title), sub: p.subtitle ? tr(p.subtitle) : undefined }));
 
   return (
     <View style={[styles.box, { backgroundColor: c.surface, borderColor: c.line }]}>
       <View style={[styles.inputs, wide && { flexDirection: 'row' }]}>
-        <PlaceButton label={t.from} value={a.title} dot="#0F1E3D" onPress={() => setPick('from')} />
+        <PlaceButton label={t.from} value={trPlace(a.title)} dot="#0F1E3D" onPress={() => setPick('from')} />
         <Pressable onPress={() => { setFrom(to); setTo(from); }} style={[styles.swap, { backgroundColor: c.surface2, borderColor: c.line }, wide ? { marginHorizontal: -14, zIndex: 2 } : { alignSelf: 'center', marginVertical: -14, zIndex: 2 }]} accessibilityLabel={t.swap}>
           <Ionicons name={wide ? 'swap-horizontal' : 'swap-vertical'} size={18} color={c.text} />
         </Pressable>
-        <PlaceButton label={t.to} value={b.title} dot="#FFC800" onPress={() => setPick('to')} />
+        <PlaceButton label={t.to} value={trPlace(b.title)} dot="#FFC800" onPress={() => setPick('to')} />
       </View>
 
       <View style={styles.meta}>
@@ -62,8 +63,8 @@ export function Estimator({ lang, tariffs, config }: { lang: Lang; tariffs: Tari
         {tariffs.map(tf => (
           <View key={tf.id} style={[styles.tile, { backgroundColor: c.surface2, flexBasis: wide ? '18%' : '47%' }]}>
             <Image source={TARIFF_ART[tf.id]} style={styles.car} contentFit="contain" />
-            <Text style={[styles.tName, { color: c.text }]}>{lang === 'ru' ? TARIFF_RU[tf.id]?.name ?? tf.name : tf.name}</Text>
-            <Text style={[styles.tPrice, { color: c.text }]} accessibilityLabel={`${tf.name} narxi`}>{route ? `≈ ${som(priceFor(tf, route.km, route.min, surge))}` : '…'}</Text>
+            <Text style={[styles.tName, { color: c.text }]}>{tr(tf.name)}</Text>
+            <Text style={[styles.tPrice, { color: c.text }]} accessibilityLabel={t.priceOf.replace('{name}', tr(tf.name))}>{route ? `≈ ${som(priceFor(tf, route.km, route.min, surge))}` : '…'}</Text>
           </View>
         ))}
       </View>

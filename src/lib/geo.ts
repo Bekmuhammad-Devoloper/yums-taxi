@@ -152,7 +152,9 @@ export function priceFor(t: Tariff, km: number, min: number, surge = 1) {
 }
 
 /** Pul: «12 500 so'm» (valyuta nomi joriy tilda) */
-export const som = (n: number) => tr("{n} so'm", { n: String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') });
+/** Minglar bo'linmaydigan bo'shliq bilan: qator uzilmaydi, arab tilida esa raqam bir butun (chapdan o'ngga) qoladi */
+export const groupDigits = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+export const som = (n: number) => tr("{n} so'm", { n: groupDigits(n) });
 
 /** Haydovchining boshlang'ich joyi: yo'lovchidan ~1–2 km uzoqda */
 export function nearbyPoint(p: LatLng): LatLng {

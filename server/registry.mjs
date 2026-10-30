@@ -204,6 +204,8 @@ export const orderRec = (id) => orderIdx.get(id);
 /* ---------- Arizalar (sayt) ---------- */
 
 const LEAD_STATUS = ['new', 'contacted', 'approved', 'rejected'];
+/** Sayt tillari (src/lib/i18n.ts → LANGS) */
+const SITE_LANGS = ['uz', 'ru', 'en', 'tg', 'ar'];
 
 export function addLead(input) {
   const name = str(input?.name, 60);
@@ -214,7 +216,7 @@ export function addLead(input) {
     id: uid('a'), at: now(), name, phone: '+' + (digits.length === 9 ? '998' + digits : digits),
     city: str(input?.city, 40), car: str(input?.car, 60), year: num(input?.year, 1980, 2100),
     tariffs: Array.isArray(input?.tariffs) ? input.tariffs.filter(t => TARIFF_IDS.includes(t)) : undefined,
-    lang: input?.lang === 'ru' ? 'ru' : 'uz', status: 'new',
+    lang: SITE_LANGS.includes(input?.lang) ? input.lang : 'uz', status: 'new',
   });
   db.leads.push(lead);
   save();
@@ -319,7 +321,7 @@ function cleanLangBlock(b) {
 
 export function setContent(c) {
   db.content = dropUndefined({
-    uz: cleanLangBlock(c?.uz), ru: cleanLangBlock(c?.ru),
+    ...Object.fromEntries(SITE_LANGS.map(l => [l, cleanLangBlock(c?.[l])])),
     phone: str(c?.phone, 24), telegram: str(c?.telegram, 64), email: str(c?.email, 80),
     showStats: typeof c?.showStats === 'boolean' ? c.showStats : undefined,
     showPromo: typeof c?.showPromo === 'boolean' ? c.showPromo : undefined,

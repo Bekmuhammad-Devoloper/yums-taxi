@@ -595,6 +595,12 @@ export function tr(text: string, vars?: Record<string, string | number | null | 
   return vars ? s.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k] ?? '') : m)) : s;
 }
 
+/**
+ * Vebda ildiz View uchun yozuv yo'nalishi: react-native-web marginStart, paddingStart, borderStartWidth… ni shunga qarab
+ * o'ng yoki chap tomonga qo'yadi (telefonda buni I18nManager qiladi).
+ */
+export const dirProps = (l: Lang = current): object => (Platform.OS === 'web' ? { dir: isRTL(l) ? 'rtl' : 'ltr' } : {});
+
 /** O'ngdan chapga tillarda yo'nalish belgilari (strelka, chevron) aks ettiriladi */
 export const flipRTL = () => (isRTL() ? { transform: [{ scaleX: -1 }] } : undefined);
 /** Ionicons nomi yo'nalishli belgimi (chevron-back, arrow-forward…) */

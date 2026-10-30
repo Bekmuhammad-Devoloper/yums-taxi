@@ -375,6 +375,11 @@ const common: Record<string, Row> = {
   "Haydovchi sizni kutdi, lekin chiqmadingiz — buyurtma yopildi": ["Водитель ждал, но вы не вышли — заказ закрыт", "The driver waited, but you didn't come out — the order was closed", "Ронанда интизор шуд, вале шумо набаромадед — фармоиш баста шуд", "انتظرك السائق لكنك لم تحضر — تم إغلاق الطلب"],
   "Buyurtma operator tomonidan bekor qilindi — qo'llab-quvvatlash xizmatiga yozishingiz mumkin": ["Заказ отменён оператором — вы можете написать в поддержку", "The order was cancelled by an operator — you can contact support", "Фармоиш аз ҷониби оператор бекор шуд — метавонед ба дастгирӣ нависед", "ألغى أحد الموظفين الطلب — يمكنك مراسلة الدعم"],
   "Yo'lovchi": ["Пассажир", "Passenger", "Мусофир", "الراكب"],
+  "Server bilan aloqa yo'q — birozdan so'ng urinib ko'ring": ["Нет связи с сервером — попробуйте чуть позже", "No connection to the server — please try again shortly", "Бо сервер алоқа нест — каме баъдтар кӯшиш кунед", "لا يوجد اتصال بالخادم — حاول مجددًا بعد قليل"],
+  "Ko'p ariza yuborildi — birozdan so'ng urinib ko'ring": ["Отправлено слишком много заявок — попробуйте чуть позже", "Too many applications sent — please try again shortly", "Аризаҳои зиёд фиристода шуданд — каме баъдтар кӯшиш кунед", "تم إرسال طلبات كثيرة — حاول مجددًا بعد قليل"],
+  "Ismingizni kiriting": ["Введите имя", "Enter your name", "Номи худро ворид кунед", "أدخل اسمك"],
+  "Telefon raqamini to'g'ri kiriting": ["Введите правильный номер телефона", "Enter a valid phone number", "Рақами телефонро дуруст ворид кунед", "أدخل رقم هاتف صحيحًا"],
+  "So'rov noto'g'ri": ["Некорректный запрос", "Invalid request", "Дархости нодуруст", "طلب غير صالح"],
 };
 
 export default common;

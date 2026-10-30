@@ -4,9 +4,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { DISPATCH_URL } from '@/lib/dispatch';
+import { tr, tx } from '@/lib/i18n';
 import type { RemoteConfig } from '@/lib/remote-config';
 
-import type { ContentOverrides } from './content';
+import type { ContentOverrides, Lang } from './content';
 
 export const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? DISPATCH_URL?.replace(/^ws/, 'http').replace(/\/+$/, '');
 export const LIVE = !!API_BASE;
@@ -17,9 +18,9 @@ export type PublicData = { config: RemoteConfig; content: ContentOverrides; stat
 /** Admin sozlamalari: ilovalarga yuboriladiganlardan tashqari — hujjatlarni avtomatik tekshirish */
 export type AdminConfig = RemoteConfig & { autoApprove: boolean };
 
-export type LeadInput = { name: string; phone: string; city?: string; car?: string; year?: number; tariffs?: string[]; lang: 'uz' | 'ru'; website?: string };
+export type LeadInput = { name: string; phone: string; city?: string; car?: string; year?: number; tariffs?: string[]; lang: Lang; website?: string };
 export type LeadStatus = 'new' | 'contacted' | 'approved' | 'rejected';
-export type Lead = { id: string; at: string; name: string; phone: string; city?: string; car?: string; year?: number; tariffs?: string[]; lang?: 'uz' | 'ru'; status: LeadStatus; note?: string; updatedAt?: string };
+export type Lead = { id: string; at: string; name: string; phone: string; city?: string; car?: string; year?: number; tariffs?: string[]; lang?: Lang; status: LeadStatus; note?: string; updatedAt?: string };
 
 /* ---------- Demo xotira (server yo'q) ---------- */
 
@@ -73,13 +74,18 @@ export async function fetchPublic(): Promise<PublicData> {
   return { config, content, stats: null };
 }
 
+/** Ariza yuborishdagi xatolar: server matni o'zbekcha keladi — saytda foydalanuvchi tilida ko'rsatiladi */
+const NO_SERVER = tx("Server bilan aloqa yo'q — birozdan so'ng urinib ko'ring");
+const LEAD_ERRORS: string[] = [NO_SERVER, tx("Ko'p ariza yuborildi — birozdan so'ng urinib ko'ring"), tx('Ismingizni kiriting'), tx("Telefon raqamini to'g'ri kiriting"), tx("So'rov noto'g'ri")];
+const leadError = (msg: string) => (LEAD_ERRORS.includes(msg) ? tr(msg) : msg);
+
 export async function submitLead(input: LeadInput): Promise<{ ok: true } | { error: string }> {
   if (LIVE) {
     try {
       await call('/api/leads', { method: 'POST', body: JSON.stringify(input) });
       return { ok: true };
     } catch (e) {
-      return { error: e instanceof Error && e.name !== 'AbortError' ? e.message : "Server bilan aloqa yo'q — birozdan so'ng urinib ko'ring" };
+      return { error: leadError(e instanceof Error && e.name !== 'AbortError' ? e.message : NO_SERVER) };
     }
   }
   // demo: ariza shu brauzerdagi admin panelda (demo) ko'rinadi

@@ -1,8 +1,8 @@
 // Sayt ma'lumotlari va til tanlovi.
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { tariffsWith } from '@/lib/remote-config';
+import { useStore } from '@/lib/store';
 
 import { fetchPublic, type PublicData } from './api';
 import { mergeContent, type Lang } from './content';
@@ -22,20 +22,11 @@ export function useSiteData() {
   return { ready: !!data, content, config: data?.config ?? null, tariffs, stats: data?.stats ?? null };
 }
 
-const LANG_KEY = 'yums:site:lang';
-const browserLang = (): Lang => (typeof navigator !== 'undefined' && /^ru\b/i.test(navigator.language ?? '') ? 'ru' : 'uz');
-
+/**
+ * Sayt tili — ilova tili bilan bitta: saqlangani, bo'lmasa brauzer tili (5 tildan biri, aks holda o'zbekcha).
+ * Almashtirilganda <html lang/dir> ham o'zgaradi — arab tilida sahifa o'ngdan chapga.
+ */
 export function useLang(): [Lang, (l: Lang) => void] {
-  const [lang, setLangState] = useState<Lang>(browserLang);
-  useEffect(() => {
-    AsyncStorage.getItem(LANG_KEY).then(v => { if (v === 'uz' || v === 'ru') setLangState(v); }).catch(() => {});
-  }, []);
-  useEffect(() => {
-    if (typeof document !== 'undefined') document.documentElement.lang = lang;
-  }, [lang]);
-  const setLang = useCallback((l: Lang) => {
-    setLangState(l);
-    AsyncStorage.setItem(LANG_KEY, l).catch(() => {});
-  }, []);
+  const { lang, setLang } = useStore();
   return [lang, setLang];
 }

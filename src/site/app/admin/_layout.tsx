@@ -1,8 +1,10 @@
 // /admin — taksi xizmatini boshqarish paneli: kirish, chap menyu va ichki sahifalar.
+// Panel faqat o'zbek tilida: sayt boshqa tilda (masalan, arabcha) ochilgan bo'lsa ham bu yerda o'zbekcha va chapdan o'ngga.
 import { Slot } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
+import { dirProps, setAppLang } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
 import { Login, Shell } from '@/site/components/admin/shell';
 import { AdminProvider, useAdmin } from '@/site/lib/admin-store';
@@ -22,10 +24,23 @@ function Gate() {
   );
 }
 
+/** Panelga kirganda o'zbek tili yoqiladi (birinchi chizishdan oldin), chiqqanda sayt tili qaytariladi */
+function useUzbek() {
+  const { lang } = useStore();
+  useState(() => setAppLang('uz'));
+  useLayoutEffect(() => {
+    setAppLang('uz');
+    return () => { setAppLang(lang); };
+  }, [lang]);
+}
+
 export default function AdminLayout() {
+  useUzbek();
   return (
-    <AdminProvider>
-      <Gate />
-    </AdminProvider>
+    <View {...dirProps('uz')} style={{ flex: 1 }}>
+      <AdminProvider>
+        <Gate />
+      </AdminProvider>
+    </View>
   );
 }

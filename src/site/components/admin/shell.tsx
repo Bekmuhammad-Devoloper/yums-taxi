@@ -9,6 +9,7 @@ import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, StyleSheet, 
 import { LOGO_EMBLEM } from '@/components/ui';
 import { confirm } from '@/lib/confirm';
 import { PLACES } from '@/lib/data';
+import { fmtDay, fmtTime } from '@/lib/format';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
 import { useAdmin, useRun } from '@/site/lib/admin-store';
@@ -146,7 +147,7 @@ function Topbar({ onMenu, onSearch }: { onMenu: () => void; onSearch: () => void
         {mid ? <View style={[styles.kbd, { borderColor: c.line }]}><Text style={[styles.kbdText, { color: c.muted }]}>Ctrl K</Text></View> : null}
       </Pressable>
       <View style={{ flex: 1 }} />
-      {mid ? <Text style={[styles.clock, { color: c.muted }]}>{now.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} · {now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</Text> : null}
+      {mid ? <Text style={[styles.clock, { color: c.muted }]}>{fmtDay(now)} · {fmtTime(now)}</Text> : null}
       <Pressable onPress={() => router.push('/admin' as never)} style={[styles.iconBtn, { backgroundColor: c.surface2 }]} accessibilityLabel={`Tavsiyalar: ${urgent} ta muhim`}>
         <Ionicons name="sparkles" size={18} color={c.text} />
         {urgent ? <View style={[styles.bellBadge, { borderColor: c.surface }]}><Text style={styles.badgeText}>{urgent}</Text></View> : null}

@@ -3,6 +3,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState, type ReactNode } from 'react';
 import { FlatList, Linking, Modal, Platform, Pressable, StyleSheet, Text, TextInput, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { tr } from '@/lib/i18n';
 import { useColors } from '@/lib/store';
 import { F } from '@/lib/theme';
 
@@ -26,7 +27,7 @@ export function openUrl(url: string) {
 export type PickItem = { id: string; title: string; sub?: string; group?: string };
 
 /** Ro'yxatdan tanlash oynasi (qidiruv bilan): kompyuterda markazda, telefonda pastdan */
-export function PickerModal({ visible, title, items, value, onPick, onClose, searchPlaceholder = 'Qidirish' }: {
+export function PickerModal({ visible, title, items, value, onPick, onClose, searchPlaceholder = tr('Qidirish') }: {
   visible: boolean; title: string; items: PickItem[]; value?: string; onPick: (id: string) => void; onClose: () => void; searchPlaceholder?: string;
 }) {
   const c = useColors();
@@ -41,7 +42,7 @@ export function PickerModal({ visible, title, items, value, onPick, onClose, sea
         <Pressable style={[styles.panel, { backgroundColor: c.surface, borderColor: c.line }, wide ? styles.panelWide : styles.panelPhone]} onPress={() => {}}>
           <View style={styles.head}>
             <Text style={[styles.title, { color: c.text }]}>{title}</Text>
-            <Pressable onPress={close} hitSlop={10} accessibilityLabel="Yopish"><Ionicons name="close" size={22} color={c.muted} /></Pressable>
+            <Pressable onPress={close} hitSlop={10} accessibilityLabel={tr('Yopish')}><Ionicons name="close" size={22} color={c.muted} /></Pressable>
           </View>
           <View style={[styles.search, { backgroundColor: c.surface2 }]}>
             <Ionicons name="search" size={17} color={c.faint} />
