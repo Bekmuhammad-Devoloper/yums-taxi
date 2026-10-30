@@ -60,6 +60,7 @@
     "lint": "expo lint",
     "driver": "node scripts/driver.mjs",
     "driver:web": "node scripts/driver.mjs --web",
+    "site": "node scripts/site.mjs",
     "dispatch": "node server/dispatch.mjs"
   },
   "private": true

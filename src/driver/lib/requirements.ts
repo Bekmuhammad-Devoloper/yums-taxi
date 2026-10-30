@@ -103,3 +103,16 @@ export function tariffChecks(tariffId: string, carName: string | undefined, year
 
 export const eligible = (tariffId: string, carName: string | undefined, year: number | undefined, s: Stats) =>
   tariffChecks(tariffId, carName, year, s).every(c => c.ok);
+
+/** Yangi haydovchi uchun (hujjatlar hali tasdiqlanmagan, safar yo'q): avtomobil bo'yicha hozir mos tariflar
+ *  va keyinroq — safarlar soni yetgach — mos bo'ladiganlari (sayt arizasi va admin panel) */
+export function carFit(car: string | undefined, year: number | undefined) {
+  if (!car) return { now: [] as string[], later: [] as string[] };
+  const now: string[] = [], later: string[] = [];
+  for (const id of Object.keys(CLASS_OK)) {
+    const checks = tariffChecks(id, car, year, { docsApproved: true, rating: 5, trips: 0, activity: 100, deliveryTerms: true });
+    if (checks.every(ch => ch.ok)) now.push(id);
+    else if (checks.filter(ch => ch.fix === 'car').every(ch => ch.ok)) later.push(id); // faqat safarlar soni yetmaydi
+  }
+  return { now, later };
+}

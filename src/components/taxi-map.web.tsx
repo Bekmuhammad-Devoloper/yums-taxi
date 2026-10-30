@@ -16,20 +16,20 @@ import type { TaxiMapProps } from './taxi-map';
 
 export type { MapHandle } from './taxi-map';
 
-const TILES = {
+export const TILES = {
   light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
   dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
 };
-const ATTRIBUTION = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>';
-const OFFLINE_ATTRIBUTION = 'Sxematik xarita · xarita serveri bilan aloqa yo\'q';
+export const ATTRIBUTION = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>';
+export const OFFLINE_ATTRIBUTION = 'Sxematik xarita · xarita serveri bilan aloqa yo\'q';
 
 const ll = (p: LatLng): L.LatLngTuple => [p.latitude, p.longitude];
-const assetUri = (m: unknown) => (typeof m === 'object' && m && 'uri' in m ? String((m as { uri: string }).uri) : String(m));
+export const assetUri = (m: unknown) => (typeof m === 'object' && m && 'uri' in m ? String((m as { uri: string }).uri) : String(m));
 
 /* ---------- Sxematik (oflayn) plitkalar ---------- */
 
 type Palette = { road: string; roadCasing: string; land: string; block: string; building: string; buildingEdge: string; park: string; tree: string; water: string; street: string; casing: string; major: string; majorCasing: string };
-const PALETTE: Record<'light' | 'dark', Palette> = {
+export const PALETTE: Record<'light' | 'dark', Palette> = {
   light: { road: '#FFFFFF', roadCasing: '#D3D8E0', land: '#EEF0F3', block: '#E8EBEF', building: '#DFE2E8', buildingEdge: '#D2D6DE', park: '#D5ECD1', tree: '#C3E2BE', water: '#B9D8F3', street: '#FFFFFF', casing: '#D6DAE1', major: '#FFE8A3', majorCasing: '#E9CB72' },
   dark: { road: '#313846', roadCasing: '#0F1217', land: '#15181E', block: '#1A1E26', building: '#20252F', buildingEdge: '#272D39', park: '#16261D', tree: '#1B3024', water: '#12273D', street: '#2A303C', casing: '#11141A', major: '#3D4352', majorCasing: '#0E1116' },
 };
@@ -161,7 +161,8 @@ function drawTile(ctx: CanvasRenderingContext2D, tx: number, ty: number, z: numb
   }
 }
 
-function makeOfflineLayer(theme: 'light' | 'dark') {
+/** O'zi chiziladigan sxematik plitkalar (plitka serveri ochilmasa) — admin xaritasi ham ishlatadi */
+export function makeOfflineLayer(theme: 'light' | 'dark') {
   const Layer = L.GridLayer.extend({
     createTile(coords: L.Coords) {
       const tile = document.createElement('canvas');
