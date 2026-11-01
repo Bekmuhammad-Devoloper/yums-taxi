@@ -41,3 +41,6 @@ example
 # generated native folders
 /ios
 /android
+
+# dispetcher serveri ma'lumotlari (haydovchilar, buyurtmalar, arizalar)
+server/data/

@@ -1,8 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { useImperativeHandle, useMemo, useRef, type Ref } from 'react';
-import { StyleSheet, View } from 'react-native';
-import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
+import { StyleSheet, Text, View } from 'react-native';
+import MapView, { Circle, Marker, Polygon, Polyline, type Region } from 'react-native-maps';
 
+import { CAR_TOP } from '@/lib/cars';
 import type { LatLng } from '@/lib/data';
 import { bearing } from '@/lib/geo';
 import { useStore } from '@/lib/store';
@@ -11,6 +13,8 @@ import { darkMapStyle, lightMapStyle } from '@/lib/theme';
 export type MapHandle = {
   center: (p: LatLng, zoomed?: boolean) => void;
   fit: (pts: LatLng[]) => void;
+  /** Navigator rejimi: kamera mashina ortidan, harakat yo'nalishiga burilib (vebda — oddiy markazlash) */
+  follow: (p: LatLng, heading: number) => void;
 };
 
 export type TaxiMapProps = {
@@ -23,23 +27,41 @@ export type TaxiMapProps = {
   driverPos?: LatLng;
   showPickup: boolean;
   showNearby: boolean;
+  /** Haydovchi qidirilmoqda — olish nuqtasi atrofida radar to'lqini */
+  searching?: boolean;
   bottomPad: number;
   topPad: number;
+  /** Xarita ustidagi pastki panel balandligi (mualliflik yozuvi uchun, faqat veb) */
+  overlayBottom?: number;
   onCenterChange?: (p: LatLng) => void;
   onDragStart?: () => void;
   locationGranted: boolean;
+  /** Foydalanuvchining aniq joylashuvi (veb xaritada ko'k nuqta va aniqlik doirasi) */
+  userPos?: (LatLng & { accuracy?: number }) | null;
+  /** Dispetcher serveridan kelgan haqiqiy bo'sh haydovchilar — berilsa namunaviy mashinalar o'rniga ko'rsatiladi */
+  fleet?: { id: string; pos: LatLng; heading: number }[];
+  /** Haydovchi mashinasining yo'nalishi (berilmasa marshrutdan hisoblanadi) */
+  driverHeading?: number;
+  /** Haydovchi atrofida qidiruv to'lqini (liniyada buyurtma kutilmoqda) */
+  radar?: boolean;
+  /** Talab xaritasi kataklari (haydovchi ilovasi) */
+  zones?: { id: string; center: LatLng; ring: LatLng[]; level: 1 | 2 | 3; surge: number }[];
 };
+
+const ZONE_FILL: Record<1 | 2 | 3, string> = { 1: '#FFD23F', 2: '#FF9A1F', 3: '#FF4D2E' };
 
 const DELTA = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
 
 export default function TaxiMap(props: TaxiMapProps) {
-  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, bottomPad, topPad, onCenterChange, onDragStart, locationGranted } = props;
+  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching, bottomPad, topPad, onCenterChange, onDragStart, locationGranted, fleet, driverHeading, zones, radar } = props;
   const { colors: c, dark } = useStore();
   const map = useRef<MapView>(null);
 
   useImperativeHandle(ref, () => ({
-    center: (p, zoomed = true) => map.current?.animateToRegion({ ...p, ...(zoomed ? DELTA : { latitudeDelta: 0.02, longitudeDelta: 0.02 }) }, 450),
+    // navigator rejimidan keyin xarita shimolga qaytadi va qiyalik olinadi
+    center: (p, zoomed = true) => map.current?.animateCamera({ center: p, heading: 0, pitch: 0, zoom: zoomed ? 16 : 15 }, { duration: 450 }),
     fit: pts => map.current?.fitToCoordinates(pts, { edgePadding: { top: topPad + 40, right: 50, bottom: bottomPad + 40, left: 50 }, animated: true }),
+    follow: (p, heading) => map.current?.animateCamera({ center: p, heading, pitch: 45, zoom: 17 }, { duration: 600 }),
   }), [bottomPad, topPad]);
 
   // Atrofdagi bo'sh mashinalar (vizual)
@@ -56,6 +78,7 @@ export default function TaxiMap(props: TaxiMapProps) {
   }, [initial]);
 
   const heading = useMemo(() => {
+    if (driverHeading != null) return driverHeading;
     if (!driverPos || !driverPath || driverPath.length < 2) return 0;
     let best = 0, bestD = Infinity;
     driverPath.forEach((p, i) => {
@@ -64,7 +87,7 @@ export default function TaxiMap(props: TaxiMapProps) {
     });
     const i = Math.min(best, driverPath.length - 2);
     return bearing(driverPath[i], driverPath[i + 1]);
-  }, [driverPos, driverPath]);
+  }, [driverPos, driverPath, driverHeading]);
 
   return (
     <MapView
@@ -81,17 +104,32 @@ export default function TaxiMap(props: TaxiMapProps) {
       mapPadding={{ top: topPad, right: 0, bottom: bottomPad, left: 0 }}
       onPanDrag={onDragStart}
       onRegionChangeComplete={(r: Region) => onCenterChange?.({ latitude: r.latitude, longitude: r.longitude })}>
-      {showNearby && nearby.map(n => (
-        <Marker key={n.id} coordinate={n} anchor={{ x: 0.5, y: 0.5 }} flat rotation={n.rot}>
-          <View style={[styles.car, { backgroundColor: c.surface }]}><Ionicons name="car-sport" size={15} color="#E0A800" /></View>
+      {zones?.map(z => (
+        <Polygon key={z.id} coordinates={z.ring} fillColor={ZONE_FILL[z.level] + (z.level === 3 ? '55' : z.level === 2 ? '44' : '33')} strokeColor={ZONE_FILL[z.level] + '99'} strokeWidth={1} tappable={false} />
+      ))}
+      {zones?.filter(z => z.level >= 2).map(z => (
+        <Marker key={'l' + z.id} coordinate={z.center} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
+          <View style={[styles.surge, { backgroundColor: ZONE_FILL[z.level] }]}><Text style={styles.surgeText}>×{z.surge.toFixed(1)}</Text></View>
+        </Marker>
+      ))}
+      {showNearby && fleet?.map(f => (
+        <Marker key={f.id} coordinate={f.pos} anchor={{ x: 0.5, y: 0.5 }} flat rotation={f.heading} tracksViewChanges={false}>
+          <Image source={CAR_TOP.taxi} style={styles.car} contentFit="contain" />
+        </Marker>
+      ))}
+      {showNearby && !fleet && nearby.map(n => (
+        <Marker key={n.id} coordinate={n} anchor={{ x: 0.5, y: 0.5 }} flat rotation={n.rot} tracksViewChanges={false}>
+          <Image source={n.id % 3 === 2 ? CAR_TOP.car : CAR_TOP.taxi} style={styles.car} contentFit="contain" />
         </Marker>
       ))}
 
       {driverPath && driverPath.length > 1 && (
         <Polyline coordinates={driverPath} strokeColor={c.accent} strokeWidth={4} lineDashPattern={[8, 8]} />
       )}
-      {route && route.length > 1 && <Polyline coordinates={route} strokeColor={dark ? '#FFC800' : '#0F1E3D'} strokeWidth={5} />}
+      {route && route.length > 1 && <Polyline coordinates={route} strokeColor={dark ? '#0B0E13' : '#FFFFFF'} strokeWidth={10} />}
+      {route && route.length > 1 && <Polyline coordinates={route} strokeColor={dark ? '#FFC800' : '#0F1E3D'} strokeWidth={6} />}
 
+      {searching && pickup && <Circle center={pickup} radius={350} strokeColor="rgba(255,200,0,0.6)" strokeWidth={2} fillColor="rgba(255,200,0,0.15)" />}
       {showPickup && pickup && (
         <Marker coordinate={pickup} anchor={{ x: 0.5, y: 0.5 }}>
           <View style={[styles.dot, { borderColor: c.surface, backgroundColor: '#0F1E3D' }]}><View style={styles.dotInner} /></View>
@@ -105,9 +143,10 @@ export default function TaxiMap(props: TaxiMapProps) {
           </View>
         </Marker>
       )}
+      {radar && driverPos && <Circle center={driverPos} radius={420} strokeColor="rgba(18,166,106,0.55)" strokeWidth={2} fillColor="rgba(18,166,106,0.10)" />}
       {driverPos && (
         <Marker coordinate={driverPos} anchor={{ x: 0.5, y: 0.5 }} flat rotation={heading}>
-          <View style={[styles.driver, { borderColor: c.surface }]}><Ionicons name="car-sport" size={20} color="#0E1525" /></View>
+          <Image source={CAR_TOP.taxi} style={styles.driver} contentFit="contain" />
         </Marker>
       )}
     </MapView>
@@ -115,10 +154,12 @@ export default function TaxiMap(props: TaxiMapProps) {
 }
 
 const styles = StyleSheet.create({
-  car: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, elevation: 3 },
+  car: { width: 21, height: 38 },
   dot: { width: 24, height: 24, borderRadius: 12, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   dotInner: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#fff' },
   flag: { width: 30, height: 30, borderRadius: 10, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   stick: { width: 3, height: 10, borderRadius: 2 },
-  driver: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#FFC800', borderWidth: 3, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 6, elevation: 5 },
+  driver: { width: 28, height: 50 },
+  surge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
+  surgeText: { color: '#1A1205', fontSize: 11, fontWeight: '800' },
 });

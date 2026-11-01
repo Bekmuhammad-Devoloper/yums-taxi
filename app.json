@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "YUMS Taxi",
+    "name": "YUMS",
     "slug": "yums-taxi",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,13 +11,13 @@
       "bundleIdentifier": "uz.yums.taxi",
       "supportsTablet": false,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "YUMS Taxi sizni qayerdan olib ketishni aniqlash uchun joylashuvingizdan foydalanadi."
+        "NSLocationWhenInUseUsageDescription": "YUMS Taxi xizmati sizni qayerdan olib ketishni aniqlash uchun joylashuvingizdan foydalanadi."
       }
     },
     "android": {
       "package": "uz.yums.taxi",
       "adaptiveIcon": {
-        "backgroundColor": "#FFC800",
+        "backgroundColor": "#000000",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -34,15 +34,28 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "YUMS Taxi sizni qayerdan olib ketishni aniqlash uchun joylashuvingizdan foydalanadi."
+          "locationWhenInUsePermission": "YUMS Taxi xizmati sizni qayerdan olib ketishni aniqlash uchun joylashuvingizdan foydalanadi."
         }
       ],
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FFC800",
+          "backgroundColor": "#000000",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 96
+          "imageWidth": 220
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "YUMS profil rasmini tanlash uchun galereyangizga ruxsat so'raydi.",
+          "cameraPermission": "YUMS profil rasmini olish uchun kameradan foydalanadi."
+        }
+      ],
+      [
+        "expo-localization",
+        {
+          "supportedLocales": ["uz", "ru", "en", "tg", "ar"]
         }
       ]
     ],

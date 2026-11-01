@@ -1,0 +1,11 @@
+{
+  "name": "yums-dispatch",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "YUMS Taxi dispetcher serveri: yo'lovchi va haydovchi ilovalarini WebSocket orqali bog'laydi",
+  "main": "dispatch.mjs",
+  "scripts": { "start": "node dispatch.mjs" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "ws": "^8.18.0" }
+}

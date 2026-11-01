@@ -1,29 +1,113 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Logo, PickerSheet, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { Button, Txt } from '@/components/ui';
-import { useStore } from '@/lib/store';
+import { Avatar, BrandLogo, BrandMark, DEFAULT_AVATAR, Button, Field, Flag, IconTile, Row, Txt } from '@/components/ui';
+import { COUNTRIES } from '@/lib/platform-data';
+import { countryOf, usePlatform } from '@/lib/platform';
+import { checkPinfl, checkStir, companyMatches, DEMO_REGISTRY, directorMatches, lookupCompany, type LookupResult } from '@/lib/registry';
+import { haptic, useStore, type AccountKind, type User } from '@/lib/store';
+import { F } from '@/lib/theme';
+import { tr, tx, flipRTL } from '@/lib/i18n';
 
-const formatPhone = (d: string) => {
-  const p = [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)].filter(Boolean);
-  return p.join(' ');
+const GLOW = require('@/assets/images/glow.png');
+const CODE_LEN = 5;
+const MAX_ATTEMPTS = 3;
+const DEMO_PHONE = '900000000';
+
+const PILLS: { icon: 'rocket-outline' | 'trending-up-outline' | 'car-sport-outline'; label: string }[] = [
+  { icon: 'rocket-outline', label: tx('Loyihalar') },
+  { icon: 'trending-up-outline', label: tx('Investorlar') },
+  { icon: 'car-sport-outline', label: tx('Taksi') },
+];
+
+const CODES = [
+  { code: '+998', country: 'UZ', len: 9 },
+  { code: '+7', country: 'KZ', len: 10 },
+  { code: '+90', country: 'TR', len: 10 },
+  { code: '+971', country: 'AE', len: 9 },
+  { code: '+49', country: 'DE', len: 11 },
+  { code: '+44', country: 'GB', len: 10 },
+  { code: '+1', country: 'US', len: 10 },
+];
+
+const formatPhone = (d: string, cc: string) => {
+  const parts = cc === '+998' ? [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)] : [d.slice(0, 3), d.slice(3, 6), d.slice(6, 8), d.slice(8)];
+  return parts.filter(Boolean).join(' ');
 };
 
+/** «+998 93 111 22 33» → mamlakat kodi va qolgan raqamlar */
+const parsePhone = (phone: string) => {
+  const d = phone.replace(/\D/g, '');
+  const cc = [...CODES].sort((a, b) => b.code.length - a.code.length).find(x => d.startsWith(x.code.slice(1)));
+  return cc ? { cc, digits: d.slice(cc.code.length - 1) } : null;
+};
+
+/** Hisob tanlash ro'yxatida kontaktni qisman yashirish: +998 93 ••• •• 33, na•••@mail.uz */
+const maskPhone = (p: string) => {
+  const parts = p.split(' ');
+  return parts.map((x, i) => (i <= 1 || i === parts.length - 1 ? x : '•'.repeat(x.length))).join(' ');
+};
+const maskEmail = (e: string) => {
+  const [n, d] = e.split('@');
+  return `${n.slice(0, 2)}${'•'.repeat(Math.max(1, n.length - 2))}@${d ?? ''}`;
+};
+
+/** Demo SMS kodi (haqiqiy tizimda server yuboradi) */
+const newCode = () => String(Math.floor(10 ** (CODE_LEN - 1) + Math.random() * 9 * 10 ** (CODE_LEN - 1)));
+
+type Step = 'accounts' | 'contact' | 'code' | 'profile';
+
+/**
+ * Kirish — Yandex Go uslubida yagona oqim:
+ * raqam (yoki email) → SMS kod → hisob bo'lsa darhol ichkariga, yangi bo'lsa «Keling, tanishamiz».
+ * Qurilmada avval kirilgan hisoblar «Hisobni tanlang» ro'yxatida chiqadi.
+ */
 export default function Login() {
-  const { colors: c, login } = useStore();
+  const { colors: c, login, signIn, findAccount, savedAccounts, forgetAccount } = useStore();
+  const { logEvent } = usePlatform();
   const insets = useSafeAreaInsets();
-  const [step, setStep] = useState<'phone' | 'code' | 'name'>('phone');
+  const [step, setStep] = useState<Step>(() => (savedAccounts.length ? 'accounts' : 'contact'));
+  const [method, setMethod] = useState<'phone' | 'email'>('phone');
+  const [cc, setCc] = useState(CODES[0]);
   const [digits, setDigits] = useState('');
+  const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
+  const [sent, setSent] = useState('');
+  const [attempts, setAttempts] = useState(0);
+  const [codeError, setCodeError] = useState<'wrong' | 'locked' | null>(null);
+  const [kind, setKind] = useState<AccountKind>('person');
   const [name, setName] = useState('');
-  const [agree, setAgree] = useState(true);
+  const [company, setCompany] = useState('');
+  const [country, setCountry] = useState('UZ');
+  const [pinfl, setPinfl] = useState('');
+  const [stir, setStir] = useState('');
+  const [lookup, setLookup] = useState<{ state: 'idle' | 'loading' } | { state: 'done'; result: LookupResult }>({ state: 'idle' });
+  const lookupReq = useRef(0);
   const [timer, setTimer] = useState(0);
+  const [phoneFocus, setPhoneFocus] = useState(false);
+  const [picker, setPicker] = useState<'cc' | 'country' | null>(null);
   const codeRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const [codeFocus, setCodeFocus] = useState(false);
+  const [blink] = useState(() => new Animated.Value(1));
+  const [shake] = useState(() => new Animated.Value(0));
+
+  // Faol katakdagi kursor miltillashi
+  useEffect(() => {
+    if (step !== 'code') return;
+    const a = Animated.loop(Animated.sequence([
+      Animated.timing(blink, { toValue: 0, duration: 450, delay: 250, useNativeDriver: true }),
+      Animated.timing(blink, { toValue: 1, duration: 450, useNativeDriver: true }),
+    ]));
+    a.start();
+    return () => a.stop();
+  }, [step, blink]);
 
   useEffect(() => {
     if (timer <= 0) return;
@@ -31,130 +115,526 @@ export default function Login() {
     return () => clearTimeout(t);
   }, [timer]);
 
-  const sendCode = () => {
-    setStep('code'); setCode(''); setTimer(59);
-    toast('Demo: istalgan 4 ta raqamni kiriting', 'chatbox-ellipses');
+  const phoneOk = digits.length >= Math.min(cc.len, 9) && digits.length <= cc.len;
+  const emailOk = /^\S+@\S+\.\S{2,}$/.test(email.trim());
+  const contactOk = method === 'phone' ? phoneOk : emailOk;
+  const target = method === 'phone' ? `${cc.code} ${formatPhone(digits, cc.code)}` : email.trim();
+  const account = findAccount(method === 'phone' ? { phone: target } : { email: target });
+
+  // Demo rejim: haqiqiy SMS o'rniga kod ekranda va bildirishnomada ko'rsatiladi
+  const sendCode = (m: 'phone' | 'email' = method) => {
+    const next = newCode();
+    setSent(next); setCode(''); setAttempts(0); setCodeError(null); setTimer(59);
+    setStep('code');
+    toast(m === 'phone' ? tr('SMS · YUMS: tasdiqlash kodi {code}', { code: next }) : tr('Email · YUMS: tasdiqlash kodi {code}', { code: next }), m === 'phone' ? 'chatbox-ellipses' : 'mail');
     setTimeout(() => codeRef.current?.focus(), 300);
   };
 
+  const chooseAccount = (a: User) => {
+    haptic.tap();
+    const parsed = a.phone ? parsePhone(a.phone) : null;
+    if (parsed) { setMethod('phone'); setCc(parsed.cc); setDigits(parsed.digits); sendCode('phone'); return; }
+    if (a.email) { setMethod('email'); setEmail(a.email); sendCode('email'); }
+  };
+
+  const demoLogin = () => { haptic.tap(); setMethod('phone'); setCc(CODES[0]); setDigits(DEMO_PHONE); sendCode('phone'); };
+
+  const doShake = () => Animated.sequence(
+    [10, -10, 7, -7, 3, 0].map(v => Animated.timing(shake, { toValue: v, duration: 45, useNativeDriver: true })),
+  ).start();
+
   const onCode = (v: string) => {
-    const d = v.replace(/\D/g, '').slice(0, 4);
+    if (codeError === 'locked') return;
+    const d = v.replace(/\D/g, '').slice(0, CODE_LEN);
     setCode(d);
-    if (d.length === 4) setTimeout(() => setStep('name'), 250);
+    if (codeError) setCodeError(null);
+    if (d.length < CODE_LEN) return;
+    if (d === sent) { haptic.success(); setTimeout(verified, 250); return; }
+    const n = attempts + 1;
+    setAttempts(n);
+    setCodeError(n >= MAX_ATTEMPTS ? 'locked' : 'wrong');
+    haptic.error();
+    doShake();
+    setTimeout(() => setCode(''), 500);
+  };
+
+  // Kod to'g'ri: hisob bo'lsa — darhol ichkariga, bo'lmasa — yangi hisob uchun profil
+  const verified = () => {
+    if (!account) { setStep('profile'); return; }
+    signIn(account);
+    logEvent(method === 'phone' ? tr('Tizimga kirish (SMS kod)') : tr('Tizimga kirish (email kod)'));
+    toast(tr('Xush kelibsiz, {name}!', { name: account.name.split(' ')[0] }), 'hand-right');
+    router.replace('/');
+  };
+
+  // STIR / JShShIR: O'zbekiston uchun majburiy; kompaniya reyestr bilan solishtiriladi
+  const local = country === 'UZ';
+  const pin = checkPinfl(pinfl);
+  const pinOk = !local || !pin.error;
+  const stirErr = stir.length === 9 ? checkStir(stir) : null;
+  const rec = lookup.state === 'done' && lookup.result.ok ? lookup.result.record : null;
+  const active = !!rec && rec.status === 'active';
+  const nameOk = !!rec && companyMatches(company, rec);
+  const dirOk = !!rec && directorMatches(name, rec);
+  const companyOk = kind === 'person' || (local ? active && nameOk && dirOk : company.trim().length > 1);
+  const profileOk = name.trim().length > 1 && pinOk && companyOk;
+
+  const onStir = (v: string) => {
+    const d = v.replace(/\D/g, '').slice(0, 9);
+    setStir(d);
+    const req = ++lookupReq.current;
+    if (d.length < 9 || checkStir(d)) { setLookup({ state: 'idle' }); return; }
+    setLookup({ state: 'loading' });
+    lookupCompany(d).then(result => { if (req === lookupReq.current) setLookup({ state: 'done', result }); });
   };
 
   const finish = () => {
-    login({ name: name.trim(), phone: '+998 ' + formatPhone(digits) });
+    login({
+      name: name.trim(), kind, company: kind === 'company' ? company.trim() : undefined, country,
+      phone: method === 'phone' ? target : '', email: method === 'email' ? target : undefined,
+      pinfl: local ? pinfl : undefined, stir: kind === 'company' && local ? stir : undefined,
+      registryVerified: kind === 'company' && local && active && nameOk && dirOk,
+    });
+    logEvent(method === 'phone' ? tr("Ro'yxatdan o'tish (SMS kod)") : tr("Ro'yxatdan o'tish (email kod)"));
     router.replace('/');
   };
+
+  const back = () => {
+    if (step === 'contact') setStep('accounts');
+    else setStep('contact');
+  };
+  const canBack = step === 'code' || step === 'profile' || (step === 'contact' && savedAccounts.length > 0);
+  const big = step === 'accounts' || step === 'contact';
+  const k = countryOf(country);
+  const locked = codeError === 'locked';
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" bounces={false}>
-        <LinearGradient colors={['#FFD84D', '#FFC800', '#F5A800']} style={[styles.hero, { paddingTop: insets.top + 24 }]}>
-          {step !== 'phone' && (
-            <Pressable onPress={() => setStep(step === 'name' ? 'code' : 'phone')} style={styles.back} hitSlop={10}>
-              <Ionicons name="chevron-back" size={24} color="#0E1525" />
+        <LinearGradient colors={['#000000', '#0B0904', '#16120A']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={[big ? styles.hero : styles.heroCompact, { paddingTop: insets.top + 12 }]}>
+          <Image source={GLOW} pointerEvents="none" style={[styles.glow, { top: insets.top - (big ? 70 : 250) }]} contentFit="contain" />
+          {canBack && (
+            <Pressable onPress={back} style={[styles.back, { top: insets.top + 12 }]} hitSlop={10} accessibilityLabel={tr('Orqaga')}>
+              <Ionicons name="chevron-back" size={21} color="#fff" style={flipRTL()} />
             </Pressable>
           )}
-          <View style={styles.logo}><Text style={styles.logoY}>Y</Text></View>
-          <Text style={styles.title}>YUMS Taxi</Text>
-          <Text style={styles.tagline}>Tez. Arzon. Xavfsiz.{'\n'}Shahar bo'ylab bir bosishda.</Text>
-          <Text style={styles.cars}>🚕  🚗  🚘</Text>
+          {big ? (
+            <>
+              <BrandLogo width={168} style={{ alignSelf: 'center', marginTop: 20 }} />
+              <Text style={styles.tagTitle}>{tr('Xalqaro raqamli loyihalar platformasi')}</Text>
+              <Text style={styles.tagSub}>{tr('Loyihalar, hamkorlar va investorlar — bir joyda')}</Text>
+              <View style={styles.pills}>
+                {PILLS.map(x => (
+                  <View key={x.label} style={styles.pill}>
+                    <Ionicons name={x.icon} size={14} color="#F5C542" />
+                    <Text style={styles.pillText}>{tr(x.label)}</Text>
+                  </View>
+                ))}
+              </View>
+            </>
+          ) : (
+            <View style={styles.compactBrand}>
+              <BrandMark size={30} style={{ borderRadius: 15 }} />
+              <Text style={styles.compactName}>YUMS</Text>
+            </View>
+          )}
         </LinearGradient>
 
         <View style={[styles.card, { backgroundColor: c.surface, paddingBottom: insets.bottom + 24 }]}>
-          {step === 'phone' && (
+          {/* ---------- Hisobni tanlash ---------- */}
+          {step === 'accounts' && (
             <>
-              <Txt v="h1">Telefon raqamingiz</Txt>
-              <Txt muted>Tasdiqlash kodi SMS orqali yuboriladi</Txt>
-              <View style={[styles.phone, { backgroundColor: c.surface2, borderColor: digits.length === 9 ? c.brand : c.line }]}>
-                <Text style={{ fontSize: 20 }}>🇺🇿</Text>
-                <Text style={[styles.prefix, { color: c.text }]}>+998</Text>
-                <TextInput
-                  value={formatPhone(digits)}
-                  onChangeText={v => setDigits(v.replace(/\D/g, '').slice(0, 9))}
-                  keyboardType="phone-pad"
-                  placeholder="90 123 45 67"
-                  placeholderTextColor={c.faint}
-                  autoFocus
-                  style={[styles.phoneInput, { color: c.text }]}
-                />
+              <View style={{ gap: 6 }}>
+                <Txt v="h1">{tr('Hisobni tanlang')}</Txt>
+                <Txt muted>{tr('Shu qurilmada avval kirgan hisoblaringiz')}</Txt>
               </View>
-              <Pressable onPress={() => setAgree(!agree)} style={styles.agree}>
-                <Ionicons name={agree ? 'checkbox' : 'square-outline'} size={22} color={agree ? '#E0A800' : c.faint} />
-                <Txt v="small" muted style={{ flex: 1 }}>Foydalanish shartlari va maxfiylik siyosatiga roziman</Txt>
-              </Pressable>
-              <Button title="Kod olish" disabled={digits.length !== 9 || !agree} onPress={sendCode} />
+              <View style={[styles.accList, { borderColor: c.line }]}>
+                {savedAccounts.map((a, i) => {
+                  const title = a.kind === 'company' && a.company ? a.company : a.name;
+                  return (
+                    <Pressable
+                      key={a.id}
+                      onPress={() => chooseAccount(a)}
+                      style={({ pressed }) => [styles.accRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }, { backgroundColor: pressed ? c.surface2 : 'transparent' }]}>
+                      {a.avatar ? <Avatar name={a.name} size={44} uri={a.avatar} /> : a.kind === 'company' && a.company ? <Logo name={a.company} color={c.ok} size={44} /> : <Avatar name={a.name} size={44} fallback={DEFAULT_AVATAR} />}
+                      <View style={{ flex: 1 }}>
+                        <Txt v="h3" numberOfLines={1}>{title}</Txt>
+                        <Txt v="small" muted numberOfLines={1}>{a.phone ? maskPhone(a.phone) : maskEmail(a.email ?? '')}</Txt>
+                      </View>
+                      <Pressable
+                        onPress={() => { haptic.tap(); if (a.id) forgetAccount(a.id); if (savedAccounts.length === 1) setStep('contact'); }}
+                        hitSlop={10}
+                        style={[styles.forget, { backgroundColor: c.surface2 }]}
+                        accessibilityLabel={tr("{title} — ro'yxatdan olib tashlash", { title })}>
+                        <Ionicons name="close" size={15} color={c.muted} />
+                      </Pressable>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <Button title={tr('Boshqa hisob bilan kirish')} kind="ghost" icon="person-add-outline" onPress={() => { setDigits(''); setEmail(''); setStep('contact'); }} />
             </>
           )}
 
+          {/* ---------- Telefon yoki email ---------- */}
+          {step === 'contact' && (
+            <>
+              <View style={{ gap: 6 }}>
+                <Txt v="h1">{method === 'phone' ? tr('Telefon raqamingiz') : tr('Email manzilingiz')}</Txt>
+                <Txt muted>{method === 'phone' ? tr("Kirish yoki ro'yxatdan o'tish uchun SMS orqali kod yuboramiz") : tr("Kirish yoki ro'yxatdan o'tish uchun emailga kod yuboramiz")}</Txt>
+              </View>
+              {method === 'phone' ? (
+                <View style={[styles.phone, { backgroundColor: phoneFocus ? c.surface : c.surface2, borderColor: phoneFocus ? c.brand : c.line }]}>
+                  <Pressable onPress={() => setPicker('cc')} style={styles.cc} hitSlop={6} accessibilityLabel={tr('Mamlakat kodi')}>
+                    <Flag code={cc.country} size={26} />
+                    <Text style={[styles.prefix, { color: c.text }]}>{cc.code}</Text>
+                    <Ionicons name="chevron-down" size={14} color={c.faint} />
+                  </Pressable>
+                  <TextInput
+                    value={formatPhone(digits, cc.code)}
+                    onChangeText={v => setDigits(v.replace(/\D/g, '').slice(0, cc.len))}
+                    keyboardType="phone-pad"
+                    textContentType="telephoneNumber"
+                    autoComplete="tel"
+                    onFocus={() => setPhoneFocus(true)}
+                    onBlur={() => setPhoneFocus(false)}
+                    onSubmitEditing={() => contactOk && sendCode()}
+                    placeholder={cc.code === '+998' ? '90 123 45 67' : '123 456 78 90'}
+                    placeholderTextColor={c.faint}
+                    autoFocus
+                    style={[styles.phoneInput, { color: c.text }]}
+                  />
+                  {digits ? (
+                    <Pressable onPress={() => setDigits('')} hitSlop={10} accessibilityLabel={tr('Tozalash')}>
+                      <Ionicons name="close-circle" size={20} color={c.faint} />
+                    </Pressable>
+                  ) : null}
+                </View>
+              ) : (
+                <Field
+                  value={email}
+                  onChangeText={setEmail}
+                  onSubmitEditing={() => contactOk && sendCode()}
+                  placeholder={tr('name@company.com')}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  autoFocus
+                  inputStyle={{ fontSize: 18, minHeight: 58 }}
+                />
+              )}
+              <Button title={tr('Davom etish')} disabled={!contactOk} onPress={() => sendCode()} />
+
+              <View style={styles.or}>
+                <View style={[styles.orLine, { backgroundColor: c.line }]} />
+                <Txt v="tiny" faint>{tr('yoki')}</Txt>
+                <View style={[styles.orLine, { backgroundColor: c.line }]} />
+              </View>
+              <Pressable
+                onPress={() => { haptic.tap(); setMethod(method === 'phone' ? 'email' : 'phone'); }}
+                style={({ pressed }) => [styles.alt, { borderColor: c.line, backgroundColor: pressed ? c.surface2 : 'transparent' }]}>
+                <Ionicons name={method === 'phone' ? 'mail-outline' : 'call-outline'} size={18} color={c.text} />
+                <Txt style={{ fontFamily: F.semi }}>{method === 'phone' ? tr('Email orqali kirish') : tr('Telefon orqali kirish')}</Txt>
+              </Pressable>
+
+              <Txt v="tiny" faint style={styles.legal}>
+                {tr('«Davom etish»ni bosib, siz')}{' '}
+                <Txt v="tiny" color={c.accent} onPress={() => router.push({ pathname: '/legal', params: { doc: 'terms' } })}>{tr('Foydalanish shartlari')}</Txt>{' '}{tr('va')}{' '}
+                <Txt v="tiny" color={c.accent} onPress={() => router.push({ pathname: '/legal', params: { doc: 'privacy' } })}>{tr('Maxfiylik siyosati')}</Txt>{tr('ga rozilik bildirasiz')}
+              </Txt>
+
+              <Pressable onPress={demoLogin} hitSlop={6} style={styles.demo}>
+                <Ionicons name="flask-outline" size={15} color={c.faint} />
+                <Txt v="small" faint>{tr('Demo hisob bilan kirish')}</Txt>
+              </Pressable>
+            </>
+          )}
+
+          {/* ---------- SMS kod ---------- */}
           {step === 'code' && (
             <>
-              <Txt v="h1">SMS kodni kiriting</Txt>
-              <Txt muted>+998 {formatPhone(digits)} raqamiga yuborildi</Txt>
-              <Pressable onPress={() => codeRef.current?.focus()} style={styles.otpRow}>
-                {[0, 1, 2, 3].map(i => (
-                  <View key={i} style={[styles.otp, { backgroundColor: c.surface2, borderColor: code.length === i ? c.brand : c.line }]}>
-                    <Text style={[styles.otpText, { color: c.text }]}>{code[i] ?? ''}</Text>
-                  </View>
-                ))}
-              </Pressable>
-              <TextInput ref={codeRef} value={code} onChangeText={onCode} keyboardType="number-pad" maxLength={4} style={styles.hidden} autoFocus />
-              <Pressable disabled={timer > 0} onPress={sendCode}>
-                <Txt v="small" muted={timer > 0} color={timer > 0 ? undefined : c.accent} style={{ textAlign: 'center', fontWeight: '700' }}>
-                  {timer > 0 ? `Kodni qayta yuborish: 0:${String(timer).padStart(2, '0')}` : 'Kodni qayta yuborish'}
-                </Txt>
-              </Pressable>
+              <View style={styles.codeHead}>
+                <View style={[styles.codeIcon, { backgroundColor: c.brandSoft }]}>
+                  <Ionicons name={method === 'phone' ? 'chatbubble-ellipses-outline' : 'mail-outline'} size={28} color={c.brandDeep} />
+                </View>
+                <Txt v="h1" style={{ textAlign: 'center' }}>{method === 'phone' ? tr('SMS kodni kiriting') : tr('Emaildagi kodni kiriting')}</Txt>
+                <Txt muted style={{ textAlign: 'center' }}>{tr('{CODE_LEN} xonali kod yuborildi', { CODE_LEN })}</Txt>
+                <Txt v="h3" style={{ textAlign: 'center', fontVariant: ['tabular-nums'] }}>{target}</Txt>
+                <Pressable onPress={() => setStep('contact')} hitSlop={8}>
+                  <Txt v="small" color={c.accent} style={{ fontFamily: F.semi }}>{method === 'phone' ? tr("Raqamni o'zgartirish") : tr("Emailni o'zgartirish")}</Txt>
+                </Pressable>
+              </View>
+
+              <Animated.View style={{ transform: [{ translateX: shake }] }}>
+                <Pressable onPress={() => codeRef.current?.focus()} style={styles.otpRow} accessibilityLabel={tr('Tasdiqlash kodi')}>
+                  {Array.from({ length: CODE_LEN }, (_, i) => {
+                    const filled = i < code.length;
+                    const active = !locked && codeFocus && i === Math.min(code.length, CODE_LEN - 1) && !(filled && code.length === CODE_LEN);
+                    return (
+                      <View key={i} style={[styles.otp, {
+                        backgroundColor: active ? c.surface : c.surface2,
+                        borderColor: codeError ? c.danger : active ? c.brand : filled ? c.surface3 : 'transparent',
+                        opacity: locked ? 0.5 : 1,
+                      }]}>
+                        {filled
+                          ? <Text style={[styles.otpText, { color: codeError ? c.danger : c.text }]}>{code[i]}</Text>
+                          : active
+                            ? <Animated.View style={[styles.caret, { backgroundColor: c.brand, opacity: blink }]} />
+                            : <View style={[styles.otpDot, { backgroundColor: c.faint }]} />}
+                      </View>
+                    );
+                  })}
+                </Pressable>
+              </Animated.View>
+              <TextInput
+                ref={codeRef}
+                value={code}
+                onChangeText={onCode}
+                onFocus={() => setCodeFocus(true)}
+                onBlur={() => setCodeFocus(false)}
+                editable={!locked}
+                keyboardType="number-pad"
+                textContentType="oneTimeCode"
+                autoComplete="one-time-code"
+                maxLength={CODE_LEN}
+                style={styles.hidden}
+                autoFocus
+              />
+
+              <View style={styles.status}>
+                {codeError ? (
+                  <Row gap={6} style={{ justifyContent: 'center' }}>
+                    <Ionicons name="alert-circle" size={16} color={c.danger} />
+                    <Txt v="small" color={c.danger} style={{ fontFamily: F.semi }}>
+                      {locked ? tr('Urinishlar tugadi — yangi kod oling') : tr("Kod noto'g'ri. Yana {MAX_ATTEMPTS} ta urinish qoldi", { MAX_ATTEMPTS: MAX_ATTEMPTS - attempts })}
+                    </Txt>
+                  </Row>
+                ) : null}
+                {timer > 0 ? (
+                  <Txt v="small" muted style={{ textAlign: 'center' }}>
+                    {tr('Yangi kodni {time} dan keyin olish mumkin', { time: `0:${String(timer).padStart(2, '0')}` })}
+                  </Txt>
+                ) : (
+                  <Pressable onPress={() => sendCode()} hitSlop={8} style={styles.resendBtn}>
+                    <Ionicons name="refresh" size={16} color={c.accent} />
+                    <Txt v="small" color={c.accent} style={{ fontFamily: F.bold }}>{tr('Kodni qayta yuborish')}</Txt>
+                  </Pressable>
+                )}
+              </View>
+
+              <View style={[styles.demoPill, { backgroundColor: c.surface2 }]}>
+                <Ionicons name="flask-outline" size={15} color={c.muted} />
+                <Txt v="small" muted>{tr('Demo kod')}</Txt>
+                <Txt v="small" style={{ fontFamily: F.bold, letterSpacing: 1.5, fontVariant: ['tabular-nums'] }} testID="demo-code">{sent}</Txt>
+                {!locked && (
+                  <>
+                    <View style={[styles.demoDivider, { backgroundColor: c.line }]} />
+                    <Pressable onPress={() => onCode(sent)} hitSlop={8}>
+                      <Txt v="small" color={c.accent} style={{ fontFamily: F.bold }}>{tr("Qo'yish")}</Txt>
+                    </Pressable>
+                  </>
+                )}
+              </View>
+
+              <View style={{ flex: 1 }} />
+              <Row gap={8} style={{ justifyContent: 'center' }}>
+                <Ionicons name="shield-checkmark-outline" size={15} color={c.ok} />
+                <Txt v="tiny" faint>{tr("Kodni hech kimga aytmang — YUMS xodimlari uni so'ramaydi")}</Txt>
+              </Row>
             </>
           )}
 
-          {step === 'name' && (
+          {/* ---------- Yangi foydalanuvchi ---------- */}
+          {step === 'profile' && (
             <>
-              <Txt v="h1">Ismingiz nima?</Txt>
-              <Txt muted>Haydovchi sizni shu ism bilan ko'radi</Txt>
-              <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder="Masalan: Aziz"
-                placeholderTextColor={c.faint}
-                autoFocus
-                autoCapitalize="words"
-                style={[styles.nameInput, { backgroundColor: c.surface2, color: c.text, borderColor: name.trim().length > 1 ? c.brand : c.line }]}
-              />
+              <View style={{ gap: 6 }}>
+                <Txt v="h1">{tr('Keling, tanishamiz')}</Txt>
+                <Txt muted>{method === 'phone' ? tr("Bu raqam bilan hali hisob yo'q. Profilingizni to'ldiring — bir daqiqa vaqt oladi") : tr("Bu email bilan hali hisob yo'q. Profilingizni to'ldiring — bir daqiqa vaqt oladi")}</Txt>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                {([['person', tx('Jismoniy shaxs'), 'person-outline', tx('Tadbirkor, mutaxassis, investor')], ['company', tx('Kompaniya'), 'business-outline', tx('MChJ, AJ, xorijiy kompaniya')]] as const).map(([id, l, i, d]) => {
+                  const on = kind === id;
+                  return (
+                    <Pressable key={id} onPress={() => { haptic.tap(); setKind(id); }} style={[styles.kind, { backgroundColor: on ? c.brandSoft : c.surface2, borderColor: on ? c.brand : 'transparent' }]}>
+                      <Row style={{ justifyContent: 'space-between' }}>
+                        <Ionicons name={i} size={22} color={c.text} />
+                        <View style={[styles.radio, { borderColor: on ? c.brand : c.faint, backgroundColor: on ? c.brand : 'transparent' }]}>
+                          {on && <Ionicons name="checkmark" size={12} color={c.brandText} />}
+                        </View>
+                      </Row>
+                      <Txt v="h3">{tr(l)}</Txt>
+                      <Txt v="tiny" faint>{tr(d)}</Txt>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              <SelectField label={tr('Mamlakat')} value={k.name} left={<Flag code={k.code} size={22} />} placeholder={tr('Mamlakat')} onPress={() => setPicker('country')} />
+
+              {kind === 'company' && local && (
+                <>
+                  <Field
+                    label={tr('Kompaniya STIRi')}
+                    value={stir}
+                    onChangeText={onStir}
+                    placeholder={tr('9 xonali raqam')}
+                    keyboardType="number-pad"
+                    maxLength={9}
+                    error={stirErr ?? undefined}
+                    hint={tr('Davlat reyestridan avtomatik tekshiriladi')}
+                  />
+                  {lookup.state === 'loading' && (
+                    <Row gap={10} style={[styles.reg, { backgroundColor: c.surface2 }]}>
+                      <ActivityIndicator color={c.muted} />
+                      <Txt v="small" muted>{tr('Reyestrdan tekshirilmoqda…')}</Txt>
+                    </Row>
+                  )}
+                  {lookup.state === 'done' && (lookup.result.ok ? (
+                    <View style={[styles.reg, { backgroundColor: active ? c.okSoft : c.dangerSoft }]}>
+                      <Row gap={8}>
+                        <Ionicons name={active ? 'checkmark-circle' : 'close-circle'} size={18} color={active ? c.ok : c.danger} />
+                        <Txt v="small" color={active ? c.ok : c.danger} style={{ fontFamily: F.bold }}>
+                          {active ? tr('Reyestrda topildi') : tr('Kompaniya faoliyati tugatilgan')}
+                        </Txt>
+                      </Row>
+                      <Txt v="h3">{lookup.result.record.name}</Txt>
+                      <Txt v="small" muted>{tr('Rahbar: {director}', { director: lookup.result.record.director })}</Txt>
+                    </View>
+                  ) : (
+                    <Row gap={8} style={[styles.reg, { backgroundColor: c.dangerSoft }]}>
+                      <Ionicons name={lookup.result.reason === 'network' ? 'cloud-offline-outline' : 'search-outline'} size={18} color={c.danger} />
+                      <Txt v="small" color={c.danger} style={{ flex: 1, fontFamily: F.semi }}>
+                        {lookup.result.reason === 'network' ? tr("Reyestr bilan bog'lanib bo'lmadi — keyinroq urinib ko'ring") : tr('Bu STIR reyestrda topilmadi')}
+                      </Txt>
+                      {lookup.result.reason === 'network' && (
+                        <Pressable onPress={() => onStir(stir)} hitSlop={8}><Txt v="small" color={c.accent} style={{ fontFamily: F.bold }}>{tr('Qayta')}</Txt></Pressable>
+                      )}
+                    </Row>
+                  ))}
+                  {!process.env.EXPO_PUBLIC_REGISTRY_API && lookup.state !== 'done' && (
+                    <Pressable onPress={() => onStir(DEMO_REGISTRY[0].stir)} style={[styles.demoPill, { backgroundColor: c.surface2, alignSelf: 'flex-start' }]}>
+                      <Ionicons name="flask-outline" size={15} color={c.muted} />
+                      <Txt v="small" muted>{tr('Demo STIR')}</Txt>
+                      <Txt v="small" style={{ fontFamily: F.bold }}>{DEMO_REGISTRY[0].stir}</Txt>
+                      <View style={[styles.demoDivider, { backgroundColor: c.line }]} />
+                      <Txt v="small" color={c.accent} style={{ fontFamily: F.bold }}>{tr("Qo'yish")}</Txt>
+                    </Pressable>
+                  )}
+                </>
+              )}
+
+              {kind === 'company' && (
+                <View style={{ gap: 6 }}>
+                  <Field label={tr('Kompaniya nomi')} value={company} onChangeText={setCompany} placeholder={tr('Masalan: YUMS Demo')} />
+                  {rec && company.trim().length > 1 && (
+                    <Match ok={nameOk} yes={tr('Reyestrdagi nom bilan mos')} no={tr('Reyestrda: {name}', { name: rec.name })} />
+                  )}
+                </View>
+              )}
+              <View style={{ gap: 6 }}>
+                <Field
+                  label={kind === 'company' ? tr("Mas'ul shaxs (rahbar) F.I.Sh.") : tr('Ism familiya')}
+                  value={name}
+                  onChangeText={setName}
+                  placeholder={tr('Masalan: Karimov Aziz')}
+                  autoCapitalize="words"
+                  textContentType="name"
+                  autoComplete="name"
+                />
+                {kind === 'company' && rec && name.trim().split(/\s+/).length >= 2 && (
+                  <Match ok={dirOk} yes={tr('Kompaniya rahbari bilan mos')} no={tr("Mas'ul shaxs reyestrdagi rahbar bilan mos kelmadi")} />
+                )}
+              </View>
+              {local && (
+                <Field
+                  label={kind === 'company' ? tr("Mas'ul shaxsning JShShIRi") : tr('JShShIR')}
+                  value={pinfl}
+                  onChangeText={v => setPinfl(v.replace(/\D/g, '').slice(0, 14))}
+                  placeholder={tr('14 xonali shaxsiy raqam')}
+                  keyboardType="number-pad"
+                  maxLength={14}
+                  error={pinfl.length === 14 ? pin.error ?? undefined : undefined}
+                  hint={pinfl.length === 14 && !pin.error && pin.birth ? tr("Tug'ilgan sana: {date}", { date: `${String(pin.birth.getDate()).padStart(2, '0')}.${String(pin.birth.getMonth() + 1).padStart(2, '0')}.${pin.birth.getFullYear()}` }) : tr('Pasport yoki ID kartadagi 14 xonali raqam')}
+                />
+              )}
+              {!local && kind === 'company' && (
+                <Row gap={8} style={[styles.reg, { backgroundColor: c.surface2 }]}>
+                  <Ionicons name="document-text-outline" size={18} color={c.muted} />
+                  <Txt v="small" muted style={{ flex: 1 }}>{tr("Xorijiy kompaniyalar ro'yxatdan o'tgach hujjatlar orqali tasdiqlanadi (Kabinet → Profilni tasdiqlash)")}</Txt>
+                </Row>
+              )}
               <View style={[styles.bonus, { backgroundColor: c.brandSoft }]}>
-                <Text style={{ fontSize: 26 }}>🎁</Text>
+                <IconTile name="gift-outline" color={c.brandDeep} size={44} />
                 <View style={{ flex: 1 }}>
-                  <Txt v="h3">25 000 so'm sovg'a</Txt>
-                  <Txt v="small" muted>Balansingizga birinchi safar uchun. YANGI30 promokodi bilan yana -30%</Txt>
+                  <Txt v="h3">{tr("Xush kelibsiz sovg'asi")}</Txt>
+                  <Txt v="small" muted>{tr("Birinchi loyiha joylashtirish bepul + YUMS Taxi balansiga 25 000 so'm")}</Txt>
                 </View>
               </View>
-              <Button title="Boshlash" icon="arrow-forward" disabled={name.trim().length < 2} onPress={finish} />
+              <Button title={tr('Hisob yaratish')} icon="arrow-forward" disabled={!profileOk} onPress={finish} />
             </>
           )}
         </View>
       </ScrollView>
+
+      <PickerSheet visible={picker === 'cc'} onClose={() => setPicker(null)} title={tr('Mamlakat kodi')} selected={[cc.code]}
+        onChange={ids => { const n = CODES.find(x => x.code === ids[0]); if (n) { setCc(n); setCountry(n.country); setDigits(d => d.slice(0, n.len)); } }}
+        options={CODES.map(x => ({ id: x.code, label: `${countryOf(x.country).name} (${x.code})`, flag: x.country }))} />
+      <PickerSheet visible={picker === 'country'} onClose={() => setPicker(null)} title={tr('Mamlakat')} selected={[country]} onChange={ids => setCountry(ids[0])}
+        options={COUNTRIES.map(x => ({ id: x.code, label: x.name, flag: x.code, sub: x.region }))} />
     </KeyboardAvoidingView>
   );
 }
 
+/** Reyestr bilan moslik belgisi */
+function Match({ ok, yes, no }: { ok: boolean; yes: string; no: string }) {
+  const { colors: c } = useStore();
+  return (
+    <Row gap={6} style={{ paddingHorizontal: 2 }}>
+      <Ionicons name={ok ? 'checkmark-circle' : 'close-circle'} size={15} color={ok ? c.ok : c.danger} />
+      <Txt v="tiny" color={ok ? c.ok : c.danger} style={{ flex: 1 }}>{ok ? yes : no}</Txt>
+    </Row>
+  );
+}
+
 const styles = StyleSheet.create({
-  hero: { paddingHorizontal: 24, paddingBottom: 56 },
-  back: { position: 'absolute', left: 16, top: 56, width: 40, height: 40, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.5)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
-  logo: { width: 64, height: 64, borderRadius: 22, backgroundColor: '#0E1525', alignItems: 'center', justifyContent: 'center', marginTop: 36 },
-  logoY: { color: '#FFC800', fontSize: 34, fontWeight: '900' },
-  title: { fontSize: 38, fontWeight: '900', color: '#0E1525', marginTop: 18, letterSpacing: -1 },
-  tagline: { fontSize: 17, fontWeight: '600', color: '#0E1525', opacity: 0.75, marginTop: 6, lineHeight: 24 },
-  cars: { fontSize: 34, marginTop: 18 },
-  card: { flex: 1, marginTop: -28, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, gap: 14 },
-  phone: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 62, borderRadius: 18, borderWidth: 2, paddingHorizontal: 16, marginTop: 6 },
-  prefix: { fontSize: 20, fontWeight: '800' },
-  phoneInput: { flex: 1, fontSize: 20, fontWeight: '700', letterSpacing: 0.5, height: '100%' },
-  agree: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  otpRow: { flexDirection: 'row', gap: 12, justifyContent: 'center', marginVertical: 10 },
-  otp: { width: 62, height: 70, borderRadius: 18, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  otpText: { fontSize: 30, fontWeight: '800' },
+  hero: { paddingHorizontal: 24, paddingBottom: 52, overflow: 'hidden' },
+  glow: { position: 'absolute', alignSelf: 'center', width: 420, height: 420 },
+  back: { position: 'absolute', left: 16, width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+  tagTitle: { fontSize: 17, fontFamily: F.semi, color: '#fff', textAlign: 'center', letterSpacing: -0.3, marginTop: 14 },
+  tagSub: { fontSize: 13.5, fontFamily: F.medium, color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginTop: 4 },
+  pills: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 20 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,255,255,0.12)' },
+  pillText: { color: 'rgba(255,255,255,0.88)', fontSize: 12.5, fontFamily: F.semi },
+  heroCompact: { paddingHorizontal: 24, paddingBottom: 40, overflow: 'hidden' },
+  compactBrand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 42 },
+  compactName: { color: '#fff', fontFamily: F.brand, fontSize: 16, letterSpacing: 1.5 },
+  codeHead: { alignItems: 'center', gap: 6, paddingTop: 4 },
+  codeIcon: { width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  status: { alignItems: 'center', gap: 8, minHeight: 24 },
+  demoPill: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center', height: 38, paddingHorizontal: 14, borderRadius: 19 },
+  demoDivider: { width: StyleSheet.hairlineWidth * 2, height: 16 },
+  card: { flex: 1, marginTop: -28, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, gap: 16 },
+  accList: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 18, overflow: 'hidden' },
+  accRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
+  forget: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  phone: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 60, borderRadius: 18, borderWidth: 1.5, paddingHorizontal: 14 },
+  cc: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  prefix: { fontSize: 19, fontFamily: F.heavy },
+  phoneInput: { flex: 1, minWidth: 0, fontSize: 20, fontFamily: F.bold, letterSpacing: 0.5, height: '100%' },
+  or: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  orLine: { flex: 1, height: StyleSheet.hairlineWidth },
+  alt: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, height: 52, borderRadius: 16, borderWidth: 1 },
+  legal: { textAlign: 'center', lineHeight: 16, paddingHorizontal: 8 },
+  demo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, alignSelf: 'center' },
+  // kod raqamlari har doim chapdan o'ngga (arab tilida ham)
+  otpRow: { flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 4, direction: 'ltr' },
+  otp: { flex: 1, maxWidth: 64, height: 64, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  caret: { width: 2, height: 26, borderRadius: 1 },
+  otpDot: { width: 6, height: 6, borderRadius: 3, opacity: 0.5 },
+  otpText: { fontSize: 26, fontFamily: F.display },
   hidden: { position: 'absolute', opacity: 0, width: 1, height: 1 },
-  nameInput: { height: 60, borderRadius: 18, borderWidth: 2, paddingHorizontal: 18, fontSize: 19, fontWeight: '700', marginTop: 6 },
+  resendBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  kind: { flex: 1, padding: 14, borderRadius: 18, borderWidth: 1.5, gap: 6 },
+  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  reg: { padding: 12, borderRadius: 14, gap: 4 },
   bonus: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18 },
 });

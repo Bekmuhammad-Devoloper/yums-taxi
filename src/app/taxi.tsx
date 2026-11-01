@@ -7,48 +7,73 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChoosingSheet, DriverSheet, IdleSheet, OptionsModal, RatingModal, RideSheet, SearchingSheet } from '@/components/order-sheets';
 import TaxiMap, { type MapHandle } from '@/components/taxi-map';
-import { IconButton } from '@/components/ui';
+import { BrandMark, IconButton } from '@/components/ui';
 import { DEFAULT_CENTER, type LatLng, type Place } from '@/lib/data';
-import { addressOf } from '@/lib/geo';
+import { addressOf, distanceKm } from '@/lib/geo';
+import { trackPrecise, type Fix } from '@/lib/locate';
 import { useStore } from '@/lib/store';
-import { shadow } from '@/lib/theme';
+import { F, shadow } from '@/lib/theme';
+import { tr } from '@/lib/i18n';
 
-export default function Home() {
+export default function Taxi() {
   const s = useStore();
   const { colors: c, order, user } = s;
   const insets = useSafeAreaInsets();
   const map = useRef<MapHandle>(null);
   const [sheetH, setSheetH] = useState(320);
   const [granted, setGranted] = useState(false);
-  const [userPos, setUserPos] = useState<LatLng | null>(null);
+  const [userPos, setUserPos] = useState<Fix | null>(null);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [locating, setLocating] = useState(false);
   const [lift] = useState(() => new Animated.Value(0));
   const fromDrag = useRef<Place | null>(null);
   const skipRegion = useRef(false);
   const geoReq = useRef(0);
+  const tracker = useRef<(() => void) | null>(null);
+  const userMoved = useRef(false);
 
   const idle = order.phase === 'idle';
   const topPad = insets.top + 70;
 
   // Joylashuvni aniqlash
   const locate = async (recenter = true) => {
+    // Ruxsat so'rovi javobini kutmasdan, standart nuqtani darhol ko'rsatamiz
+    if (!order.pickup) addressOf(DEFAULT_CENTER).then(p => { if (!fromDrag.current) s.setPickup(p); });
     try {
       const perm = await Location.requestForegroundPermissionsAsync();
       if (perm.status !== 'granted') throw new Error('denied');
       setLocating(true);
       setGranted(true);
-      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const p = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
-      setUserPos(p);
-      if (recenter) map.current?.center(p);
-      if (!order.pickup || recenter) s.setPickup(await addressOf(p));
+      userMoved.current = false;
+      tracker.current?.();
+      // GPS bir necha soniya kuzatiladi: birinchi nuqta tez ko'rsatiladi, keyin aniqlashib boradi
+      let shown: LatLng | null = null;
+      tracker.current = trackPrecise(
+        fix => {
+          setUserPos(fix);
+          setLocating(false);
+          if (!recenter || userMoved.current) return;
+          if (shown && distanceKm(shown, fix) < 0.015) return; // 15 m dan kam farq — qayta surmaymiz
+          shown = fix;
+          skipRegion.current = true;
+          map.current?.center(fix);
+          const req = ++geoReq.current;
+          addressOf(fix).then(place => {
+            if (req !== geoReq.current || userMoved.current) return;
+            fromDrag.current = place;
+            s.setPickup(place);
+          });
+        },
+        () => setLocating(false),
+      );
     } catch {
-      if (!order.pickup) s.setPickup(await addressOf(DEFAULT_CENTER));
-    } finally {
+      // ruxsat berilmadi — standart nuqta yuqorida qo'yilgan
       setLocating(false);
     }
   };
+
+  // Ekrandan chiqilganda GPS kuzatuvi to'xtatiladi
+  useEffect(() => () => tracker.current?.(), []);
 
   useEffect(() => {
     if (!user) return;
@@ -95,6 +120,7 @@ export default function Home() {
   };
 
   const onDragStart = () => {
+    userMoved.current = true;
     if (idle) Animated.spring(lift, { toValue: 1, useNativeDriver: true, friction: 6 }).start();
   };
 
@@ -122,11 +148,15 @@ export default function Home() {
         driverPos={inTrip ? order.driverPos : undefined}
         showPickup={!idle && order.phase !== 'inride'}
         showNearby={idle || order.phase === 'choosing' || order.phase === 'searching'}
+        fleet={s.dispatchState === 'online' ? s.fleet.filter(f => !f.busy) : undefined}
+        searching={order.phase === 'searching'}
         bottomPad={idle ? 0 : sheetH}
+        overlayBottom={sheetH}
         topPad={idle ? 0 : topPad}
         onCenterChange={onCenterChange}
         onDragStart={onDragStart}
         locationGranted={granted}
+        userPos={userPos}
       />
 
       {/* Markaziy pin — xaritani surib olish nuqtasini tanlash */}
@@ -134,7 +164,7 @@ export default function Home() {
         <View pointerEvents="none" style={styles.pinWrap}>
           <Animated.View style={{ alignItems: 'center', transform: [{ translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [0, -14] }) }] }}>
             <View style={[styles.pinLabel, { backgroundColor: '#0F1E3D' }]}>
-              <Text style={styles.pinLabelText}>{order.pickup ? '3 daq' : '…'}</Text>
+              <Text style={styles.pinLabelText}>{order.pickup ? tr('3 daq') : '…'}</Text>
             </View>
             <View style={[styles.pinHead, { borderColor: '#0F1E3D' }]}><View style={styles.pinDot} /></View>
             <View style={styles.pinStick} />
@@ -148,16 +178,16 @@ export default function Home() {
         {order.phase === 'choosing' ? (
           <IconButton name="arrow-back" onPress={() => s.setDestination(null)} />
         ) : (
-          <IconButton name="menu" onPress={() => router.push('/menu')} />
+          <IconButton name="grid-outline" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
         )}
         <View style={[styles.brand, { backgroundColor: c.surface }, shadow(c)]}>
-          <Text style={[styles.brandY, { backgroundColor: c.brand, color: c.brandText }]}>Y</Text>
-          <Text style={[styles.brandText, { color: c.text }]}>YUMS <Text style={{ color: '#E0A800' }}>Taxi</Text></Text>
+          <BrandMark size={34} style={{ borderRadius: 17 }} />
+          <Text style={[styles.brandText, { color: c.text }]}>YUMS <Text style={{ color: '#E0A800' }}>{tr('Taxi')}</Text></Text>
         </View>
         {inTrip ? (
           <IconButton name="shield-checkmark" color={c.ok} onPress={() => router.push('/safety')} />
         ) : (
-          <IconButton name="gift-outline" badge onPress={() => router.push('/payment')} />
+          <IconButton name="menu" badge={!!s.promo} onPress={() => router.push('/menu')} />
         )}
       </View>
 
@@ -183,7 +213,7 @@ export default function Home() {
       {!granted && idle && order.pickup && (
         <View pointerEvents="none" style={[styles.hint, { top: insets.top + 74, backgroundColor: c.surface }, shadow(c)]}>
           <Ionicons name="navigate-circle-outline" size={18} color={c.muted} />
-          <Text style={{ color: c.muted, fontSize: 12.5, fontWeight: '600' }}>Xaritani surib olish nuqtasini tanlang</Text>
+          <Text style={{ color: c.muted, fontSize: 12.5, fontFamily: F.semi }}>{tr('Xaritani surib olish nuqtasini tanlang')}</Text>
         </View>
       )}
     </View>
@@ -193,14 +223,13 @@ export default function Home() {
 const styles = StyleSheet.create({
   top: { position: 'absolute', left: 0, right: 0, top: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 46, paddingLeft: 6, paddingRight: 16, borderRadius: 23 },
-  brandY: { width: 34, height: 34, borderRadius: 17, textAlign: 'center', lineHeight: 34, fontWeight: '900', fontSize: 17, overflow: 'hidden' },
-  brandText: { fontWeight: '900', fontSize: 17, letterSpacing: -0.3 },
+  brandText: { fontFamily: F.brand, fontSize: 15, letterSpacing: 0.4 },
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingHorizontal: 16, paddingTop: 8 },
   grab: { width: 42, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 12 },
   // paddingBottom pin uchini (tayoqcha oxirini) aynan xarita markaziga to'g'rilaydi
   pinWrap: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', paddingBottom: 76 },
   pinLabel: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, marginBottom: 4 },
-  pinLabelText: { color: '#fff', fontWeight: '800', fontSize: 12.5 },
+  pinLabelText: { color: '#fff', fontFamily: F.heavy, fontSize: 12.5 },
   pinHead: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#FFC800', borderWidth: 4, alignItems: 'center', justifyContent: 'center' },
   pinDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#0F1E3D' },
   pinStick: { width: 4, height: 18, borderRadius: 2, backgroundColor: '#0F1E3D' },

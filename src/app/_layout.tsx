@@ -1,31 +1,55 @@
+import { Onest_500Medium } from '@expo-google-fonts/onest/500Medium';
+import { Onest_600SemiBold } from '@expo-google-fonts/onest/600SemiBold';
+import { Onest_700Bold } from '@expo-google-fonts/onest/700Bold';
+import { Caveat_700Bold } from '@expo-google-fonts/caveat/700Bold';
+import { ShareTechMono_400Regular } from '@expo-google-fonts/share-tech-mono/400Regular';
+import { Onest_800ExtraBold } from '@expo-google-fonts/onest/800ExtraBold';
+import { Unbounded_700Bold } from '@expo-google-fonts/unbounded/700Bold';
+import { useFonts } from 'expo-font';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import { ToastHost } from '@/components/toast';
+import { dirProps } from '@/lib/i18n';
+import { PlatformProvider } from '@/lib/platform';
 import { StoreProvider, useStore } from '@/lib/store';
 
 SplashScreen.preventAutoHideAsync();
 
+// Vebda brauzerning to'rtburchak fokus ramkasi va aylantirish chiziqlari (scrollbar) yashiriladi — ilova mobil ko'rinishda qoladi
+if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  const css = document.createElement('style');
+  css.textContent = 'input,textarea,[tabindex],[role=button]{outline:none!important}input,textarea{caret-color:#E0A800}html{overflow:hidden;overscroll-behavior:none}*{scrollbar-width:none;-ms-overflow-style:none}*::-webkit-scrollbar{display:none;width:0;height:0}';
+  document.head.appendChild(css);
+}
+
 function Root() {
-  const { ready, dark, colors } = useStore();
+  const { ready, dark, colors, lang } = useStore();
+  const [fontsLoaded, fontError] = useFonts({ Unbounded_700Bold, Onest_500Medium, Onest_600SemiBold, Onest_700Bold, Onest_800ExtraBold, Caveat_700Bold, ShareTechMono_400Regular });
+  // Shrift yuklanmasa ham ilova tizim shrifti bilan ochiladi
+  const loaded = ready && (fontsLoaded || !!fontError);
 
   useEffect(() => {
-    if (ready) SplashScreen.hideAsync();
-  }, [ready]);
+    if (loaded) SplashScreen.hideAsync();
+  }, [loaded]);
 
-  if (!ready) return null;
+  if (!loaded) return null;
 
   return (
     <ThemeProvider value={dark ? DarkTheme : DefaultTheme}>
       <StatusBar style={dark ? 'light' : 'dark'} />
-      <View style={{ flex: 1, backgroundColor: colors.bg }}>
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'slide_from_right' }}>
-          <Stack.Screen name="index" options={{ animation: 'fade' }} />
+      <View {...dirProps(lang)} style={{ flex: 1, backgroundColor: colors.bg }}>
+        {/* til almashganda ekranlar qayta chiziladi (barcha matnlar yangi tilda) */}
+        <Stack key={lang} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'slide_from_right' }}>
+          <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
           <Stack.Screen name="login" options={{ animation: 'fade', gestureEnabled: false }} />
+          <Stack.Screen name="taxi" options={{ animation: 'fade_from_bottom' }} />
           <Stack.Screen name="search" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="project/edit" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="market/new" options={{ animation: 'slide_from_bottom' }} />
         </Stack>
         <ToastHost />
       </View>
@@ -36,7 +60,9 @@ function Root() {
 export default function RootLayout() {
   return (
     <StoreProvider>
-      <Root />
+      <PlatformProvider>
+        <Root />
+      </PlatformProvider>
     </StoreProvider>
   );
 }
