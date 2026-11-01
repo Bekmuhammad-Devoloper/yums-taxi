@@ -109,7 +109,7 @@ export const eligible = (tariffId: string, carName: string | undefined, year: nu
   tariffChecks(tariffId, carName, year, s).every(c => c.ok);
 
 /** Yangi haydovchi uchun (hujjatlar hali tasdiqlanmagan, safar yo'q): avtomobil bo'yicha hozir mos tariflar
- *  va keyinroq — safarlar soni yetgach — mos bo'ladiganlari (sayt arizasi va admin panel) */
+ *  va keyinroq — safarlar soni yetgach — mos bo'ladiganlari (uums-web arizasi va admin panel) */
 export function carFit(car: string | undefined, year: number | undefined) {
   if (!car) return { now: [] as string[], later: [] as string[] };
   const now: string[] = [], later: string[] = [];

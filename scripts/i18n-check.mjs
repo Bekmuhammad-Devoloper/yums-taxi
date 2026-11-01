@@ -13,8 +13,8 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
 const SRC = path.join(ROOT, 'src');
 const LOCALES = path.join(SRC, 'lib/locales');
-// admin panel faqat o'zbek tilida
-const SKIP = ['site/app/admin', 'site/components/admin', 'lib/locales'].map(p => path.join(SRC, p));
+// faqat mobil ilovalarda ishlatiladigan tarjimalar tekshiriladi
+const SKIP = ['lib/locales'].map(p => path.join(SRC, p));
 
 const files = [];
 (function walk(dir) {

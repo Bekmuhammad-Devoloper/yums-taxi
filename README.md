@@ -141,11 +141,10 @@ Hozirgi holat: rus tili — Piper «Irina» ovozi (oflayn neyron model). **Uning
 
 ## Tillar
 
-Ilovalar (YUMS, YUMS Driver) va sayt 5 tilda: **o'zbek, rus, ingliz, tojik, arab**.
+Ilovalar (YUMS va YUMS Driver) 5 tilda: **o'zbek, rus, ingliz, tojik, arab**.
 
-- Birinchi ochilishda qurilma (brauzer) tili tanlanadi, mos kelmasa — o'zbekcha. Tilni Sozlamalardan (saytda — yuqori paneldagi bayroq tugmasidan) almashtirish mumkin; tanlov saqlanadi.
-- Arab tilida interfeys o'ngdan chapga: vebda darhol, telefonda ilova bir marta qayta yuklanadi (`I18nManager`).
-- Admin panel faqat o'zbek tilida — sayt boshqa tilda ochilgan bo'lsa ham.
+- Birinchi ochilishda qurilma tili tanlanadi, mos kelmasa — o'zbekcha. Tilni Sozlamalardan almashtirish mumkin; tanlov saqlanadi.
+- Arab tilida interfeys o'ngdan chapga; telefonda ilova bir marta qayta yuklanadi (`I18nManager`).
 - Haydovchi ilovasining ovozli yo'riqnomasi ham ilova tili bilan birga almashadi.
 
 Matn qo'shish:
@@ -164,26 +163,13 @@ O'zbekcha matnning o'zi kalit. Tarjimalar `src/lib/locales/*.ts` jadvallarida �
 
 > Tarjimalar dastur bilan tayyorlangan. Ishga tushirishdan oldin har bir tilni shu tilni biladigan odam, huquqiy hujjatlarni (`/legal`) esa yurist tekshirishi kerak.
 
-## YUMS sayti va admin panel
+## Landing va admin panel
 
-Bitta veb-ilova: `/` — YUMS Taxi landing sahifasi, `/admin` — taksi xizmatini boshqarish paneli.
-
-```bash
-npm run site                                                       # http://localhost:8083 (demo rejim)
-ADMIN_PASSWORD=parol npm run dispatch                              # jonli ma'lumotlar uchun server
-EXPO_PUBLIC_DISPATCH_URL=ws://localhost:8787 npm run site          # sayt + admin server bilan
-APP_VARIANT=site npx expo export --platform web                    # statik fayllar (dist/) — hostingga
-```
-
-- **Landing**: narx kalkulyatori (admin narxlari va yuqori talab hududlari bilan), tariflar, haydovchilar uchun daromad kalkulyatori, tarif talablari va ariza, savol-javoblar, jonli ko'rsatkichlar. 5 tilda.
-- **Admin panel**: Boshqaruv (jonli xarita, ko'rsatkichlar, maslahatlar), Buyurtmalar, Haydovchilar (bloklash, profil), Hujjatlar (tekshirish, avtomatik tasdiqlash), Narx va hududlar, Arizalar (saytdan kelgan haydovchi arizalari), Sayt matni (5 til uchun, ko'rinish va tekshiruv bilan), Jurnal. Tezkor buyruqlar oynasi — `Ctrl K`.
-- Server manzili berilmasa sayt va panel **demo rejimida** ishlaydi: panelga «Demo rejimda kirish» tugmasi bilan kiriladi, ma'lumotlar brauzerda saqlanadi va simulyatsiya qilinadi.
-- Ilova do'konlari havolalari: `EXPO_PUBLIC_APPSTORE_URL`, `EXPO_PUBLIC_PLAY_URL`, `EXPO_PUBLIC_WEBAPP_URL` (berilmasa tugmalar «tez orada»). Server manzilini `EXPO_PUBLIC_API_URL` bilan alohida berish ham mumkin.
-- Statik hostingda barcha yo'llar `index.html` ga yo'naltirilishi kerak (SPA).
+Landing va admin panel UUMS papkasidagi alohida `uums-web` reposida saqlanadi. Landing `/`, admin panel `/admin` manzilida. Web ilova alohida demo rejimida ishlaydi; jonli taxi ma'lumotlari uchun quyidagi legacy dispetcher serveridan foydalanadi.
 
 ## Server
 
-`server/dispatch.mjs` — bitta portda WebSocket (ilovalar va admin panel) va REST API:
+`server/dispatch.mjs` — mobil ilovalar va `uums-web` uchun legacy WebSocket/REST xizmat:
 
 | So'rov | Vazifasi |
 | --- | --- |
@@ -218,10 +204,6 @@ src/
     platform-data.ts  turlar, sohalar, mamlakatlar, namuna ma'lumotlar
     i18n.ts           til: tr(), tanlangan til, yo'nalish (arabcha — o'ngdan chapga), sana/son yordamchilari
     locales/          tarjima jadvallari: common (umumiy va taksi), driver, platform
-  site/
-    app/          sayt marshrutlari: index (landing), admin/ (boshqaruv paneli)
-    components/   landing bo'limlari (kalkulyator, haydovchi arizasi) va admin UI
-    lib/          sayt matni (content.ts), sayt lug'ati (i18n.ts), server bilan aloqa, demo simulyatsiya
 server/
   dispatch.mjs    dispetcher serveri (Node + ws): buyurtmalarni haydovchilarga taqsimlash, REST API, admin kanali
   registry.mjs    haydovchilar, hujjatlar, arizalar, narxlar, sayt matni, jurnal

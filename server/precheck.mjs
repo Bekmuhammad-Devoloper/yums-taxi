@@ -1,6 +1,6 @@
 // Hujjatni avtomatik tekshirish: raqam formati, sanalar, muddat, toifa, rasmlar, boshqa haydovchida takrorlanishi.
 // Natija: ball (0–100), belgilar va qaror — approve (hammasi joyida), manual (moderator ko'rsin), reject (aniq xato).
-// Admin panel ham xuddi shu qoidalarni ko'rsatadi: src/site/lib/precheck.ts — ikkalasini birga o'zgartiring.
+// uums-web admin panel ham shu qoidalarni ko'rsatadi (uums-web/src/site/lib/precheck.ts); ikkala nusxani birga yangilang.
 
 const PATTERN = {
   license: /^[A-Z]{2} \d{7}$/,

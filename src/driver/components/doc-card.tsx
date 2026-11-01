@@ -1,5 +1,5 @@
 // Hujjat ko'rinishi: haqiqiy hujjat dizayniga o'xshash karta (namuna) yoki yuklangan rasm, va holat belgisi.
-// Haydovchi ilovasi ham, admin panel ham ishlatadi — shuning uchun haydovchi holatiga bog'lanmagan.
+// Haydovchi ilovasi va alohida uums-web admin paneli bir xil hujjat kartasidan foydalanadi.
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
