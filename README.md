@@ -33,6 +33,8 @@ React Native + Expo (SDK 58), Expo Router, TypeScript.
 
 ## Ishga tushirish
 
+Server manzili `EXPO_PUBLIC_API_URL` orqali o'zgaradi (standart: `https://api.yums.uz/api/v1`).
+
 ```bash
 npm install
 npx expo start

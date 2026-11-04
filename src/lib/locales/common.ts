@@ -380,6 +380,15 @@ const common: Record<string, Row> = {
   "Ismingizni kiriting": ["Введите имя", "Enter your name", "Номи худро ворид кунед", "أدخل اسمك"],
   "Telefon raqamini to'g'ri kiriting": ["Введите правильный номер телефона", "Enter a valid phone number", "Рақами телефонро дуруст ворид кунед", "أدخل رقم هاتف صحيحًا"],
   "So'rov noto'g'ri": ["Некорректный запрос", "Invalid request", "Дархости нодуруст", "طلب غير صالح"],
+  "To'ldirish": ["Пополнить", "Top up", "Пур кардан", "شحن"],
+  "Uzcard · Humo": ["Uzcard · Humo", "Uzcard · Humo", "Uzcard · Humo", "Uzcard · Humo"],
+  "SMS orqali kelgan kodni kiriting": ["Введите код из SMS", "Enter the code from the SMS", "Рамзи SMS-ро ворид кунед", "أدخل الرمز من الرسالة النصية"],
+  "Balans to'ldirildi": ["Баланс пополнен", "Balance topped up", "Баланс пур карда шуд", "تم شحن الرصيد"],
+  "To'lov amalga oshmadi": ["Платёж не прошёл", "The payment did not go through", "Пардохт анҷом наёфт", "لم تتم عملية الدفع"],
+  "Balansni to'ldirish": ["Пополнение баланса", "Top up balance", "Пур кардани баланс", "شحن الرصيد"],
+  "Summa (so'm)": ["Сумма (сум)", "Amount (so'm)", "Маблағ (сӯм)", "المبلغ (سوم)"],
+  "Click'da to'lovni yakunlang, natija shu yerda chiqadi": ["Завершите оплату в Click, результат появится здесь", "Finish paying in Click, the result will show here", "Пардохтро дар Click анҷом диҳед, натиҷа дар ин ҷо пайдо мешавад", "أكمل الدفع في Click وستظهر النتيجة هنا"],
+  "Click orqali to'lash": ["Оплатить через Click", "Pay with Click", "Пардохт тавассути Click", "الدفع عبر Click"],
 };
 
 export default common;

@@ -35,7 +35,7 @@ export type Driver = {
 
 export type PaymentId = 'cash' | 'card' | 'balance';
 
-export type Card = { id: string; brand: 'Uzcard' | 'Humo' | 'Visa'; last4: string };
+export type Card = { id: string; brand: 'Uzcard' | 'Humo' | 'Visa'; last4: string; status: 'PENDING' | 'ACTIVE' };
 
 export type Ride = {
   id: string;

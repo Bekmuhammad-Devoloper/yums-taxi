@@ -1,25 +1,47 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
+import { TopupSheet } from '@/components/topup-sheet';
 import { toast } from '@/components/toast';
 import { Button, Card, Row, Screen, SectionTitle, Txt, type IconName } from '@/components/ui';
+import { errorText } from '@/lib/api';
 import type { Card as PayCard, PaymentId } from '@/lib/data';
 import { som } from '@/lib/geo';
+import { tr } from '@/lib/i18n';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
-import { tr } from '@/lib/i18n';
+import { addCard, confirmCard, removeCard } from '@/lib/wallet-api';
 
-const brandOf = (n: string): PayCard['brand'] => (n.startsWith('9860') ? 'Humo' : n.startsWith('4') ? 'Visa' : 'Uzcard');
 const fmtCard = (d: string) => d.replace(/(\d{4})(?=\d)/g, '$1 ');
+const brandHint = (n: string): PayCard['brand'] | null => (n.startsWith('9860') ? 'Humo' : n.startsWith('4') ? 'Visa' : n.length >= 4 ? 'Uzcard' : null);
 
 export default function Payment() {
   const s = useStore();
-  const { colors: c } = s;
+  const { colors: c, refreshWallet } = s;
   const [adding, setAdding] = useState(false);
+  const [topup, setTopup] = useState(false);
   const [num, setNum] = useState('');
   const [exp, setExp] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [pending, setPending] = useState<PayCard | null>(null);
+  const [smsCode, setSmsCode] = useState('');
   const [code, setCode] = useState('');
+
+  const reload = useCallback(() => {
+    refreshWallet().catch(error => toast(errorText(error), 'alert-circle'));
+  }, [refreshWallet]);
+  useEffect(reload, [reload]);
+
+  const remove = async (cardId: string) => {
+    try {
+      await removeCard(cardId);
+      toast(tr("Karta o'chirildi"), 'trash');
+      reload();
+    } catch (error) {
+      toast(errorText(error), 'alert-circle');
+    }
+  };
 
   const option = ({ id, cardId, icon, title, sub }: { id: PaymentId; cardId?: string; icon: IconName; title: string; sub?: string }) => {
     const on = s.payment === id && (id !== 'card' || s.cardId === cardId);
@@ -31,7 +53,7 @@ export default function Payment() {
           {sub ? <Txt v="small" muted>{sub}</Txt> : null}
         </View>
         {id === 'card' && cardId && (
-          <Pressable hitSlop={8} onPress={() => { s.removeCard(cardId); toast(tr("Karta o'chirildi"), 'trash'); }} style={{ padding: 4 }}>
+          <Pressable hitSlop={8} onPress={() => remove(cardId)} style={{ padding: 4 }}>
             <Ionicons name="trash-outline" size={18} color={c.faint} />
           </Pressable>
         )}
@@ -40,22 +62,56 @@ export default function Payment() {
     );
   };
 
-  const addCard = () => {
-    s.addCard({ id: 'c' + Date.now(), brand: brandOf(num), last4: num.slice(-4) });
-    toast(tr("Karta qo'shildi"), 'card');
-    setAdding(false); setNum(''); setExp('');
+  const submitCard = async () => {
+    setBusy(true);
+    try {
+      setPending(await addCard(num, exp));
+      setAdding(false); setNum(''); setExp(''); setSmsCode('');
+    } catch (error) {
+      toast(errorText(error), 'alert-circle');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submitCode = async () => {
+    if (!pending) return;
+    setBusy(true);
+    try {
+      await confirmCard(pending.id, smsCode);
+      toast(tr("Karta qo'shildi"), 'card');
+      setPending(null);
+      reload();
+    } catch (error) {
+      toast(errorText(error), 'alert-circle');
+      setSmsCode('');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const validExp = /^(0[1-9]|1[0-2])\/\d{2}$/.test(exp);
+  const activeCards = s.cards.filter(card => card.status === 'ACTIVE');
+  const waiting = pending ?? s.cards.find(card => card.status === 'PENDING') ?? null;
 
   return (
     <Screen title={tr("To'lov usullari")}>
+      <Card style={{ gap: 12 }}>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <View>
+            <Txt v="small" muted>{tr('YUMS balans')}</Txt>
+            <Txt v="h1">{som(s.balance)}</Txt>
+          </View>
+          <Button title={tr("To'ldirish")} icon="add" small onPress={() => setTopup(true)} />
+        </Row>
+      </Card>
+
       <SectionTitle>{tr("To'lov usuli")}</SectionTitle>
       <Card style={{ padding: 6 }}>
         {option({ id: 'cash', icon: 'cash-outline', title: tr('Naqd pul'), sub: tr("Haydovchiga to'lash") })}
         {option({ id: 'balance', icon: 'wallet-outline', title: tr('YUMS balans'), sub: som(s.balance) })}
-        {s.cards.map(card => option({ id: 'card', cardId: card.id, icon: 'card-outline', title: `${card.brand} •••• ${card.last4}`, sub: tr('Avtomatik yechiladi') }))}
-        {!adding && (
+        {activeCards.map(card => option({ id: 'card', cardId: card.id, icon: 'card-outline', title: `${card.brand} •••• ${card.last4}`, sub: tr('Avtomatik yechiladi') }))}
+        {!adding && !waiting && (
           <Pressable onPress={() => setAdding(true)} style={[styles.opt]}>
             <View style={[styles.optIcon, { backgroundColor: c.brand }]}><Ionicons name="add" size={24} color={c.brandText} /></View>
             <Txt v="h3">{tr("Karta qo'shish")}</Txt>
@@ -67,7 +123,7 @@ export default function Payment() {
         <Card style={{ gap: 12 }}>
           <Row style={{ justifyContent: 'space-between' }}>
             <Txt v="h3">{tr('Yangi karta')}</Txt>
-            <Txt v="small" muted>{num.length >= 4 ? brandOf(num) : tr('Uzcard · Humo · Visa')}</Txt>
+            <Txt v="small" muted>{brandHint(num) ?? tr('Uzcard · Humo')}</Txt>
           </Row>
           <TextInput value={fmtCard(num)} onChangeText={v => setNum(v.replace(/\D/g, '').slice(0, 16))} placeholder="8600 0000 0000 0000" placeholderTextColor={c.faint} keyboardType="number-pad" style={[styles.input, { backgroundColor: c.surface2, color: c.text }]} />
           <TextInput
@@ -81,7 +137,19 @@ export default function Payment() {
           <Txt v="tiny" faint>{tr("Karta ma'lumotlari to'lov provayderida shifrlangan holda saqlanadi. Tasdiqlash uchun SMS-kod yuboriladi.")}</Txt>
           <Row gap={8}>
             <Button title={tr('Bekor')} kind="ghost" small style={{ flex: 1 }} onPress={() => setAdding(false)} />
-            <Button title={tr("Qo'shish")} small style={{ flex: 1.5 }} disabled={num.length !== 16 || !validExp} onPress={addCard} />
+            <Button title={tr("Qo'shish")} small style={{ flex: 1.5 }} loading={busy} disabled={num.length !== 16 || !validExp} onPress={submitCard} />
+          </Row>
+        </Card>
+      )}
+
+      {waiting && (
+        <Card style={{ gap: 12 }}>
+          <Txt v="h3">{`${waiting.brand} •••• ${waiting.last4}`}</Txt>
+          <Txt v="small" muted>{tr('SMS orqali kelgan kodni kiriting')}</Txt>
+          <TextInput value={smsCode} onChangeText={v => setSmsCode(v.replace(/\D/g, '').slice(0, 8))} placeholder="123456" placeholderTextColor={c.faint} keyboardType="number-pad" textContentType="oneTimeCode" autoComplete="one-time-code" style={[styles.input, { backgroundColor: c.surface2, color: c.text }]} />
+          <Row gap={8}>
+            <Button title={tr('Bekor')} kind="ghost" small style={{ flex: 1 }} onPress={() => { setPending(null); remove(waiting.id); }} />
+            <Button title={tr('Tasdiqlash')} small style={{ flex: 1.5 }} loading={busy} disabled={smsCode.length < 4} onPress={submitCode} />
           </Row>
         </Card>
       )}
@@ -106,8 +174,9 @@ export default function Payment() {
             }} />
           </Row>
         )}
-        <Txt v="tiny" faint>{tr('Demo promokodlar: YUMS20, YANGI30, TOSHKENT')}</Txt>
       </Card>
+
+      <TopupSheet visible={topup} onClose={() => setTopup(false)} kind="passenger" cards={activeCards} onDone={reload} />
     </Screen>
   );
 }

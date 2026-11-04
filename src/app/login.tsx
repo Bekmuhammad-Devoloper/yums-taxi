@@ -9,6 +9,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Logo, PickerSheet, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
 import { Avatar, BrandLogo, BrandMark, DEFAULT_AVATAR, Button, Field, Flag, IconTile, Row, Txt } from '@/components/ui';
+import { requestOtp, saveProfile, verifyOtp, type OtpContact } from '@/lib/account-api';
+import { ApiError, errorText } from '@/lib/api';
 import { COUNTRIES } from '@/lib/platform-data';
 import { countryOf, usePlatform } from '@/lib/platform';
 import { checkPinfl, checkStir, companyMatches, DEMO_REGISTRY, directorMatches, lookupCompany, type LookupResult } from '@/lib/registry';
@@ -17,9 +19,9 @@ import { F } from '@/lib/theme';
 import { tr, tx, flipRTL } from '@/lib/i18n';
 
 const GLOW = require('@/assets/images/glow.png');
-const CODE_LEN = 5;
-const MAX_ATTEMPTS = 3;
-const DEMO_PHONE = '900000000';
+// Server `otpLength` va urinishlar soni bilan bir xil
+const CODE_LEN = 4;
+const MAX_ATTEMPTS = 5;
 
 const PILLS: { icon: 'rocket-outline' | 'trending-up-outline' | 'car-sport-outline'; label: string }[] = [
   { icon: 'rocket-outline', label: tx('Loyihalar') },
@@ -59,8 +61,6 @@ const maskEmail = (e: string) => {
   return `${n.slice(0, 2)}${'•'.repeat(Math.max(1, n.length - 2))}@${d ?? ''}`;
 };
 
-/** Demo SMS kodi (haqiqiy tizimda server yuboradi) */
-const newCode = () => String(Math.floor(10 ** (CODE_LEN - 1) + Math.random() * 9 * 10 ** (CODE_LEN - 1)));
 
 type Step = 'accounts' | 'contact' | 'code' | 'profile';
 
@@ -70,7 +70,7 @@ type Step = 'accounts' | 'contact' | 'code' | 'profile';
  * Qurilmada avval kirilgan hisoblar «Hisobni tanlang» ro'yxatida chiqadi.
  */
 export default function Login() {
-  const { colors: c, login, signIn, findAccount, savedAccounts, forgetAccount } = useStore();
+  const { colors: c, signIn, savedAccounts, forgetAccount } = useStore();
   const { logEvent } = usePlatform();
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>(() => (savedAccounts.length ? 'accounts' : 'contact'));
@@ -79,8 +79,10 @@ export default function Login() {
   const [digits, setDigits] = useState('');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
-  const [sent, setSent] = useState('');
-  const [attempts, setAttempts] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [attemptsLeft, setAttemptsLeft] = useState(MAX_ATTEMPTS);
+  const contactRef = useRef<OtpContact>({ phone: '' });
+  const newUserRef = useRef<User | null>(null);
   const [codeError, setCodeError] = useState<'wrong' | 'locked' | null>(null);
   const [kind, setKind] = useState<AccountKind>('person');
   const [name, setName] = useState('');
@@ -119,52 +121,68 @@ export default function Login() {
   const emailOk = /^\S+@\S+\.\S{2,}$/.test(email.trim());
   const contactOk = method === 'phone' ? phoneOk : emailOk;
   const target = method === 'phone' ? `${cc.code} ${formatPhone(digits, cc.code)}` : email.trim();
-  const account = findAccount(method === 'phone' ? { phone: target } : { email: target });
+  const typedContact = (): OtpContact => (method === 'phone' ? { phone: target.replace(/\s/g, '') } : { email: target });
 
-  // Demo rejim: haqiqiy SMS o'rniga kod ekranda va bildirishnomada ko'rsatiladi
-  const sendCode = (m: 'phone' | 'email' = method) => {
-    const next = newCode();
-    setSent(next); setCode(''); setAttempts(0); setCodeError(null); setTimer(59);
-    setStep('code');
-    toast(m === 'phone' ? tr('SMS · YUMS: tasdiqlash kodi {code}', { code: next }) : tr('Email · YUMS: tasdiqlash kodi {code}', { code: next }), m === 'phone' ? 'chatbox-ellipses' : 'mail');
-    setTimeout(() => codeRef.current?.focus(), 300);
+  const sendCode = async (contact: OtpContact = typedContact()) => {
+    contactRef.current = contact;
+    setBusy(true);
+    try {
+      const { resendInSec } = await requestOtp(contact);
+      setCode(''); setAttemptsLeft(MAX_ATTEMPTS); setCodeError(null); setTimer(resendInSec);
+      setStep('code');
+      setTimeout(() => codeRef.current?.focus(), 300);
+    } catch (error) {
+      toast(errorText(error), 'alert-circle');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const chooseAccount = (a: User) => {
     haptic.tap();
     const parsed = a.phone ? parsePhone(a.phone) : null;
-    if (parsed) { setMethod('phone'); setCc(parsed.cc); setDigits(parsed.digits); sendCode('phone'); return; }
-    if (a.email) { setMethod('email'); setEmail(a.email); sendCode('email'); }
+    if (parsed) { setMethod('phone'); setCc(parsed.cc); setDigits(parsed.digits); sendCode({ phone: a.phone }); return; }
+    if (a.email) { setMethod('email'); setEmail(a.email); sendCode({ email: a.email }); }
   };
-
-  const demoLogin = () => { haptic.tap(); setMethod('phone'); setCc(CODES[0]); setDigits(DEMO_PHONE); sendCode('phone'); };
 
   const doShake = () => Animated.sequence(
     [10, -10, 7, -7, 3, 0].map(v => Animated.timing(shake, { toValue: v, duration: 45, useNativeDriver: true })),
   ).start();
 
   const onCode = (v: string) => {
-    if (codeError === 'locked') return;
+    if (codeError === 'locked' || busy) return;
     const d = v.replace(/\D/g, '').slice(0, CODE_LEN);
     setCode(d);
     if (codeError) setCodeError(null);
-    if (d.length < CODE_LEN) return;
-    if (d === sent) { haptic.success(); setTimeout(verified, 250); return; }
-    const n = attempts + 1;
-    setAttempts(n);
-    setCodeError(n >= MAX_ATTEMPTS ? 'locked' : 'wrong');
+    if (d.length === CODE_LEN) checkCode(d);
+  };
+
+  // Kod to'g'ri: hisob bo'lsa — darhol ichkariga, yangi hisob bo'lsa — avval profil
+  const checkCode = async (d: string) => {
+    setBusy(true);
+    try {
+      const { user, isNewUser } = await verifyOtp(contactRef.current, d);
+      haptic.success();
+      if (isNewUser) { newUserRef.current = user; setStep('profile'); return; }
+      signIn(user);
+      logEvent(method === 'phone' ? tr('Tizimga kirish (SMS kod)') : tr('Tizimga kirish (email kod)'));
+      toast(tr('Xush kelibsiz, {name}!', { name: user.name.split(' ')[0] }), 'hand-right');
+      router.replace('/');
+    } catch (error) {
+      codeRejected(error);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const codeRejected = (error: unknown) => {
     haptic.error();
     doShake();
     setTimeout(() => setCode(''), 500);
-  };
-
-  // Kod to'g'ri: hisob bo'lsa — darhol ichkariga, bo'lmasa — yangi hisob uchun profil
-  const verified = () => {
-    if (!account) { setStep('profile'); return; }
-    signIn(account);
-    logEvent(method === 'phone' ? tr('Tizimga kirish (SMS kod)') : tr('Tizimga kirish (email kod)'));
-    toast(tr('Xush kelibsiz, {name}!', { name: account.name.split(' ')[0] }), 'hand-right');
-    router.replace('/');
+    if (!(error instanceof ApiError) || error.status === 0) { toast(errorText(error), 'alert-circle'); return; }
+    const left = error.code === 'OTP_INVALID' ? Number(error.details?.attemptsLeft ?? 0) : 0;
+    setAttemptsLeft(left);
+    setCodeError(left > 0 ? 'wrong' : 'locked');
   };
 
   // STIR / JShShIR: O'zbekiston uchun majburiy; kompaniya reyestr bilan solishtiriladi
@@ -188,15 +206,21 @@ export default function Login() {
     lookupCompany(d).then(result => { if (req === lookupReq.current) setLookup({ state: 'done', result }); });
   };
 
-  const finish = () => {
-    login({
-      name: name.trim(), kind, company: kind === 'company' ? company.trim() : undefined, country,
-      phone: method === 'phone' ? target : '', email: method === 'email' ? target : undefined,
-      pinfl: local ? pinfl : undefined, stir: kind === 'company' && local ? stir : undefined,
-      registryVerified: kind === 'company' && local && active && nameOk && dirOk,
-    });
-    logEvent(method === 'phone' ? tr("Ro'yxatdan o'tish (SMS kod)") : tr("Ro'yxatdan o'tish (email kod)"));
-    router.replace('/');
+  const finish = async () => {
+    setBusy(true);
+    try {
+      const user = await saveProfile({
+        fullName: name.trim(), kind, company: kind === 'company' ? company.trim() : undefined, country,
+        pinfl: local && pinfl ? pinfl : undefined, stir: kind === 'company' && local ? stir : undefined,
+      });
+      signIn(user);
+      logEvent(method === 'phone' ? tr("Ro'yxatdan o'tish (SMS kod)") : tr("Ro'yxatdan o'tish (email kod)"));
+      router.replace('/');
+    } catch (error) {
+      toast(errorText(error), 'alert-circle');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const back = () => {
@@ -323,7 +347,7 @@ export default function Login() {
                   inputStyle={{ fontSize: 18, minHeight: 58 }}
                 />
               )}
-              <Button title={tr('Davom etish')} disabled={!contactOk} onPress={() => sendCode()} />
+              <Button title={tr('Davom etish')} disabled={!contactOk} loading={busy} onPress={() => sendCode()} />
 
               <View style={styles.or}>
                 <View style={[styles.orLine, { backgroundColor: c.line }]} />
@@ -343,10 +367,6 @@ export default function Login() {
                 <Txt v="tiny" color={c.accent} onPress={() => router.push({ pathname: '/legal', params: { doc: 'privacy' } })}>{tr('Maxfiylik siyosati')}</Txt>{tr('ga rozilik bildirasiz')}
               </Txt>
 
-              <Pressable onPress={demoLogin} hitSlop={6} style={styles.demo}>
-                <Ionicons name="flask-outline" size={15} color={c.faint} />
-                <Txt v="small" faint>{tr('Demo hisob bilan kirish')}</Txt>
-              </Pressable>
             </>
           )}
 
@@ -406,7 +426,7 @@ export default function Login() {
                   <Row gap={6} style={{ justifyContent: 'center' }}>
                     <Ionicons name="alert-circle" size={16} color={c.danger} />
                     <Txt v="small" color={c.danger} style={{ fontFamily: F.semi }}>
-                      {locked ? tr('Urinishlar tugadi — yangi kod oling') : tr("Kod noto'g'ri. Yana {MAX_ATTEMPTS} ta urinish qoldi", { MAX_ATTEMPTS: MAX_ATTEMPTS - attempts })}
+                      {locked ? tr('Urinishlar tugadi — yangi kod oling') : tr("Kod noto'g'ri. Yana {MAX_ATTEMPTS} ta urinish qoldi", { MAX_ATTEMPTS: attemptsLeft })}
                     </Txt>
                   </Row>
                 ) : null}
@@ -419,20 +439,6 @@ export default function Login() {
                     <Ionicons name="refresh" size={16} color={c.accent} />
                     <Txt v="small" color={c.accent} style={{ fontFamily: F.bold }}>{tr('Kodni qayta yuborish')}</Txt>
                   </Pressable>
-                )}
-              </View>
-
-              <View style={[styles.demoPill, { backgroundColor: c.surface2 }]}>
-                <Ionicons name="flask-outline" size={15} color={c.muted} />
-                <Txt v="small" muted>{tr('Demo kod')}</Txt>
-                <Txt v="small" style={{ fontFamily: F.bold, letterSpacing: 1.5, fontVariant: ['tabular-nums'] }} testID="demo-code">{sent}</Txt>
-                {!locked && (
-                  <>
-                    <View style={[styles.demoDivider, { backgroundColor: c.line }]} />
-                    <Pressable onPress={() => onCode(sent)} hitSlop={8}>
-                      <Txt v="small" color={c.accent} style={{ fontFamily: F.bold }}>{tr("Qo'yish")}</Txt>
-                    </Pressable>
-                  </>
                 )}
               </View>
 
@@ -569,7 +575,7 @@ export default function Login() {
                   <Txt v="small" muted>{tr("Birinchi loyiha joylashtirish bepul + YUMS Taxi balansiga 25 000 so'm")}</Txt>
                 </View>
               </View>
-              <Button title={tr('Hisob yaratish')} icon="arrow-forward" disabled={!profileOk} onPress={finish} />
+              <Button title={tr('Hisob yaratish')} icon="arrow-forward" disabled={!profileOk} loading={busy} onPress={finish} />
             </>
           )}
         </View>
@@ -624,7 +630,6 @@ const styles = StyleSheet.create({
   orLine: { flex: 1, height: StyleSheet.hairlineWidth },
   alt: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, height: 52, borderRadius: 16, borderWidth: 1 },
   legal: { textAlign: 'center', lineHeight: 16, paddingHorizontal: 8 },
-  demo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, alignSelf: 'center' },
   // kod raqamlari har doim chapdan o'ngga (arab tilida ham)
   otpRow: { flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 4, direction: 'ltr' },
   otp: { flex: 1, maxWidth: 64, height: 64, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
