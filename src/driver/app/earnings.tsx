@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { toast } from '@/components/toast';
+import { TopupSheet } from '@/components/topup-sheet';
 import { Button, Card, Chip, Divider, EmptyState, Row, Screen, Segmented, Sheet, Txt } from '@/components/ui';
 import { CARD_ART, CardBg, useCardInk } from '@/driver/components/card-bg';
 import { feeOf, useDriver, type Earning } from '@/driver/lib/driver-store';
@@ -18,12 +19,13 @@ type Period = 'today' | 'week' | 'month';
 const DAY = 86400000;
 
 export default function Earnings() {
-  const { colors: c } = useStore();
+  const { colors: c, cards } = useStore();
   const d = useDriver();
   const ink = useCardInk();
   const { earnings } = d;
   const [period, setPeriod] = useState<Period>('today');
   const [sheet, setSheet] = useState(false);
+  const [topup, setTopup] = useState(false);
   const [detail, setDetail] = useState<Earning | null>(null);
   const [now] = useState(() => Date.now());
 
@@ -57,13 +59,17 @@ export default function Earnings() {
     <Screen title={tr('Daromad')} subtitle={tr('{n} ta safar · {km} km', { n: list.length, km: km.toFixed(1) })}>
       <View style={[styles.balance, { borderColor: c.line }]}>
         <CardBg art={CARD_ART.balance} />
-        <View style={{ flex: 1 }}>
+        <View style={{ width: '100%' }}>
           <Txt v="small" color={ink.sub}>{tr('Balans')}</Txt>
           <Text style={[styles.balanceValue, { color: d.balance < 0 ? ink.danger : ink.text }]}>{som(d.balance)}</Text>
-          <Txt v="tiny" color={ink.faint}>{d.balance < 0 ? tr("Naqd safarlar komissiyasi — balansni to'ldiring") : tr('Kartadagi safarlar va choy puli')}</Txt>
+          <Txt v="tiny" color={ink.faint}>{tr("Buyurtma olish uchun {sum} dan ko'p bo'lishi kerak", { sum: som(d.minBalance) })}</Txt>
         </View>
+        <Pressable onPress={() => setTopup(true)} accessibilityLabel={tr("To'ldirish")} style={[styles.withdraw, { flex: 1, justifyContent: 'center', backgroundColor: ink.btn, boxShadow: ink.btnShadow }]}>
+          <Ionicons name="add-circle" size={18} color={ink.btnText} />
+          <Txt v="small" color={ink.btnText} style={{ fontFamily: F.heavy }}>{tr("To'ldirish")}</Txt>
+        </Pressable>
         <Pressable onPress={() => setSheet(true)} disabled={d.balance <= 0} accessibilityLabel={tr('Pul yechish')}
-          style={[styles.withdraw, d.balance > 0 ? { backgroundColor: ink.btn, boxShadow: ink.btnShadow } : { backgroundColor: ink.btnOff }]}>
+          style={[styles.withdraw, { flex: 1, justifyContent: 'center' }, d.balance > 0 ? { backgroundColor: ink.btn, boxShadow: ink.btnShadow } : { backgroundColor: ink.btnOff }]}>
           <Ionicons name="arrow-up-circle" size={18} color={d.balance > 0 ? ink.btnText : ink.btnOffText} />
           <Txt v="small" color={d.balance > 0 ? ink.btnText : ink.btnOffText} style={{ fontFamily: F.heavy }}>{tr('Pul yechish')}</Txt>
         </Pressable>
@@ -109,7 +115,7 @@ export default function Earnings() {
               {i > 0 && <Divider />}
               <Row>
                 <View style={[styles.icon, { backgroundColor: c.surface2 }]}><Ionicons name="arrow-up" size={18} color={c.muted} /></View>
-                <View style={{ flex: 1 }}><Txt v="small" style={{ fontFamily: F.bold }}>{tr('Uzcard •• 4521')}</Txt><Txt v="tiny" muted>{tr('{at} · xizmat haqi {fee}', { at: fmtDate(p.at), fee: som(p.fee) })}</Txt></View>
+                <View style={{ flex: 1 }}><Txt v="small" style={{ fontFamily: F.bold }}>{tr("So'rov yuborilgan")}</Txt><Txt v="tiny" muted>{fmtDate(p.at)}</Txt></View>
                 <Txt v="small" style={{ fontFamily: F.heavy }}>−{som(p.amount)}</Txt>
               </Row>
             </View>
@@ -127,34 +133,37 @@ export default function Earnings() {
       )}
 
       <WithdrawSheet visible={sheet} onClose={() => setSheet(false)} />
+      <TopupSheet visible={topup} onClose={() => setTopup(false)} kind="driver" cards={cards.filter(card => card.status === 'ACTIVE')} onDone={() => { d.refreshWallet().catch(() => {}); }} />
       <TripSheet e={detail} onClose={() => setDetail(null)} />
     </Screen>
   );
 }
 
 function WithdrawSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { colors: c } = useStore();
   const d = useDriver();
   const [part, setPart] = useState<0.5 | 1>(1);
+  const [busy, setBusy] = useState(false);
   const amount = Math.max(0, Math.floor((d.balance * part) / 1000) * 1000);
-  const fee = Math.max(1000, Math.round(amount * 0.01));
+
+  const submit = async () => {
+    setBusy(true);
+    const sent = await d.withdraw(amount);
+    setBusy(false);
+    if (!sent) return;
+    onClose();
+    toast(tr("{sum} uchun so'rov yuborildi", { sum: som(amount) }), 'checkmark-circle');
+  };
+
   return (
     <Sheet visible={visible} onClose={onClose} title={tr('Pul yechish')}
-      footer={<Button title={tr('{sum} yechish', { sum: som(Math.max(0, amount - fee)) })} icon="arrow-up-circle" disabled={amount <= fee} style={{ marginTop: 12 }}
-        onPress={() => { const p = d.withdraw(amount); onClose(); if (p) toast(tr("{sum} kartaga o'tkazildi", { sum: som(amount - p.fee) }), 'checkmark-circle'); }} />}>
+      footer={<Button title={tr('{sum} yechish', { sum: som(amount) })} icon="arrow-up-circle" loading={busy} disabled={amount <= 0} style={{ marginTop: 12 }} onPress={submit} />}>
       <Txt v="small" muted>{tr('Mavjud: {balance}', { balance: som(d.balance) })}</Txt>
       <Row gap={8}>
         <Chip label={tr('Hammasi')} active={part === 1} onPress={() => setPart(1)} />
         <Chip label={tr('Yarmi')} active={part === 0.5} onPress={() => setPart(0.5)} />
       </Row>
-      <View style={[styles.card, { backgroundColor: c.surface2 }]}>
-        <Ionicons name="card" size={22} color={c.accent} />
-        <View style={{ flex: 1 }}><Txt v="h3">{tr('Uzcard •• 4521')}</Txt><Txt v="tiny" muted>{tr('Darhol · 1–2 daqiqada')}</Txt></View>
-        <Ionicons name="checkmark-circle" size={20} color={GREEN} />
-      </View>
-      <Line label={tr('Summa')} value={som(amount)} />
-      <Line label={tr("Xizmat haqi (1%, kamida 1 000 so'm)")} value={`−${som(fee)}`} />
-      <Line label={tr('Kartaga tushadi')} value={som(Math.max(0, amount - fee))} bold />
+      <Txt v="small" muted>{tr("Moliya bo'limi so'rovni ko'rib chiqib, pulni kartangizga o'tkazadi")}</Txt>
+      <Line label={tr('Summa')} value={som(amount)} bold />
     </Sheet>
   );
 }
@@ -229,7 +238,7 @@ function TripRow({ e, onPress }: { e: Earning; onPress: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  balance: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: 24, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
+  balance: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12, padding: 18, borderRadius: 24, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
   balanceValue: { fontFamily: F.heavy, fontSize: 30, letterSpacing: -1, marginVertical: 2 },
   withdraw: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 14 },
   big: { fontFamily: F.heavy, fontSize: 32, letterSpacing: -1 },

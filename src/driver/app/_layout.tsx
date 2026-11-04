@@ -26,7 +26,7 @@ if (Platform.OS === 'web' && typeof document !== 'undefined') {
 }
 
 function Root() {
-  const { ready, dark, colors, lang } = useStore();
+  const { ready, dark, colors, lang, user } = useStore();
   const d = useDriver();
   const [fontsLoaded, fontError] = useFonts({ Unbounded_700Bold, Onest_500Medium, Onest_600SemiBold, Onest_700Bold, Onest_800ExtraBold, ShareTechMono_400Regular });
   const loaded = ready && d.ready && (fontsLoaded || !!fontError);
@@ -53,7 +53,7 @@ function Root() {
       <View {...dirProps(lang)} style={{ flex: 1, backgroundColor: colors.bg }}>
         {/* til almashganda ekranlar qayta chiziladi (barcha matnlar yangi tilda) */}
         <Stack key={lang} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'slide_from_right' }}>
-          <Stack.Protected guard={!!d.profile}>
+          <Stack.Protected guard={!!user && !!d.profile}>
             <Stack.Screen name="index" options={{ animation: 'fade' }} />
             <Stack.Screen name="menu" options={{ animation: 'slide_from_left' }} />
             <Stack.Screen name="earnings" />
@@ -64,8 +64,11 @@ function Root() {
             <Stack.Screen name="support" />
             <Stack.Screen name="support-chat" />
           </Stack.Protected>
-          <Stack.Protected guard={!d.profile}>
+          <Stack.Protected guard={!!user && !d.profile}>
             <Stack.Screen name="register" options={{ animation: 'fade', gestureEnabled: false }} />
+          </Stack.Protected>
+          <Stack.Protected guard={!user}>
+            <Stack.Screen name="login" options={{ animation: 'fade', gestureEnabled: false }} />
           </Stack.Protected>
         </Stack>
         <ToastHost />

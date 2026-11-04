@@ -11,6 +11,8 @@ import { DEFAULT_CENTER, PLACES, TARIFFS, type Driver, type LatLng, type Place }
 import { DispatchClient, DISPATCH_URL, type ConnState, type DocSync, type OrderOffer } from '@/lib/dispatch';
 import { bearing, distanceKm, fetchRoute, nearbyPoint, pathLength, pointAt, priceFor, som } from '@/lib/geo';
 import { nameGender } from '@/lib/registry';
+import { errorText } from '@/lib/api';
+import { loadDriverAccount, loadDriverWallet, registerDriver, requestPayout, type DriverAccount } from '@/lib/driver-api';
 import { commissionOf, surgeLevel, zoneRing, type RemoteConfig } from '@/lib/remote-config';
 import { getLang, isLang, onLangChange, tr, tx } from '@/lib/i18n';
 import { haptic, useStore } from '@/lib/store';
@@ -37,7 +39,7 @@ export type Earning = {
   /** mijoz chiqmadi — kutish uchun kompensatsiya */
   noShow?: boolean;
 };
-export type Payout = { id: string; at: string; amount: number; fee: number };
+export type Payout = { id: string; at: string; amount: number };
 export type NavApp = 'yandex' | 'google';
 export type GpsState = 'demo' | 'searching' | 'ok' | 'denied';
 
@@ -75,7 +77,11 @@ type Ctx = {
   updateCar: (car: string, year: number) => void;
   acceptDeliveryTerms: () => void;
   profile: DriverProfile | null;
-  register: (p: Omit<DriverProfile, 'id' | 'rating' | 'trips' | 'joinedAt'>) => void;
+  /** Xato bo'lsa rad etiladi: ekran server xabarini ko'rsatadi */
+  register: (p: Omit<DriverProfile, 'id' | 'rating' | 'trips' | 'joinedAt'>, tariffIds: string[]) => Promise<void>;
+  /** Serverdagi haydovchi hisobi va balansini yuklaydi */
+  loadAccount: () => Promise<void>;
+  refreshWallet: () => Promise<void>;
   updateProfile: (p: Partial<DriverProfile>) => void;
   logout: () => void;
   online: boolean;
@@ -107,8 +113,10 @@ type Ctx = {
   rating: number;
   activity: number;
   balance: number;
+  /** Shu summadan yuqori bo'lgandagina buyurtma olish mumkin */
+  minBalance: number;
   payouts: Payout[];
-  withdraw: (amount: number) => Payout | null;
+  withdraw: (amount: number) => Promise<boolean>;
   zones: DemandZone[];
   /** «Uyga» rejimi: buyurtmalar tanlangan manzil tomonga */
   homeDest: Place | null;
@@ -172,6 +180,8 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<DriverProfile | null>(null);
   const [earnings, setEarnings] = useState<Earning[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [balance, setBalance] = useState(0);
+  const [minBalance, setMinBalance] = useState(0);
   const [activity, setActivity] = useState(100);
   const [online, setOnlineState] = useState(false);
   const [onlineLog, setOnlineLog] = useState<{ date: string; ms: number }>({ date: dayKey(), ms: 0 });
@@ -351,7 +361,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   }, [earnings, profile]);
 
   // shartlar matni joriy tilda (til almashganda qayta hisoblanadi)
-  const { lang } = useStore();
+  const { lang, user, logout: endSession } = useStore();
   const tariffState = useMemo<TariffState[]>(() => TARIFFS.map(t => {
     void lang;
     const checks = tariffChecks(t.id, profile?.car, profile?.year, { docsApproved, rating, trips: profile?.trips ?? 0, activity, deliveryTerms: !!profile?.deliveryTerms });
@@ -800,16 +810,51 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     return { sum: list.reduce((s, e) => s + e.price + (e.waitFee ?? 0) + e.tip - feeOf(e), 0), count: list.filter(e => !e.noShow).length, km: list.reduce((s, e) => s + e.km, 0) };
   }, [earnings]);
 
-  // Balans: kartadagi safarlar tushadi, naqd safarlar komissiyasi yechiladi, choy puli qo'shiladi
-  const balance = useMemo(() =>
-    earnings.reduce((s, e) => s + (e.payment === 'cash' ? 0 : e.price + (e.waitFee ?? 0)) - feeOf(e) + e.tip, 0) - payouts.reduce((s, p) => s + p.amount, 0),
-  [earnings, payouts]);
+  // Balans faqat serverda: to'ldirish, komissiya va shartnoma to'lovlari shu yerda hisoblanadi
+  const refreshWallet = useCallback(async () => {
+    const wallet = await loadDriverWallet();
+    setBalance(wallet.balance);
+    setMinBalance(wallet.minBalance);
+  }, []);
 
-  const withdraw = (amount: number) => {
-    if (amount <= 0 || amount > balance) return null;
-    const p: Payout = { id: 'p' + Date.now().toString(36), at: new Date().toISOString(), amount, fee: Math.max(1000, Math.round(amount * 0.01)) };
-    setPayouts(ps => { const n = [p, ...ps]; persist(K.payouts, n); return n; });
-    return p;
+  const adoptAccount = useCallback((account: DriverAccount) => {
+    setProfile(cur => {
+      const car = account.vehicle ? `${account.vehicle.brand} ${account.vehicle.model}` : cur?.car ?? '';
+      const next: DriverProfile = {
+        ...cur,
+        id: account.id, name: account.fullName, phone: account.phone, rating: account.rating, trips: account.trips,
+        car, color: account.vehicle?.color ?? cur?.color ?? '', plate: account.vehicle?.plate ?? cur?.plate ?? '',
+        tariffs: account.vehicle?.tariffIds ?? cur?.tariffs ?? [], city: cur?.city ?? 'Toshkent', joinedAt: cur?.joinedAt ?? new Date().toISOString(),
+      };
+      persist(K.profile, next);
+      return next;
+    });
+  }, []);
+
+  const loadAccount = useCallback(async () => {
+    const account = await loadDriverAccount();
+    if (!account) { setProfile(null); AsyncStorage.removeItem(K.profile).catch(() => {}); return; }
+    adoptAccount(account);
+    await refreshWallet();
+  }, [adoptAccount, refreshWallet]);
+
+  // Ilova ochilganda yoki hisob almashganda server holati olinadi
+  const accountOwner = user?.id;
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- server javobi kelgach yangilanadi
+    if (accountOwner) loadAccount().catch(() => {});
+  }, [accountOwner, loadAccount]);
+
+  const withdraw = async (amount: number) => {
+    try {
+      const payout = await requestPayout(amount);
+      setPayouts(ps => { const n = [{ id: payout.id, at: payout.createdAt, amount: payout.amount }, ...ps]; persist(K.payouts, n); return n; });
+      await refreshWallet();
+      return true;
+    } catch (error) {
+      toast(errorText(error), 'alert-circle');
+      return false;
+    }
   };
 
   const homeUsesLeft = HOME_USES_PER_DAY - (homeUses.date === dayKey() ? homeUses.used : 0);
@@ -847,19 +892,24 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     ready, profile,
     docs, docsApproved, submitDoc, fillDemoDocs, tariffState, activeTariffs, setTariffEnabled, updateCar,
     acceptDeliveryTerms: () => setProfile(cur => { if (!cur) return cur; const n = { ...cur, deliveryTerms: true }; persist(K.profile, n); return n; }),
-    register: p => {
-      const np: DriverProfile = { ...p, id: 'drv' + Date.now().toString(36), rating: 5, trips: 0, joinedAt: new Date().toISOString() };
-      setProfile(np); persist(K.profile, np);
+    register: async (p, tariffIds) => {
+      const [brand, ...model] = p.car.split(' ');
+      await registerDriver({ fullName: p.name, brand, model: model.join(' '), color: p.color, plate: p.plate, tariffIds });
+      setProfile({ ...p, id: user?.id ?? '', rating: 5, trips: 0, joinedAt: new Date().toISOString() });
+      await loadAccount();
     },
+    loadAccount, refreshWallet,
     updateProfile: p => setProfile(cur => { if (!cur) return cur; const n = { ...cur, ...p }; persist(K.profile, n); return n; }),
     logout: () => {
       if (online) setOnline(false);
       setOffer(null); setTrip(null); setNext(null); setSummary(null); setProfile(null); setDocs(emptyDocs()); setBlocked(null); setNotice(null);
+      setBalance(0); setMinBalance(0);
       AsyncStorage.multiRemove([K.profile, K.session, K.docs, K.blocked]).catch(() => {});
+      endSession();
     },
     online, setOnline, pos, heading, gps: gpsState, retryGps: () => setGpsTry(n => n + 1),
     offer, accept, decline, trip, next, leftKm, arrived, startRide, finishRide, cancelTrip, noShow, cancelNext, summary, closeSummary,
-    earnings, today, onlineMsToday, rating, activity, balance, payouts, withdraw, zones,
+    earnings, today, onlineMsToday, rating, activity, balance, minBalance, payouts, withdraw, zones,
     homeDest, homeUsesLeft, setHomeDest,
     navApp, setNavApp: a => { setNavAppState(a); persist(K.navApp, a); },
     voice, setVoice: v => { setVoiceState(v); setVoiceEnabled(v); persist(K.voice, v); },

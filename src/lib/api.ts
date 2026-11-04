@@ -110,6 +110,9 @@ function refreshOnce(): Promise<boolean> {
   return refreshing;
 }
 
+/** Rol o'zgargach yangi token olish uchun */
+export const refreshSession = refreshOnce;
+
 export async function api<T>(method: string, path: string, body?: unknown, retried?: boolean, headers?: Record<string, string>): Promise<T> {
   const token = (await currentTokens())?.accessToken;
   const response = await send(method, path, body, token, headers);

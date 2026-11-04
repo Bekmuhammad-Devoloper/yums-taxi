@@ -424,6 +424,14 @@ const driver: Record<string, Row> = {
   "Davom etish": ["Продолжить", "Continue", "Идома додан", "متابعة"],
   "Keyingi mijozga": ["К следующему клиенту", "To the next passenger", "Ба назди мизоҷи навбатӣ", "إلى الراكب التالي"],
   "Keyingi buyurtma": ["Следующий заказ", "Next order", "Фармоиши навбатӣ", "الطلب التالي"],
+  "Buyurtma olish uchun {sum} dan ko'p bo'lishi kerak": ["Для заказов нужно больше {sum}", "You need more than {sum} to take orders", "Барои фармоиш зиёда аз {sum} лозим аст", "لتلقي الطلبات يجب أن يتجاوز الرصيد {sum}"],
+  "So'rov yuborilgan": ["Запрос отправлен", "Request sent", "Дархост фиристода шуд", "تم إرسال الطلب"],
+  "{sum} uchun so'rov yuborildi": ["Запрос на {sum} отправлен", "Request for {sum} sent", "Дархост барои {sum} фиристода шуд", "تم إرسال طلب بمبلغ {sum}"],
+  "Moliya bo'limi so'rovni ko'rib chiqib, pulni kartangizga o'tkazadi": ["Финансовый отдел рассмотрит запрос и переведёт деньги на вашу карту", "Finance will review the request and send the money to your card", "Шӯъбаи молия дархостро баррасӣ карда, пулро ба кортатон мегузаронад", "سيراجع قسم المالية الطلب ويحوّل المبلغ إلى بطاقتك"],
+  "Buyurtmaga 1 200 so'm": ["1 200 сум за заказ", "1,200 so'm per order", "1 200 сӯм барои фармоиш", "1200 سوم لكل طلب"],
+  "YUMS Driver": ["YUMS Driver", "YUMS Driver", "YUMS Driver", "YUMS Driver"],
+  "Telefon raqamingiz bilan kiring": ["Войдите по номеру телефона", "Sign in with your phone number", "Бо рақами телефон ворид шавед", "سجّل الدخول برقم هاتفك"],
+  "Davom etib, foydalanish shartlariga rozilik bildirasiz": ["Продолжая, вы принимаете условия использования", "By continuing, you accept the terms of use", "Бо идома додан шартҳои истифодаро мепазиред", "بالمتابعة فإنك توافق على شروط الاستخدام"],
 };
 
 export default driver;

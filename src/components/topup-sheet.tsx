@@ -76,10 +76,17 @@ export function TopupSheet({ visible, onClose, kind, cards, onDone }: Props) {
     }
   };
 
+  // Yopilganda kutish tugaydi: yangi urinish mumkin, to'lov o'tgan bo'lsa balans yangilanadi
+  const close = () => {
+    setWaitingFor(null);
+    onDone();
+    onClose();
+  };
+
   const valid = Number.isInteger(amount) && amount >= MIN_AMOUNT;
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={tr("Balansni to'ldirish")}>
+    <Sheet visible={visible} onClose={close} title={tr("Balansni to'ldirish")}>
       <View style={{ gap: 12 }}>
         <Row gap={8} style={{ flexWrap: 'wrap' }}>
           {PRESETS.map(sum => <Chip key={sum} label={som(sum)} active={sum === amount} onPress={() => setAmount(sum)} />)}

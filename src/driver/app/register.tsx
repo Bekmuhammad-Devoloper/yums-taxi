@@ -5,11 +5,13 @@ import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } fro
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { LangButton } from '@/components/lang-picker';
+import { toast } from '@/components/toast';
 import { BrandMark, Button, Chip, DEFAULT_DRIVER, Field, Row, Screen, Txt } from '@/components/ui';
 import { CarPicker } from '@/driver/components/car-picker';
 import { useDriver } from '@/driver/lib/driver-store';
 import { CLASS_NAME, findCar } from '@/driver/lib/requirements';
 import { TARIFF_ART } from '@/lib/cars';
+import { errorText } from '@/lib/api';
 import { TARIFFS, type Gender } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
@@ -26,15 +28,10 @@ const fmtPlate = (s: string) => {
   const m = r.match(/^(\d{0,2})([A-Z]?)(\d{0,3})([A-Z]{0,2})/);
   return m ? [m[1], m[2], m[3], m[4]].filter(Boolean).join(' ') : r;
 };
-const fmtPhone = (s: string) => {
-  const d = s.replace(/\D/g, '').replace(/^998/, '').slice(0, 9);
-  return [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7), d.slice(7, 9)].filter(Boolean).join(' ');
-};
-
 export default function Register() {
-  const { colors: c } = useStore();
+  const { colors: c, user } = useStore();
   const { register } = useDriver();
-  const [phone, setPhone] = useState('');
+  const [busy, setBusy] = useState(false);
   const [name, setName] = useState('');
   const [car, setCar] = useState('');
   const [carSheet, setCarSheet] = useState(false);
@@ -46,7 +43,6 @@ export default function Register() {
   const [tried, setTried] = useState(false);
 
   const err = {
-    phone: phone.replace(/\D/g, '').length !== 9 ? tr("Telefon raqamini to'liq kiriting") : '',
     name: name.trim().length < 3 ? tr('Ism va familiyani kiriting') : '',
     gender: !gender ? tr('Jinsingizni tanlang') : '',
     car: !findCar(car) ? tr("Avtomobil modelini ro'yxatdan tanlang") : '',
@@ -58,16 +54,23 @@ export default function Register() {
   // shu sinfdagi avtomobil qaysi tariflarga mos kelishi mumkin (hujjat va reyting shartlaridan tashqari)
   const fits = model ? TARIFFS.filter(t => ({ economy: ['start', 'delivery'], comfort: ['start', 'comfort', 'delivery'], business: ['start', 'comfort', 'business', 'delivery'], minivan: ['start', 'minivan', 'delivery'], cargo: ['delivery'] })[model.cls].includes(t.id)) : [];
 
-  const submit = () => {
+  const submit = async () => {
     setTried(true);
     if (!ok) return;
-    // tariflar oldindan yoqilgan bo'ladi, lekin har biri o'z shartlari bajarilgandagina ishlaydi
-    register({ name: name.trim(), gender: gender ?? undefined, phone: '+998 ' + phone, car, year: +year, color, plate, city, tariffs: TARIFFS.map(t => t.id) });
+    setBusy(true);
+    try {
+      // server mashina sinfiga mos tariflarni oladi; har biri o'z shartlari bajarilgandagina ishlaydi
+      await register({ name: name.trim(), gender: gender ?? undefined, phone: user?.phone ?? '', car, year: +year, color, plate, city, tariffs: TARIFFS.map(t => t.id) }, fits.map(t => t.id));
+    } catch (error) {
+      toast(errorText(error), 'alert-circle');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Screen title={tr("Haydovchi bo'lish")} subtitle={tr("YUMS Driver · ro'yxatdan o'tish")} back={false} right={<LangButton />} footer={<Button title={tr("Ro'yxatdan o'tish")} icon="arrow-forward-circle" onPress={submit} />}>
+      <Screen title={tr("Haydovchi bo'lish")} subtitle={tr("YUMS Driver · ro'yxatdan o'tish")} back={false} right={<LangButton />} footer={<Button title={tr("Ro'yxatdan o'tish")} icon="arrow-forward-circle" loading={busy} onPress={submit} />}>
         <View style={[styles.hero, { backgroundColor: '#0F1E3D' }]}>
           <Row gap={10}>
             <BrandMark size={44} />
@@ -77,13 +80,12 @@ export default function Register() {
             </View>
           </Row>
           <Row gap={8} style={{ marginTop: 14 }}>
-            {[tr('0% komissiya 1-oy'), tr("Kunlik to'lov"), tr('Erkin grafik')].map(t => (
+            {[tr("Buyurtmaga 1 200 so'm"), tr('Erkin grafik')].map(t => (
               <View key={t} style={styles.perk}><Txt v="tiny" color="#FFC800" style={{ fontFamily: F.bold }}>{t}</Txt></View>
             ))}
           </Row>
         </View>
 
-        <Field label={tr('Telefon')} prefix="+998" keyboardType="phone-pad" placeholder="90 123 45 67" value={phone} onChangeText={v => setPhone(fmtPhone(v))} error={tried ? err.phone : ''} />
         <Field label={tr('Ism va familiya')} placeholder={tr('Masalan: Jasur Karimov')} value={name} onChangeText={setName} error={tried ? err.name : ''} />
         <View style={{ gap: 8 }}>
           <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>{tr('Jinsi')}</Txt>

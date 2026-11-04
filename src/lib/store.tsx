@@ -203,6 +203,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const dropSession = useCallback(() => {
     setUser(null);
+    setBalance(0);
+    setCards([]);
     AsyncStorage.removeItem(K.user).catch(() => {});
   }, []);
   useEffect(() => { setSessionLostHandler(dropSession); }, [dropSession]);
