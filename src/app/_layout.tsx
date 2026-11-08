@@ -21,8 +21,11 @@ SplashScreen.preventAutoHideAsync();
 
 // Vebda brauzerning to'rtburchak fokus ramkasi va aylantirish chiziqlari (scrollbar) yashiriladi — ilova mobil ko'rinishda qoladi
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
+  // Oxirgi qoida: brauzer saqlangan raqam/emailni qo'yganda maydonni och ko'k rangga bo'yamasin
+  // (avtoto'ldirish rangi juda uzoq «o'tish» bilan ushlab qolinadi, maydon o'z dizaynida qoladi)
   const css = document.createElement('style');
-  css.textContent = 'input,textarea,[tabindex],[role=button]{outline:none!important}input,textarea{caret-color:#E0A800}html{overflow:hidden;overscroll-behavior:none}*{scrollbar-width:none;-ms-overflow-style:none}*::-webkit-scrollbar{display:none;width:0;height:0}';
+  css.textContent = 'input,textarea,[tabindex],[role=button]{outline:none!important}input,textarea{caret-color:#E0A800}html{overflow:hidden;overscroll-behavior:none}*{scrollbar-width:none;-ms-overflow-style:none}*::-webkit-scrollbar{display:none;width:0;height:0}' +
+    'input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus,input:-webkit-autofill:active,textarea:-webkit-autofill{transition:background-color 99999s ease-out 0s,color 99999s ease-out 0s;caret-color:#E0A800}';
   document.head.appendChild(css);
 }
 
