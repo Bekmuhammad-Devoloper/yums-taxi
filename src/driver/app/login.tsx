@@ -5,10 +5,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { LangButton } from '@/components/lang-picker';
 import { toast } from '@/components/toast';
 import { BrandLogo, BrandMark, Button, Flag, Row, Txt } from '@/components/ui';
 import { useDriver } from '@/driver/lib/driver-store';
@@ -26,7 +25,7 @@ const PHONE_LEN = 9;
 
 const PILLS: { icon: 'time-outline' | 'navigate-outline' | 'headset-outline'; label: string }[] = [
   { icon: 'time-outline', label: tx('Erkin grafik') },
-  { icon: 'navigate-outline', label: tx('Ichki navigator') },
+  { icon: 'navigate-outline', label: tx('Navigator') },
   { icon: 'headset-outline', label: tx('24/7 yordam') },
 ];
 
@@ -38,6 +37,12 @@ export default function Login() {
   const { colors: c, signIn } = useStore();
   const { loadAccount } = useDriver();
   const insets = useSafeAreaInsets();
+  // Hammasi bitta ekranga sig'adi; past ekranlarda logotip kichrayadi
+  const { height } = useWindowDimensions();
+  const short = height < 720;
+  // Aylantirish faqat joy yetmaganda (masalan, telefonda klaviatura ochilganda)
+  const [viewH, setViewH] = useState(0);
+  const [contentH, setContentH] = useState(0);
   const [step, setStep] = useState<Step>('phone');
   const [digits, setDigits] = useState('');
   const [code, setCode] = useState('');
@@ -142,7 +147,15 @@ export default function Login() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" bounces={false}>
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
+        overScrollMode="never"
+        showsVerticalScrollIndicator={false}
+        scrollEnabled={contentH > viewH + 1}
+        onLayout={e => setViewH(e.nativeEvent.layout.height)}
+        onContentSizeChange={(_, h) => setContentH(h)}>
         <LinearGradient colors={['#000000', '#0B0904', '#16120A']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={[big ? styles.hero : styles.heroCompact, { paddingTop: insets.top + 12 }]}>
           <Image source={GLOW} pointerEvents="none" style={[styles.glow, { top: insets.top - (big ? 70 : 250) }]} contentFit="contain" />
           {step === 'code' && (
@@ -150,18 +163,17 @@ export default function Login() {
               <Ionicons name="chevron-back" size={21} color="#fff" style={flipRTL()} />
             </Pressable>
           )}
-          {big && <View style={[styles.lang, { top: insets.top + 12 }]}><LangButton light /></View>}
           {big ? (
             <>
-              <BrandLogo width={150} style={{ alignSelf: 'center', marginTop: 24 }} />
+              <BrandLogo width={short ? 92 : 118} style={{ alignSelf: 'center', marginTop: short ? 0 : 6 }} />
               <View style={styles.driverTag}><Ionicons name="car-sport" size={13} color="#0E1525" /><Text style={styles.driverTagText}>DRIVER</Text></View>
               <Text style={styles.tagTitle}>{tr('Haydovchilar uchun YUMS')}</Text>
-              <Text style={styles.tagSub}>{tr("Buyurtmalar YUMS ilovasidagi yo'lovchilardan to'g'ridan-to'g'ri keladi")}</Text>
+              {!short && <Text style={styles.tagSub}>{tr("Buyurtmalar YUMS ilovasidagi yo'lovchilardan to'g'ridan-to'g'ri keladi")}</Text>}
               <View style={styles.pills}>
                 {PILLS.map(x => (
                   <View key={x.label} style={styles.pill}>
-                    <Ionicons name={x.icon} size={14} color="#F5C542" />
-                    <Text style={styles.pillText}>{tr(x.label)}</Text>
+                    <Ionicons name={x.icon} size={13} color="#F5C542" />
+                    <Text style={styles.pillText} numberOfLines={1}>{tr(x.label)}</Text>
                   </View>
                 ))}
               </View>
@@ -211,10 +223,10 @@ export default function Login() {
               <View style={[styles.note, { backgroundColor: c.surface2 }]}>
                 <Ionicons name="shield-checkmark-outline" size={18} color={c.muted} />
                 <Txt v="small" muted style={{ flex: 1, lineHeight: 18 }}>
-                  {tr("Yangi haydovchi bo'lsangiz, keyingi qadamda avtomobil va hujjatlarni qo'shasiz. Hujjatlar tasdiqlangach liniyaga chiqasiz.")}
+                  {tr("Yangi haydovchi? Keyingi qadamda avtomobil va hujjatlarni qo'shasiz.")}
                 </Txt>
               </View>
-              <Txt v="tiny" faint style={styles.legal}>{tr('Davom etib, foydalanish shartlariga rozilik bildirasiz')}</Txt>
+              <Txt v="tiny" faint style={[styles.legal, { marginTop: 'auto' }]}>{tr('Davom etib, foydalanish shartlariga rozilik bildirasiz')}</Txt>
             </>
           )}
 
@@ -300,21 +312,20 @@ export default function Login() {
 }
 
 const styles = StyleSheet.create({
-  hero: { paddingHorizontal: 24, paddingBottom: 52, overflow: 'hidden' },
+  hero: { paddingHorizontal: 20, paddingBottom: 44, overflow: 'hidden' },
   heroCompact: { paddingHorizontal: 24, paddingBottom: 40, overflow: 'hidden' },
   glow: { position: 'absolute', alignSelf: 'center', width: 420, height: 420 },
   back: { position: 'absolute', left: 16, width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
-  lang: { position: 'absolute', right: 16, zIndex: 2 },
-  driverTag: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'center', marginTop: 10, paddingHorizontal: 12, height: 24, borderRadius: 12, backgroundColor: '#FFC800' },
+  driverTag: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'center', marginTop: 8, paddingHorizontal: 12, height: 24, borderRadius: 12, backgroundColor: '#FFC800' },
   driverTagText: { color: '#0E1525', fontSize: 11.5, fontFamily: F.heavy, letterSpacing: 2 },
-  tagTitle: { fontSize: 17, fontFamily: F.semi, color: '#fff', textAlign: 'center', letterSpacing: -0.3, marginTop: 14 },
+  tagTitle: { fontSize: 17, fontFamily: F.semi, color: '#fff', textAlign: 'center', letterSpacing: -0.3, marginTop: 10 },
   tagSub: { fontSize: 13.5, fontFamily: F.medium, color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginTop: 4, lineHeight: 19 },
-  pills: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 20 },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,255,255,0.12)' },
-  pillText: { color: 'rgba(255,255,255,0.88)', fontSize: 12.5, fontFamily: F.semi },
+  pills: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 14 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 30, paddingHorizontal: 8, borderRadius: 15, flexShrink: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,255,255,0.12)' },
+  pillText: { color: 'rgba(255,255,255,0.88)', fontSize: 11.5, fontFamily: F.semi, flexShrink: 1 },
   compactBrand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 42 },
   compactName: { color: '#fff', fontFamily: F.brand, fontSize: 16, letterSpacing: 1.5 },
-  card: { flex: 1, marginTop: -28, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, gap: 16 },
+  card: { flex: 1, marginTop: -28, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 22, gap: 14 },
   phone: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 60, borderRadius: 18, borderWidth: 1.5, paddingHorizontal: 14 },
   cc: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   prefix: { fontSize: 19, fontFamily: F.heavy },

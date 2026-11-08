@@ -470,6 +470,8 @@ const driver: Record<string, Row> = {
   "Haydovchilar uchun YUMS": ["YUMS для водителей", "YUMS for drivers", "YUMS барои ронандагон", "YUMS للسائقين"],
   "Yangi haydovchi bo'lsangiz, keyingi qadamda avtomobil va hujjatlarni qo'shasiz. Hujjatlar tasdiqlangach liniyaga chiqasiz.": ["Если вы новый водитель, на следующем шаге добавите автомобиль и документы. После их проверки сможете выйти на линию.", "New driver? Next you add your car and documents. Once they are approved, you can go online.", "Агар ронандаи нав бошед, дар қадами навбатӣ мошин ва ҳуҷҷатҳоро илова мекунед. Пас аз тасдиқи онҳо ба хат мебароед.", "إذا كنت سائقًا جديدًا فستضيف في الخطوة التالية السيارة والمستندات. بعد اعتمادها يمكنك بدء العمل."],
   "Tekshirilmoqda…": ["Проверяем…", "Checking…", "Санҷида истодаем…", "جارٍ التحقق…"],
+  "Yangi haydovchi? Keyingi qadamda avtomobil va hujjatlarni qo'shasiz.": ["Новый водитель? На следующем шаге добавите автомобиль и документы.", "New driver? Next you add your car and documents.", "Ронандаи нав? Дар қадами навбатӣ мошин ва ҳуҷҷатҳоро илова мекунед.", "سائق جديد؟ في الخطوة التالية تضيف السيارة والمستندات."],
+  "Navigator": ["Навигатор", "Navigator", "Навигатор", "الملاحة"],
 };
 
 export default driver;
