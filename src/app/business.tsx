@@ -36,6 +36,15 @@ export default function Business() {
         </Pressable>
       )}
 
+      <Pressable onPress={() => router.push({ pathname: '/directory-edit', params: { type: 'company' } })} style={({ pressed }) => [styles.promo, { backgroundColor: c.surface2, opacity: pressed ? 0.85 : 1 }]}>
+        <Ionicons name="add-circle" size={24} color={c.text} />
+        <View style={{ flex: 1 }}>
+          <Txt v="h3">{tr("Kompaniyamni katalogga qo'shish")}</Txt>
+          <Txt v="small" muted>{tr("Bepul · xizmatlar, aloqa va sharhlar bilan")}</Txt>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={c.muted} style={flipRTL()} />
+      </Pressable>
+
       <Segmented<Tab> value={tab} onChange={setTab} items={[{ id: 'companies', label: tr('Kompaniyalar') }, { id: 'offers', label: tr('B2B takliflar') }, { id: 'services', label: tr('Xizmatlar') }]} />
 
       {tab === 'companies' && (

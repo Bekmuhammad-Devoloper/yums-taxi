@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Card, ListItem, Screen, Txt, type IconName } from '@/components/ui';
 import { useStore } from '@/lib/store';
@@ -90,10 +90,11 @@ export default function Legal() {
       <Card style={{ padding: 6 }}>
         {DOCS.map(x => <ListItem key={x.id} icon={x.icon} title={tr(x.title)} sub={tr('Yangilangan: {updated}', { updated: x.updated })} onPress={() => router.push({ pathname: '/legal', params: { doc: x.id } })} />)}
       </Card>
-      <View style={[styles.note, { backgroundColor: c.surface2 }]}>
-        <Ionicons name="mail-outline" size={18} color={c.muted} />
-        <Txt v="small" muted style={{ flex: 1 }}>{tr("Ma'lumotlarni himoya qilish bo'yicha murojaatlar: privacy@yums.example")}</Txt>
-      </View>
+      <Pressable onPress={() => router.push({ pathname: '/support-chat', params: { subject: tr("Shaxsiy ma'lumotlar") } })} style={[styles.note, { backgroundColor: c.surface2 }]}>
+        <Ionicons name="chatbubbles-outline" size={18} color={c.muted} />
+        <Txt v="small" muted style={{ flex: 1 }}>{tr("Ma'lumotlarni himoya qilish bo'yicha murojaatlar — qo'llab-quvvatlash chati orqali. Ma'lumotlaringiz nusxasini Xavfsizlik bo'limidan yuklab olasiz.")}</Txt>
+        <Ionicons name="chevron-forward" size={16} color={c.faint} />
+      </Pressable>
       <Draft />
     </Screen>
   );

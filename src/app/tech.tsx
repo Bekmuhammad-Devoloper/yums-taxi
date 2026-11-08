@@ -45,7 +45,7 @@ export default function Tech() {
       <Txt v="small" faint>{tr('{length} ta mutaxassis · tasdiqlanganlar birinchi', { length: list.length })}</Txt>
       {list.length ? list.map(s => <SpecialistCard key={s.id} sp={s} />) : <EmptyState icon="people-outline" title={tr('Mutaxassis topilmadi')} sub={tr("Filtrlarni o'zgartiring")} />}
       <Card style={{ padding: 6 }}>
-        <ListItem icon="person-add-outline" title={tr("Mutaxassis sifatida ro'yxatdan o'tish")} sub={tr("Profilingizni to'ldiring va buyurtmalar oling")} onPress={() => router.push('/profile-edit')} />
+        <ListItem icon="person-add-outline" title={tr("Mutaxassis sifatida ro'yxatdan o'tish")} sub={tr("Profilingizni to'ldiring va buyurtmalar oling")} onPress={() => router.push({ pathname: '/directory-edit', params: { type: 'specialist' } })} />
         <ListItem icon="briefcase-outline" title={tr('Vakansiya joylashtirish')} sub={tr('Loyiha sifatida — «Mutaxassis izlanmoqda»')} onPress={() => router.push('/project/edit')} />
       </Card>
     </Screen>

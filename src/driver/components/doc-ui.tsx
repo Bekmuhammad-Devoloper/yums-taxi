@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { toast } from '@/components/toast';
 import { Button, Chip, Field, Row, Segmented, Sheet, Txt } from '@/components/ui';
-import { DOC_META, SAMPLE, fmtDate, fmtDocNumber, validateDoc, type DriverDoc } from '@/driver/lib/docs';
+import { DOC_META, fmtDate, fmtDocNumber, validateDoc, type DriverDoc } from '@/driver/lib/docs';
 import { useDriver } from '@/driver/lib/driver-store';
 import { fmtDate as fmtTime } from '@/lib/format';
 import { pickImage } from '@/lib/media';
@@ -27,7 +27,7 @@ export function DocViewer({ doc, visible, onClose, onEdit }: { doc: DriverDoc | 
   const [zoom, setZoom] = useState<string | null>(null);
   if (!doc || !profile) return null;
   const meta = DOC_META[doc.kind];
-  const photos = [doc.front, doc.back].filter((p): p is string => !!p && p !== SAMPLE);
+  const photos = [doc.front, doc.back].filter((p): p is string => !!p);
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top }}>
@@ -99,6 +99,7 @@ export function DocForm({ initial, visible, onClose }: { initial: DriverDoc | nu
   const [d, setD] = useState<DriverDoc | null>(initial);
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState<'front' | 'back' | null>(null);
+  const [sending, setSending] = useState(false);
   if (!d) return null;
   const meta = DOC_META[d.kind];
   const err = validateDoc(d);
@@ -113,10 +114,14 @@ export function DocForm({ initial, visible, onClose }: { initial: DriverDoc | nu
     else if (r.reason === 'error') toast(tr("Rasmni yuklab bo'lmadi"), 'alert-circle');
   };
 
-  const submit = () => {
+  const submit = async () => {
     setTried(true);
     if (Object.keys(err).length) { toast(tr("Maydonlarni to'g'ri to'ldiring"), 'alert-circle'); return; }
-    submitDoc(d);
+    // server rad etsa (masalan, raqam formati) forma ochiq qoladi, xato toast bilan chiqadi
+    setSending(true);
+    const ok = await submitDoc(d);
+    setSending(false);
+    if (!ok) return;
     onClose();
     toast(tr('Hujjat tekshiruvga yuborildi'), 'paper-plane');
   };
@@ -127,8 +132,7 @@ export function DocForm({ initial, visible, onClose }: { initial: DriverDoc | nu
       <View style={{ flex: 1, gap: 6 }}>
         <Txt v="tiny" muted style={{ fontFamily: F.bold }}>{label}</Txt>
         <View style={[styles.slot, { backgroundColor: c.surface2, borderColor: tried && err[which] ? c.danger : c.line }]}>
-          {v && v !== SAMPLE ? <Image source={{ uri: v }} style={StyleSheet.absoluteFill} contentFit="cover" />
-            : v === SAMPLE ? <View style={styles.slotEmpty}><Ionicons name="document-text" size={26} color={c.ok} /><Txt v="tiny" color={c.ok}>{tr('Namuna')}</Txt></View>
+          {v ? <Image source={{ uri: v }} style={StyleSheet.absoluteFill} contentFit="cover" />
             : <View style={styles.slotEmpty}><Ionicons name={busy === which ? 'hourglass' : 'camera-outline'} size={26} color={c.faint} /><Txt v="tiny" faint>{tr("Rasm yo'q")}</Txt></View>}
         </View>
         <Row gap={6}>
@@ -141,7 +145,7 @@ export function DocForm({ initial, visible, onClose }: { initial: DriverDoc | nu
   };
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={tr(meta.title)} footer={<Button title={tr('Tekshiruvga yuborish')} icon="paper-plane" onPress={submit} style={{ marginTop: 12 }} />}>
+    <Sheet visible={visible} onClose={onClose} title={tr(meta.title)} footer={<Button title={tr('Tekshiruvga yuborish')} icon="paper-plane" loading={sending} disabled={sending} onPress={() => { submit().catch(() => {}); }} style={{ marginTop: 12 }} />}>
       <Txt v="small" muted>{tr(meta.hint)}</Txt>
       <Field label={tr(meta.numberLabel)} placeholder={meta.placeholder} autoCapitalize="characters" value={d.number} onChangeText={v => set({ number: fmtDocNumber(v) })} error={tried ? err.number : ''} inputStyle={{ fontFamily: F.heavy, letterSpacing: 1 }} />
       <Row gap={10} style={{ alignItems: 'flex-start' }}>

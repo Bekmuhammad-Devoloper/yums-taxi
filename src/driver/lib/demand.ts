@@ -1,68 +1,34 @@
-// Talab xaritasi: shahar olti burchakli kataklarga bo'linadi, har biriga talab darajasi va narx koeffitsienti beriladi.
-// Hozircha talab mashhur joylar (vokzal, bozor, aeroport…) atrofida va kun vaqtiga qarab hisoblanadi;
-// server talab ma'lumotini bera boshlasa, shu turdagi kataklar ro'yxati yuboriladi.
-import { DEFAULT_CENTER, PLACES, type LatLng } from '@/lib/data';
+// Talab xaritasi: server so'nggi buyurtmalar bo'yicha ~1 km kataklarni beradi (GET /driver/demand).
+import type { LatLng } from '@/lib/data';
+import type { DemandCell } from '@/lib/driver-api';
 import { distanceKm } from '@/lib/geo';
 
-/** radiusKm — admin belgilagan doira hudud (berilmasa — olti burchakli katak) */
-export type DemandZone = { id: string; center: LatLng; ring: LatLng[]; level: 1 | 2 | 3; surge: number; radiusKm?: number };
+export type DemandZone = { id: string; center: LatLng; ring: LatLng[]; level: 1 | 2 | 3; surge: number; radiusKm: number; orders: number };
 
-const R_KM = 0.42; // katak radiusi (markazdan uchigacha)
-const N = 6; // markazdan nechta katak uzoqlikkacha
-const SURGE: Record<1 | 2 | 3, number> = { 1: 1.2, 2: 1.4, 3: 1.8 };
-
-const kmToLat = (km: number) => km / 111.32;
-const kmToLng = (km: number, lat: number) => km / (111.32 * Math.cos((lat * Math.PI) / 180));
-
-const noise = (a: number, b: number) => {
-  const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453;
-  return s - Math.floor(s);
-};
-
-/** 10 daqiqalik vaqt bo'lagi — talab shu oraliqda o'zgarmaydi */
-export const demandSlot = (t = Date.now()) => Math.floor(t / 600000);
-
-export function demandZones(slot: number, origin: LatLng = DEFAULT_CENTER): DemandZone[] {
-  const hour = new Date(slot * 600000).getHours();
-  // ertalab va kechqurun tig'iz soatlar
-  const rush = hour >= 7 && hour <= 10 ? 1.25 : hour >= 17 && hour <= 20 ? 1.35 : hour >= 23 || hour <= 5 ? 0.8 : 1;
-  const hot = PLACES.map((p, i) => ({ p, w: (0.55 + noise(i, slot) * 0.6) * rush }));
-  const out: DemandZone[] = [];
-  for (let q = -N; q <= N; q++) {
-    for (let r = Math.max(-N, -q - N); r <= Math.min(N, -q + N); r++) {
-      const xKm = R_KM * Math.sqrt(3) * (q + r / 2);
-      const yKm = R_KM * 1.5 * r;
-      const center = { latitude: origin.latitude - kmToLat(yKm), longitude: origin.longitude + kmToLng(xKm, origin.latitude) };
-      let score = 0;
-      for (const h of hot) {
-        const d = distanceKm(center, h.p);
-        score += h.w * Math.exp(-(d * d) / 0.9);
-      }
-      score += (noise(q * 3.1 + slot, r * 1.7) - 0.5) * 0.25;
-      const level = score > 0.95 ? 3 : score > 0.68 ? 2 : score > 0.45 ? 1 : 0;
-      if (!level) continue;
-      const ring = Array.from({ length: 6 }, (_, k) => {
-        const a = (Math.PI / 180) * (60 * k - 30);
-        return { latitude: center.latitude - kmToLat(R_KM * Math.sin(a)), longitude: center.longitude + kmToLng(R_KM * Math.cos(a), center.latitude) };
-      });
-      out.push({ id: `${q}:${r}`, center, ring, level, surge: SURGE[level] });
-    }
-  }
-  return out;
+/** Doira chegarasi (xaritada ko'pburchak sifatida chiziladi) */
+export function zoneRing(center: LatLng, radiusKm: number, n = 28): LatLng[] {
+  const kLat = radiusKm / 111.32;
+  const kLng = radiusKm / (111.32 * Math.cos((center.latitude * Math.PI) / 180));
+  return Array.from({ length: n }, (_, i) => {
+    const a = (2 * Math.PI * i) / n;
+    return { latitude: center.latitude + Math.sin(a) * kLat, longitude: center.longitude + Math.cos(a) * kLng };
+  });
 }
 
-/** Nuqta joylashgan katak (yoki admin hududi) koeffitsienti (tashqarida — 1) */
-export function surgeAt(zones: DemandZone[], p: LatLng) {
-  let best: DemandZone | null = null, bestD = Infinity, inCircle = 1;
-  for (const z of zones) {
-    const d = distanceKm(z.center, p);
-    if (z.radiusKm != null) { if (d <= z.radiusKm) inCircle = Math.max(inCircle, z.surge); continue; }
-    if (d < bestD) { bestD = d; best = z; }
-  }
-  return Math.max(inCircle, best && bestD <= R_KM * 0.95 ? best.surge : 1);
+export const toZones = (cells: DemandCell[]): DemandZone[] =>
+  cells.map(c => {
+    const center = { latitude: c.latitude, longitude: c.longitude };
+    const level = (Math.min(3, Math.max(1, c.level)) as 1 | 2 | 3);
+    return { id: c.id, center, ring: zoneRing(center, c.radiusKm), level, surge: c.surge, radiusKm: c.radiusKm, orders: c.orders };
+  });
+
+/** Nuqta tushgan talab hududi koeffitsienti (hududdan tashqarida — 1) */
+export function surgeAt(zones: DemandZone[], p: LatLng | null | undefined) {
+  if (!p) return 1;
+  return zones.reduce((m, z) => (distanceKm(z.center, p) <= z.radiusKm ? Math.max(m, z.surge) : m), 1);
 }
 
-/** Eng yaqin yuqori talab katagi (×1.4 va undan yuqori) */
+/** Eng yaqin gavjum hudud (2-daraja va undan yuqori) */
 export function nearestHot(zones: DemandZone[], p: LatLng) {
   let best: { zone: DemandZone; km: number } | null = null;
   for (const z of zones) {

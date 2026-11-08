@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { IOSSwitch, Card, ListItem, Row, Screen, SectionTitle, Txt } from '@/components/ui';
-import { LangList } from '@/components/lang-picker';
+import { LangRow } from '@/components/lang-picker';
 import { haptic, useStore, type ThemePref } from '@/lib/store';
 import { F } from '@/lib/theme';
 import { tr } from '@/lib/i18n';
@@ -41,7 +41,7 @@ export default function Settings() {
 
       <SectionTitle>{t('settings.language')}</SectionTitle>
       <Card style={{ padding: 6 }}>
-        <LangList />
+        <LangRow />
       </Card>
       <Txt v="tiny" faint style={{ marginTop: -6, marginLeft: 4 }}>{tr("Foydalanuvchilar joylashtirgan kontent muallif tilida ko'rsatiladi.")}</Txt>
 

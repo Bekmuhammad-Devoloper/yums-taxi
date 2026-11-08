@@ -12,14 +12,16 @@ import { ActionSheet, PersonAvatar, Row, Sheet, Txt, alpha } from '@/components/
 import { SlideButton } from '@/driver/components/slide-button';
 import { nearestHot, surgeAt, ZONE_COLOR } from '@/driver/lib/demand';
 import { DOC_KINDS } from '@/driver/lib/docs';
-import { ACTIVITY, FREE_WAIT_SEC, HOME_USES_PER_DAY, NO_SHOW_AFTER_SEC, WAIT_PER_MIN, useDriver, waitFeeOf, type Offer, type Trip } from '@/driver/lib/driver-store';
+import { useDriver, waitFeeOf, type Offer, type Trip } from '@/driver/lib/driver-store';
 import { fmtDist, MANEUVER_TEXT, nextManeuver, type ManeuverKind } from '@/driver/lib/nav';
 import { callNumber } from '@/driver/lib/support';
 import { activityColor, GREEN, ORANGE, VIOLET } from '@/driver/lib/theme';
 import { say, type PhraseKey } from '@/driver/lib/voice';
 import { TARIFF_ART } from '@/lib/cars';
-import { PLACES, TARIFFS, type LatLng } from '@/lib/data';
-import { DISPATCH_URL } from '@/lib/dispatch';
+import { TARIFFS, type LatLng, type Place } from '@/lib/data';
+import { errorText } from '@/lib/api';
+import { messagePassenger } from '@/lib/driver-api';
+import { popularPlaces } from '@/lib/trip-api';
 import { distanceKm, som } from '@/lib/geo';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
@@ -170,7 +172,7 @@ function StatusBanner({ top }: { top: number }) {
     action = () => { if (Platform.OS !== 'web') Linking.openSettings().catch(() => {}); d.retryGps(); };
   } else if (d.gps === 'searching') {
     icon = 'locate-outline'; color = '#D97706'; text = tr('GPS signali qidirilmoqda…');
-  } else if (DISPATCH_URL && d.conn !== 'online') {
+  } else if (!d.live) {
     icon = 'cloud-offline-outline'; color = '#D97706'; text = tr("Aloqa yo'q — qayta ulanmoqda…");
   } else {
     return null;
@@ -260,6 +262,17 @@ function HomePanel() {
   const now = useNow(d.online, 15000);
   const [sure, setSure] = useState(false);
   const [homeSheet, setHomeSheet] = useState(false);
+  // «Uyga» uchun joylar serverdan: haydovchiga eng yaqin mashhur joylar
+  const [homePlaces, setHomePlaces] = useState<Place[]>([]);
+  const homeFrom = homeSheet ? d.pos : null;
+  useEffect(() => {
+    if (!homeFrom) return;
+    let alive = true;
+    popularPlaces(homeFrom).then(list => { if (alive) setHomePlaces(list.slice(0, 8)); }).catch(() => {});
+    return () => { alive = false; };
+    // faqat oyna ochilganda
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [homeSheet]);
   const [pulse] = useState(() => new Animated.Value(0));
   useEffect(() => {
     if (!d.online) return;
@@ -300,7 +313,7 @@ function HomePanel() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.mainTitle, { color: GREEN }]}>{tr('Liniyadasiz')}</Text>
-            <Txt v="small" muted>{!d.docsApproved ? tr("Hujjatlar qayta tekshirilmoqda — buyurtmalar tekshiruvdan so'ng keladi") : d.live ? tr("Buyurtma qidirilmoqda · YUMS yo'lovchilari") : tr('Buyurtma qidirilmoqda · demo')}{d.homeDest ? tr(' · uyga: {title}', { title: d.homeDest.title }) : ''}</Txt>
+            <Txt v="small" muted>{!d.docsApproved ? tr("Hujjatlar qayta tekshirilmoqda — buyurtmalar tekshiruvdan so'ng keladi") : d.live ? tr("Buyurtma qidirilmoqda · YUMS yo'lovchilari") : tr('Buyurtma qidirilmoqda · aloqa tiklanmoqda')}{d.homeDest ? tr(' · uyga: {title}', { title: d.homeDest.title }) : ''}</Txt>
           </View>
           <Ionicons name="power" size={22} color={GREEN} />
         </Pressable>
@@ -352,18 +365,20 @@ function HomePanel() {
         groups={[[{ icon: 'power', title: tr('Liniyadan chiqish'), danger: true, onPress: () => { setSure(false); d.setOnline(false); } }]]}
       />
       <Sheet visible={homeSheet} onClose={() => setHomeSheet(false)} title={tr("Uyga yo'nalish")}>
-        <Txt v="small" muted>{tr('Buyurtmalar tanlagan manzilingiz tomonga taklif qilinadi. Kuniga {HOME_USES_PER_DAY} marta yoqish mumkin — bugun {homeUsesLeft} ta qoldi.', { HOME_USES_PER_DAY, homeUsesLeft: d.homeUsesLeft })}</Txt>
+        <Txt v="small" muted>{tr('Buyurtmalar tanlagan manzilingiz tomonga taklif qilinadi. Kuniga {HOME_USES_PER_DAY} marta yoqish mumkin — bugun {homeUsesLeft} ta qoldi.', { HOME_USES_PER_DAY: d.rules.homeUsesPerDay, homeUsesLeft: d.homeUsesLeft })}</Txt>
         {d.homeDest && (
-          <Pressable onPress={() => { d.setHomeDest(null); setHomeSheet(false); toast(tr("«Uyga» rejimi o'chirildi"), 'home-outline'); }} style={[styles.placeRow, { backgroundColor: c.dangerSoft }]}>
+          <Pressable onPress={() => { d.setHomeDest(null).then(ok => { if (ok) { setHomeSheet(false); toast(tr("«Uyga» rejimi o'chirildi"), 'home-outline'); } }); }} style={[styles.placeRow, { backgroundColor: c.dangerSoft }]}>
             <Ionicons name="close-circle" size={20} color={c.danger} /><Txt v="h3" color={c.danger}>{tr("O'chirish · {title}", { title: trPlace(d.homeDest.title) })}</Txt>
           </Pressable>
         )}
-        {PLACES.slice(0, 8).map(p => (
+        {homePlaces.map(p => (
           <Pressable key={p.title} disabled={d.homeDest?.title === p.title}
             onPress={() => {
-              if (!d.setHomeDest(p)) { toast(tr('Bugungi «Uyga» imkoniyati tugadi'), 'alert-circle'); return; }
-              setHomeSheet(false);
-              toast(tr('Buyurtmalar «{title}» tomonga', { title: trPlace(p.title) }), 'home');
+              d.setHomeDest(p).then(ok => {
+                if (!ok) return;
+                setHomeSheet(false);
+                toast(tr('Buyurtmalar «{title}» tomonga', { title: trPlace(p.title) }), 'home');
+              });
             }}
             style={[styles.placeRow, { backgroundColor: d.homeDest?.title === p.title ? c.accentSoft : c.surface2 }]}>
             <Ionicons name="location" size={18} color={c.accent} />
@@ -420,7 +435,7 @@ function OfferPanel({ offer }: { offer: Offer }) {
       <Row style={{ alignItems: 'flex-end' }}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.price, { color: c.text }]}>{som(o.price)}</Text>
-          <Txt v="small" muted>{tr('Sizga ≈ {price} · komissiya {commission}%', { price: som(Math.round(o.price * (1 - d.commission))), commission: Math.round(d.commission * 100) })}</Txt>
+          <Txt v="small" muted>{tr('Sizga {price} · komissiya {commission}', { price: som(o.earning), commission: som(Math.max(0, o.price - o.earning)) })}</Txt>
         </View>
         <Image source={TARIFF_ART[o.tariffId] ?? TARIFF_ART.start} style={{ width: 92, height: 50 }} contentFit="contain" />
       </Row>
@@ -434,7 +449,7 @@ function OfferPanel({ offer }: { offer: Offer }) {
       {chainFrom ? <Txt v="small" color={VIOLET} style={{ fontFamily: F.bold, marginTop: -6 }}>{tr('Joriy safar ({chainFrom}) tugagach boshlanadi', { chainFrom })}</Txt> : null}
 
       <Row gap={10}>
-        <PersonAvatar name={o.passenger.name} photo={o.passenger.photo} gender={o.passenger.gender} size={34} />
+        <PersonAvatar name={o.passenger.name} gender={o.passenger.gender} size={34} />
         <Txt v="h3">{o.passenger.name}</Txt>
         <Txt v="small" muted>★ {o.passenger.rating.toFixed(1)}</Txt>
         {o.comment ? <Txt v="small" muted numberOfLines={1} style={{ flex: 1, textAlign: 'right' }}>💬 {tr(o.comment)}</Txt> : null}
@@ -450,7 +465,7 @@ function OfferPanel({ offer }: { offer: Offer }) {
           <Text style={styles.acceptSec}>{Math.ceil(leftMs / 1000)}</Text>
         </Pressable>
       </Row>
-      <Txt v="tiny" faint style={{ textAlign: 'center', marginTop: -6 }}>{tr("Qabul qilish: faollik +{accept} · rad etish yoki o'tkazib yuborish: {decline}", { accept: ACTIVITY.accept, decline: ACTIVITY.decline })}</Txt>
+      <Txt v="tiny" faint style={{ textAlign: 'center', marginTop: -6 }}>{tr("Qabul qilish: faollik +{accept} · rad etish yoki o'tkazib yuborish: {decline}", { accept: d.rules.activity.accept, decline: d.rules.activity.decline })}</Txt>
     </View>
   );
 }
@@ -486,12 +501,14 @@ function TripPanel({ trip }: { trip: Trip }) {
   const now = useNow(trip.stage !== 'toPickup');
   const [more, setMore] = useState(false);
   const [chat, setChat] = useState(false);
-  const call = () => Linking.openURL(`tel:${(o.passenger.phone ?? '').replace(/\s/g, '')}`).catch(() => toast(tr("Qo'ng'iroq: {phone}", { phone: o.passenger.phone }), 'call'));
+  const call = () => setChat(true);
+  const tell = (text: string) => messagePassenger(o.id, text).then(() => toast(tr('Xabar yuborildi'), 'paper-plane')).catch(error => toast(errorText(error), 'alert-circle'));
   const waited = trip.arrivedAt ? Math.max(0, (now - trip.arrivedAt) / 1000) : 0;
-  const paid = Math.max(0, waited - FREE_WAIT_SEC);
-  const waitFee = trip.stage === 'waiting' ? waitFeeOf(trip.arrivedAt, now) : trip.waitFee;
+  const paid = Math.max(0, waited - d.rules.freeWaitSec);
+  const waitFee = trip.stage === 'waiting' ? waitFeeOf(d.rules, trip.arrivedAt, now) : trip.waitFee;
   const total = o.price + waitFee;
-  const canNoShow = trip.stage === 'waiting' && waited >= NO_SHOW_AFTER_SEC;
+  const noShowAt = d.rules.freeWaitSec + d.rules.noShowAfterSec;
+  const canNoShow = trip.stage === 'waiting' && waited >= noShowAt;
 
   // Pullik kutish boshlanganini ovozda aytish (bir marta)
   const paidStarted = paid > 0;
@@ -516,10 +533,10 @@ function TripPanel({ trip }: { trip: Trip }) {
         <View style={[styles.waitBox, { backgroundColor: paid > 0 ? '#FEF3E2' : alpha(GREEN, 0.1) }]}>
           <View style={{ flex: 1 }}>
             <Txt v="small" color={paid > 0 ? '#B45309' : GREEN} style={{ fontFamily: F.bold }}>{paid > 0 ? tr('Pullik kutish') : tr('Bepul kutish')}</Txt>
-            <Text style={[styles.waitTime, { color: paid > 0 ? '#B45309' : GREEN }]}>{paid > 0 ? mmss(paid) : mmss(FREE_WAIT_SEC - waited)}</Text>
+            <Text style={[styles.waitTime, { color: paid > 0 ? '#B45309' : GREEN }]}>{paid > 0 ? mmss(paid) : mmss(d.rules.freeWaitSec - waited)}</Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
-            <Txt v="tiny" muted>{paid > 0 ? tr('{sum}/daq', { sum: som(WAIT_PER_MIN) }) : tr('keyin pullik')}</Txt>
+            <Txt v="tiny" muted>{paid > 0 ? tr('{sum}/daq', { sum: som(d.rules.waitPerMin) }) : tr('keyin pullik')}</Txt>
             {paid > 0 ? <Txt v="h3" color="#B45309">+{som(waitFee)}</Txt> : <Txt v="small" muted>{tr('Mijozga xabar yuborildi')}</Txt>}
           </View>
         </View>
@@ -544,7 +561,7 @@ function TripPanel({ trip }: { trip: Trip }) {
       )}
 
       <View style={[styles.passenger, { backgroundColor: c.surface2 }]}>
-        <PersonAvatar name={o.passenger.name} photo={o.passenger.photo} gender={o.passenger.gender} size={42} />
+        <PersonAvatar name={o.passenger.name} gender={o.passenger.gender} size={42} />
         <View style={{ flex: 1 }}>
           <Txt v="h3">{o.passenger.name}</Txt>
           <Txt v="small" muted numberOfLines={1}>★ {o.passenger.rating.toFixed(1)} · {tr(PAY[o.payment]?.label ?? '')}{o.comment ? ` · ${tr(o.comment)}` : ''}</Txt>
@@ -563,18 +580,18 @@ function TripPanel({ trip }: { trip: Trip }) {
         header={<Txt v="small" muted style={{ textAlign: 'center' }}>{route(trPlace(o.pickup.title), trPlace(o.destination.title))} · {som(o.price)}</Txt>}
         groups={[
           [
-            { icon: 'call', title: tr("Mijozga qo'ng'iroq"), onPress: () => { setMore(false); call(); } },
+            { icon: 'chatbubbles', title: tr('Mijozga xabar yozish'), sub: tr("Raqami yashirin — xabar ilovasiga boradi"), onPress: () => { setMore(false); call(); } },
             { icon: 'headset', title: tr('Yordam markazi'), sub: tr('Chat · javob 2 daqiqada'), onPress: () => { setMore(false); go('/support-chat'); } },
             { icon: 'shield-checkmark', title: tr('Xavfsizlik · 112'), sub: tr('Favqulodda vaziyatda'), onPress: () => { setMore(false); callNumber('112'); } },
           ],
           trip.stage === 'waiting' ? [{
             icon: 'person-remove', title: tr('Mijoz chiqmadi'), color: '#D97706',
-            sub: canNoShow ? tr('Faollik kamaymaydi · kutish uchun kompensatsiya') : tr('{time} dan keyin mumkin', { time: mmss(NO_SHOW_AFTER_SEC - waited) }),
-            onPress: () => { setMore(false); if (canNoShow) d.noShow(); else toast(tr('«Mijoz chiqmadi» {time} dan keyin', { time: mmss(NO_SHOW_AFTER_SEC - waited) }), 'time-outline'); },
+            sub: canNoShow ? tr('Faollik kamaymaydi · buyurtma yopiladi') : tr('{time} dan keyin mumkin', { time: mmss(noShowAt - waited) }),
+            onPress: () => { setMore(false); if (canNoShow) d.noShow(); else toast(tr('«Mijoz chiqmadi» {time} dan keyin', { time: mmss(noShowAt - waited) }), 'time-outline'); },
           }] : [],
           [
-            ...(d.next ? [{ icon: 'unlink' as const, title: tr('Keyingi buyurtmadan voz kechish'), sub: tr('Faollik {cancel}', { cancel: ACTIVITY.cancel }), danger: true, onPress: () => { setMore(false); d.cancelNext(); } }] : []),
-            ...(trip.stage === 'inride' ? [] : [{ icon: 'close-circle' as const, title: tr('Buyurtmani bekor qilish'), sub: tr('Faollik {cancel}', { cancel: ACTIVITY.cancel }), danger: true, onPress: () => { setMore(false); d.cancelTrip(); } }]),
+            ...(d.next ? [{ icon: 'unlink' as const, title: tr('Keyingi buyurtmadan voz kechish'), sub: tr('Faollik {cancel}', { cancel: d.rules.activity.cancel }), danger: true, onPress: () => { setMore(false); d.cancelNext(); } }] : []),
+            ...(trip.stage === 'inride' ? [] : [{ icon: 'close-circle' as const, title: tr('Buyurtmani bekor qilish'), sub: tr('Faollik {cancel}', { cancel: d.rules.activity.cancel }), danger: true, onPress: () => { setMore(false); d.cancelTrip(); } }]),
           ],
         ]}
       />
@@ -582,7 +599,7 @@ function TripPanel({ trip }: { trip: Trip }) {
         visible={chat}
         onClose={() => setChat(false)}
         header={<Txt v="h3" style={{ textAlign: 'center' }}>{tr('{name}ga xabar', { name: o.passenger.name })}</Txt>}
-        groups={[QUICK.map(q => ({ icon: 'chatbubble-ellipses-outline' as const, title: tr(q), onPress: () => { setChat(false); toast(tr('Xabar yuborildi'), 'paper-plane'); } }))]}
+        groups={[QUICK.map(q => ({ icon: 'chatbubble-ellipses-outline' as const, title: tr(q), onPress: () => { setChat(false); tell(tr(q)); } }))]}
       />
     </View>
   );
@@ -596,7 +613,7 @@ function SummaryPanel() {
   if (!d.summary) return null;
   const e = d.summary.earning;
   const total = e.price + (e.waitFee ?? 0);
-  const fee = e.fee ?? Math.round(total * d.commission);
+  const fee = e.fee ?? d.commission;
   const cash = e.payment === 'cash';
   return (
     <View style={{ gap: 14 }}>
@@ -617,7 +634,7 @@ function SummaryPanel() {
       <View style={{ gap: 6 }}>
         <Line label={tr('Safar narxi')} value={som(e.price)} />
         {e.waitFee ? <Line label={tr('Pullik kutish')} value={som(e.waitFee)} /> : null}
-        <Line label={tr('YUMS komissiyasi ({pct}%)', { pct: Math.round((fee / Math.max(1, total)) * 100) })} value={`−${som(fee)}`} color={c.danger} />
+        <Line label={tr('YUMS komissiyasi')} value={`−${som(fee)}`} color={c.danger} />
         <Line label={tr('Sizning daromadingiz')} value={som(total - fee)} bold />
       </View>
       <View style={{ alignItems: 'center', gap: 6 }}>

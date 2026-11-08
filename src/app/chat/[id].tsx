@@ -10,6 +10,8 @@ import { toast } from '@/components/toast';
 import { Button, Chip, EmptyState, Field, IconButton, ListItem, Row, Screen, Sheet, Txt, Verified } from '@/components/ui';
 import type { Attachment, Message, ReportTarget } from '@/lib/platform-data';
 import { fileSize, usePlatform } from '@/lib/platform';
+import { FILE_LIMIT } from '@/lib/platform-api';
+import { openFile } from '@/lib/open-file';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
 import { fmtDay, weekdayShort } from '@/lib/format';
@@ -29,8 +31,9 @@ export default function ChatScreen() {
   const [reporting, setReporting] = useState(false);
   const cv = p.conversations.find(x => x.id === id);
   const count = cv?.messages.length ?? 0;
-  const { markRead } = p;
+  const { markRead, loadMessages } = p;
 
+  useEffect(() => { if (id) loadMessages(id).catch(() => {}); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (id) markRead(id); }, [id, count]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!cv) return <Screen title={tr('Suhbat')}><EmptyState icon="chatbubbles-outline" title={tr('Suhbat topilmadi')} /></Screen>;
@@ -58,7 +61,7 @@ export default function ChatScreen() {
       const r = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true });
       if (r.canceled) return;
       const a = r.assets[0];
-      if ((a.size ?? 0) > 25e6) { toast(tr('Fayl 25 MB dan katta'), 'alert-circle'); return; }
+      if ((a.size ?? 0) > FILE_LIMIT) { toast(tr('Fayl juda katta — 1 MB gacha yuboring'), 'alert-circle'); return; }
       send({ id: 'f' + a.lastModified, name: a.name, size: a.size, mime: a.mimeType, uri: a.uri });
     } catch {
       toast(tr("Fayl tanlab bo'lmadi"), 'alert-circle');
@@ -180,7 +183,11 @@ function Bubble({ m }: { m: Message }) {
             : <Pressable onPress={() => Linking.openURL(meeting.link).catch(() => toast(tr('Havola ochilmadi'), 'alert-circle'))} style={[styles.join, { backgroundColor: me ? 'rgba(14,21,37,0.12)' : c.surface2 }]}><Text style={{ color: fg, fontFamily: F.heavy }}>{tr("Qo'shilish")}</Text></Pressable>}
         </View>
       ) : m.file ? (
-        <Pressable onPress={() => (m.file?.uri ? Linking.openURL(m.file.uri).catch(() => toast(tr("Faylni ochib bo'lmadi"), 'alert-circle')) : toast(tr('Fayl yuklab olindi'), 'download'))} style={{ gap: 6 }}>
+        <Pressable onPress={() => {
+          const f = m.file;
+          if (!f?.uri) { toast(tr("Fayl hali yuklanmagan"), 'cloud-download-outline'); return; }
+          openFile(f.uri, f.name).then(ok => { if (!ok) toast(tr("Faylni ochib bo'lmadi"), 'alert-circle'); }).catch(() => toast(tr("Faylni ochib bo'lmadi"), 'alert-circle'));
+        }} style={{ gap: 6 }}>
           <Row gap={10}>
             <View style={[styles.fileIco, { backgroundColor: me ? 'rgba(14,21,37,0.12)' : c.accentSoft }]}><Ionicons name="document-text" size={20} color={me ? fg : c.accent} /></View>
             <View style={{ flexShrink: 1 }}>

@@ -1,17 +1,25 @@
+// YUMS platformasi holati. Katalog, loyihalar, market, chat, moderatsiya, tariflar va xavfsizlik —
+// backendda (platform-api.ts); bu yerda ekranlar uchun nusxa va jonli yangilanishlar.
+// Faqat savat qurilmada turadi: u buyurtma emas, sotuvchiga yuboriladigan so'rov qoralamasi.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Platform } from 'react-native';
 
-import {
-  BANNED_WORDS, COUNTRIES, SECTORS, SEED_COMPANIES, SEED_CONVERSATIONS, SEED_INVESTORS, SEED_MARKET, SEED_NOTICES, SEED_PROJECTS,
-  SEED_REPORTS, SEED_SPECIALISTS, SEED_VERIFICATIONS,
-  type Attachment, type Conversation, type MarketItem, type Meeting, type Message, type Notice, type PeerKind, type Plan, type Project,
-  type Report, type ReportTarget, type SecurityEvent, type Verification,
-} from './platform-data';
-import { useStore } from './store';
-import { tr, tx } from '@/lib/i18n';
+import { toast } from '@/components/toast';
+import { exportMyData, securityEvents, setTwoFactor as saveTwoFactor, type SecurityEvent as ServerSecurityEvent } from '@/lib/account-api';
+import { errorText } from '@/lib/api';
 import { fmtDay } from '@/lib/format';
 import { groupDigits } from '@/lib/geo';
+import { tr, tx } from '@/lib/i18n';
+import { onRealtime, startRealtime } from '@/lib/realtime';
+
+import * as papi from './platform-api';
+import type { MyPlan, PlanInfo } from './platform-api';
+import {
+  BANNED_WORDS, COUNTRIES, SECTORS,
+  type Attachment, type Company, type Conversation, type Investor, type MarketItem, type Meeting, type Message, type Notice, type PeerKind,
+  type Plan, type Project, type Report, type ReportTarget, type SecurityEvent, type Specialist, type Verification,
+} from './platform-data';
+import { useStore } from './store';
 
 /* ---------- Yordamchi formatlar ---------- */
 
@@ -40,22 +48,41 @@ export const ago = (iso: string) => {
 
 export const fileSize = (b?: number) => (!b ? '' : b > 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1e3))} KB`);
 
-/** Matnda taqiqlangan iboralar bormi — avtomatik moderatsiya uchun */
+/** Matnda taqiqlangan iboralar bormi — joylashdan oldin ogohlantirish (yakuniy qarorni server beradi) */
 export const flagged = (...texts: string[]) => {
   const t = texts.join(' ').toLowerCase();
   return BANNED_WORDS.filter(w => t.includes(w));
 };
 
-/* ---------- Holat ---------- */
+/* ---------- Turlar ---------- */
 
-type State = {
-  v: 1;
+export type CartLine = { id: string; qty: number };
+
+/** Reklama kampaniyasi; banner — 2:1 rasm (data: URI) */
+export type Ad = { id: string; title: string; budget: number; status: 'review' | 'active' | 'rejected'; image?: string };
+
+export type ProjectInput = papi.ProjectInputApi;
+export type MarketInput = papi.MarketInputApi;
+export type PeerInfo = { peerId: string; peerName: string; peerKind: PeerKind; peerVerified: boolean };
+
+type Ctx = {
+  ready: boolean;
+  companies: Company[];
+  specialists: Specialist[];
+  investors: Investor[];
+  /** Katalogdagi loyihalar va mening loyihalarim (ekranlar id bo'yicha shu ro'yxatdan topadi) */
   projects: Project[];
   market: MarketItem[];
+  publicProjects: Project[];
+  publicMarket: MarketItem[];
+  myProjects: Project[];
+  myMarket: MarketItem[];
   conversations: Conversation[];
   meetings: Meeting[];
   reports: Report[];
   verifications: Verification[];
+  /** Moderator uchun: tekshiruvdagi reklama kampaniyalari */
+  reviewAds: papi.AdDto[];
   notices: Notice[];
   security: SecurityEvent[];
   favorites: string[];
@@ -63,71 +90,34 @@ type State = {
   plan: Plan;
   planUntil?: string;
   boostCredits: number;
+  /** Tariflar narxi (USD va so'm) va TOP narxi */
+  planList: PlanInfo[];
+  pricing: MyPlan | null;
   twoFactor: boolean;
   ads: Ad[];
-  /** Savat: e'lon va miqdor */
   cart: CartLine[];
-};
-
-export type CartLine = { id: string; qty: number };
-
-/** Reklama kampaniyasi; banner — 2:1 rasm (data: URI) */
-export type Ad = { id: string; title: string; budget: number; status: 'review' | 'active'; image?: string };
-
-const device = () => (Platform.OS === 'ios' ? 'iPhone' : Platform.OS === 'android' ? 'Android' : tr('Veb-brauzer'));
-
-const initial = (): State => ({
-  v: 1,
-  projects: SEED_PROJECTS,
-  market: SEED_MARKET,
-  conversations: SEED_CONVERSATIONS,
-  meetings: [],
-  reports: SEED_REPORTS,
-  verifications: SEED_VERIFICATIONS,
-  notices: SEED_NOTICES,
-  security: [],
-  favorites: ['project:p3'],
-  blocked: [],
-  plan: 'free',
-  boostCredits: 0,
-  twoFactor: false,
-  ads: [],
-  cart: [],
-});
-
-const KEY = 'yp:state';
-const uid = (p: string) => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
-const now = () => new Date().toISOString();
-
-export type ProjectInput = Omit<Project, 'id' | 'ownerId' | 'ownerName' | 'ownerKind' | 'ownerVerified' | 'status' | 'views' | 'saves' | 'createdAt' | 'rejectReason' | 'boosted'>;
-export type MarketInput = Omit<MarketItem, 'id' | 'sellerId' | 'sellerName' | 'sellerVerified' | 'status' | 'createdAt'>;
-export type PeerInfo = { peerId: string; peerName: string; peerKind: PeerKind; peerVerified: boolean };
-
-type Ctx = State & {
-  companies: typeof SEED_COMPANIES;
-  specialists: typeof SEED_SPECIALISTS;
-  investors: typeof SEED_INVESTORS;
-  /** Katalogda ko'rinadigan (tasdiqlangan, bloklanmagan) loyihalar */
-  publicProjects: Project[];
-  publicMarket: MarketItem[];
-  myProjects: Project[];
-  myMarket: MarketItem[];
   myVerification?: Verification;
   isVerified: boolean;
   unread: number;
   unreadNotices: number;
   isBlocked: (kind: ReportTarget, id: string) => boolean;
+  /** Katalog profiliga javob beradigan akkaunt (o'z profilimmi — shu bilan bilinadi) */
+  ownerOf: (profileId: string) => string | undefined;
+  /** Ekran ochilganda ma'lumotlarni qayta o'qish */
+  refresh: () => Promise<void>;
+  /** Bitta loyihani (ilovalari bilan) yuklash */
+  loadProject: (id: string) => Promise<Project | null>;
 
-  saveProject: (input: ProjectInput, opts: { id?: string; submit: boolean }) => string;
+  saveProject: (input: ProjectInput, opts: { id?: string; submit: boolean }) => Promise<string | null>;
   deleteProject: (id: string) => void;
   /** Egasi faol loyihani vaqtincha yashiradi (Nofaol) yoki qayta yoqadi */
   setProjectActive: (id: string, active: boolean) => void;
   submitProject: (id: string) => void;
-  boostProject: (id: string) => 'credit' | 'paid';
+  boostProject: (id: string) => Promise<'credit' | 'paid' | null>;
   viewProject: (id: string) => void;
-  addMarketItem: (input: MarketInput) => string;
+  addMarketItem: (input: MarketInput) => Promise<string | null>;
   deleteMarketItem: (id: string) => void;
-  moderate: (kind: 'project' | 'market', id: string, approve: boolean, reason?: string) => void;
+  moderate: (kind: 'project' | 'market' | 'ad', id: string, approve: boolean, reason?: string) => void;
 
   /** Savat */
   cartItems: { item: MarketItem; qty: number }[];
@@ -141,10 +131,12 @@ type Ctx = State & {
   report: (r: Pick<Report, 'targetKind' | 'targetId' | 'targetTitle' | 'reason' | 'note'>) => void;
   resolveReport: (id: string, action: 'dismiss' | 'block') => void;
 
-  requestVerification: (docs: string[]) => void;
-  decideVerification: (id: string, approve: boolean) => void;
+  requestVerification: (files: { name: string; uri: string; mime?: string }[]) => Promise<boolean>;
+  decideVerification: (id: string, approve: boolean, reason?: string) => void;
 
-  openChat: (peer: PeerInfo, opts?: { subject?: string; request?: boolean; text?: string }) => string;
+  openChat: (peer: PeerInfo, opts?: { subject?: string; request?: boolean; text?: string }) => Promise<string | null>;
+  /** Suhbat xabarlarini serverdan yuklash */
+  loadMessages: (cid: string) => Promise<void>;
   sendMessage: (cid: string, text: string, file?: Attachment) => void;
   markRead: (cid: string) => void;
   respondRequest: (cid: string, accept: boolean) => void;
@@ -153,11 +145,10 @@ type Ctx = State & {
   cancelMeeting: (id: string) => void;
 
   markNoticesRead: () => void;
-  logEvent: (event: string, ok?: boolean) => void;
-  setPlan: (p: Plan, yearly: boolean) => void;
-  setTwoFactor: (on: boolean) => void;
-  createAd: (title: string, budget: number, image?: string) => void;
-  exportData: () => string;
+  setPlan: (p: Plan, yearly: boolean) => Promise<boolean>;
+  setTwoFactor: (on: boolean) => Promise<boolean>;
+  createAd: (title: string, budget: number, image?: string) => Promise<boolean>;
+  exportData: () => Promise<string | null>;
   resetPlatform: () => void;
 };
 
@@ -169,309 +160,356 @@ export const usePlatform = () => {
   return c;
 };
 
-// demo suhbatdosh javoblari (yuborilgan paytda joriy tilda)
-const AUTO_REPLIES = [
-  tx('Rahmat, xabaringizni oldim! Tez orada batafsil javob beraman.'),
-  tx("Qiziq taklif. Qo'shimcha ma'lumot yoki taqdimot yubora olasizmi?"),
-  tx("Kelishdik. Qulay vaqtda onlayn uchrashuv belgilasak bo'ladi."),
-  tx("Hujjatlarni ko'rib chiqib, ertaga qaytaman."),
-];
+const CART_KEY = 'yp:cart';
+const REFRESH_MS = 60_000;
+const EVENT_TEXT: Record<ServerSecurityEvent['event'], string> = {
+  SIGN_IN: tx('Tizimga kirish'), SIGN_IN_FAILED: tx("Kirish urinishi (noto'g'ri kod)"), SIGN_OUT: tx('Tizimdan chiqish'),
+  TWO_FACTOR_ON: tx('2FA yoqildi'), TWO_FACTOR_OFF: tx("2FA o'chirildi"), DATA_EXPORTED: tx("Ma'lumotlar nusxasi eksport qilindi"),
+};
+const fail = (error: unknown) => toast(errorText(error), 'alert-circle');
+const byId = <T extends { id: string }>(list: T[]) => new Map(list.map(x => [x.id, x]));
 
 export function PlatformProvider({ children }: { children: ReactNode }) {
-  const { user } = useStore();
-  const [s, setS] = useState<State>(initial);
-  const [loaded, setLoaded] = useState(false);
-  const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const later = (fn: () => void, ms: number) => { timers.current.push(setTimeout(fn, ms)); };
+  const { user, adoptUser } = useStore();
+  const [ready, setReady] = useState(false);
+  const [directory, setDirectory] = useState<papi.Directory>({ companies: [], specialists: [], investors: [], owners: {} });
+  const [publicProjects, setPublicProjects] = useState<Project[]>([]);
+  const [myProjects, setMyProjects] = useState<Project[]>([]);
+  const [opened, setOpened] = useState<Record<string, Project>>({});
+  const [publicMarket, setPublicMarket] = useState<MarketItem[]>([]);
+  const [myMarket, setMyMarket] = useState<MarketItem[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [meetings, setMeetings] = useState<Meeting[]>([]);
+  const [queue, setQueue] = useState<papi.ModerationQueue | null>(null);
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [security, setSecurity] = useState<SecurityEvent[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [pricing, setPricing] = useState<MyPlan | null>(null);
+  const [planList, setPlanList] = useState<PlanInfo[]>([]);
+  const [ads, setAds] = useState<Ad[]>([]);
+  const [cart, setCart] = useState<CartLine[]>([]);
+  const [myVerification, setMyVerification] = useState<Verification | undefined>(undefined);
+  const convRef = useRef(conversations);
+  useEffect(() => { convRef.current = conversations; }, [conversations]);
+
+  const me = user?.id;
+  const moderator = user?.role === 'moderator' || user?.role === 'admin';
+
+  /* ---------- Yuklash ---------- */
+  const loadChats = useCallback(async () => {
+    const rows = await papi.conversations();
+    setConversations(cur => {
+      const known = byId(cur);
+      // ochilgan suhbatlarning xabarlari saqlanadi, ro'yxat ma'lumoti yangilanadi
+      return rows.map(r => {
+        const prev = known.get(r.id);
+        const next = papi.toConversation(r);
+        return prev && prev.messages.length > 1 ? { ...next, messages: prev.messages } : next;
+      });
+    });
+  }, []);
+
+  const loadListings = useCallback(async () => {
+    const [pp, mp, pm, mm, fav] = await Promise.all([papi.publishedProjects(), papi.myProjects(), papi.publishedMarket(), papi.myMarket(), papi.favorites()]);
+    setPublicProjects(pp); setMyProjects(mp); setPublicMarket(pm); setMyMarket(mm); setFavorites(fav);
+  }, []);
+
+  const loadAccount = useCallback(async () => {
+    const [n, plan, plist, adList, verification, log, meet] = await Promise.all([
+      papi.inbox(), papi.myPlan(), papi.plans(), papi.myAds(), papi.myVerification(), securityEvents(), papi.meetings(),
+    ]);
+    setNotices(n);
+    setPricing(plan);
+    setPlanList(plist);
+    setAds(adList.map(a => ({ id: a.id, title: a.title, budget: a.budgetUsd, image: a.image, status: a.status === 'ACTIVE' ? 'active' : a.status === 'REJECTED' ? 'rejected' : 'review' })));
+    setMyVerification(verification);
+    setSecurity(log.map(e => ({ id: e.id, at: e.at, event: tr(EVENT_TEXT[e.event]), device: e.device ?? '—', ok: e.ok })));
+    setMeetings(meet);
+  }, []);
+
+  const loadQueue = useCallback(async () => {
+    if (!moderator) { setQueue(null); return; }
+    setQueue(await papi.moderationQueue());
+  }, [moderator]);
+
+  const refresh = useCallback(async () => {
+    await Promise.all([
+      papi.loadDirectory().then(setDirectory),
+      loadListings(),
+      loadChats(),
+      loadAccount(),
+      loadQueue(),
+    ].map(p => p.catch(() => {})));
+    setReady(true);
+  }, [loadListings, loadChats, loadAccount, loadQueue]);
 
   useEffect(() => {
-    AsyncStorage.getItem(KEY)
-      .then(v => {
-        const saved = v ? (JSON.parse(v) as State) : null;
-        if (saved?.v === 1) setS({ ...initial(), ...saved });
-      })
-      .catch(() => {})
-      .finally(() => setLoaded(true));
-    const t = timers.current;
-    return () => t.forEach(clearTimeout);
+    AsyncStorage.getItem(CART_KEY).then(v => { if (v) setCart(JSON.parse(v)); }).catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (loaded) AsyncStorage.setItem(KEY, JSON.stringify(s)).catch(() => {});
-  }, [s, loaded]);
+    if (!me) return;
+    startRealtime();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- server javobi kelgach yangilanadi
+    refresh().catch(() => {});
+    const iv = setInterval(() => { loadAccount().catch(() => {}); loadQueue().catch(() => {}); }, REFRESH_MS);
+    const offs = [
+      onRealtime<{ id: string; conversationId: string; from: 'ME' | 'THEM' | 'SYSTEM'; text: string; createdAt: string; meetingId?: string; file?: { name: string; data?: string } }>('chat.message', m => {
+        const msg = papi.toMessage(m);
+        const known = convRef.current.some(c => c.id === m.conversationId);
+        if (!known) { loadChats().catch(() => {}); return; }
+        setConversations(cs => cs.map(c => (c.id === m.conversationId ? { ...c, unread: c.unread + 1, messages: [...c.messages.filter(x => x.id !== msg.id), msg] } : c)));
+      }),
+      onRealtime<{ conversationId: string }>('chat.updated', () => {
+        loadChats().catch(() => {});
+        papi.meetings().then(setMeetings).catch(() => {});
+      }),
+    ];
+    return () => { clearInterval(iv); offs.forEach(off => off()); };
+  }, [me, refresh, loadAccount, loadQueue, loadChats]);
 
-  const me = user?.id ?? 'me';
-  const meName = user?.kind === 'company' && user.company ? user.company : user?.name ?? tr('Siz');
-
-  const notice = (n: Omit<Notice, 'id' | 'at' | 'read'>) =>
-    setS(x => ({ ...x, notices: [{ ...n, id: uid('n'), at: now(), read: false }, ...x.notices].slice(0, 40) }));
-
-  const myVerification = s.verifications.find(v => v.isMe);
-  const isVerified = myVerification?.status === 'approved';
-
-  /* ---------- Avtomatik moderatsiya (demo) ----------
-     Taqiqlangan iboralar bo'lmasa, e'lon bir necha soniyada tasdiqlanadi.
-     Shubhali e'lonlar moderator paneliga tushadi va qo'lda ko'rib chiqiladi. */
-  const autoReview = (kind: 'project' | 'market', id: string, texts: string[]) => {
-    if (flagged(...texts).length) return;
-    later(() => {
-      let title = '';
-      setS(x => {
-        if (kind === 'project') {
-          const p = x.projects.find(y => y.id === id);
-          if (!p || p.status !== 'review') return x;
-          title = p.title;
-          return { ...x, projects: x.projects.map(y => (y.id === id ? { ...y, status: 'published' } : y)) };
-        }
-        const m = x.market.find(y => y.id === id);
-        if (!m || m.status !== 'review') return x;
-        title = m.title;
-        return { ...x, market: x.market.map(y => (y.id === id ? { ...y, status: 'published' } : y)) };
-      });
-      later(() => title && notice({ icon: 'checkmark-circle', title: tr("Moderatsiyadan o'tdi"), text: tr("«{title}» katalogda e'lon qilindi", { title }), href: kind === 'project' ? `/project/${id}` : `/market/${id}` }), 50);
-    }, 7000);
-  };
-
-  const saveProject: Ctx['saveProject'] = (input, { id, submit }) => {
-    const pid = id ?? uid('p');
-    // E'lon qilingan loyiha o'zgartirilsa — qayta moderatsiyadan o'tadi
-    const review = submit || s.projects.find(p => p.id === pid)?.status === 'published';
-    setS(x => {
-      const prev = x.projects.find(p => p.id === pid);
-      const p: Project = {
-        ...input,
-        id: pid,
-        ownerId: me,
-        ownerName: meName,
-        ownerKind: user?.kind ?? 'person',
-        ownerVerified: isVerified,
-        status: review ? 'review' : 'draft',
-        views: prev?.views ?? 0,
-        saves: prev?.saves ?? 0,
-        boosted: prev?.boosted,
-        createdAt: prev?.createdAt ?? now(),
-      };
-      return { ...x, projects: prev ? x.projects.map(y => (y.id === pid ? p : y)) : [p, ...x.projects] };
-    });
-    if (review) autoReview('project', pid, [input.title, input.summary, input.description, input.goal]);
-    return pid;
-  };
-
-  const submitProject = (id: string) => {
-    const p = s.projects.find(x => x.id === id);
-    if (!p) return;
-    setS(x => ({ ...x, projects: x.projects.map(y => (y.id === id ? { ...y, status: 'review', rejectReason: undefined } : y)) }));
-    autoReview('project', id, [p.title, p.summary, p.description, p.goal]);
-  };
-
-  const addMarketItem: Ctx['addMarketItem'] = input => {
-    const id = uid('m');
-    const item: MarketItem = { ...input, id, sellerId: me, sellerName: meName, sellerVerified: isVerified, status: 'review', createdAt: now() };
-    setS(x => ({ ...x, market: [item, ...x.market] }));
-    autoReview('market', id, [input.title, input.desc]);
-    return id;
-  };
-
-  /** Xabar yuborilgandan keyingi demo javob: oddiy chatda — avto-javob, chiquvchi so'rovda — qabul qilinishi */
-  const afterSend = (cid: string, c: Pick<Conversation, 'kind' | 'incoming' | 'requestStatus' | 'blocked' | 'peerName'>, firstMine: boolean) => {
-    if (c.blocked) return;
-    if (c.kind === 'request' && !c.incoming && c.requestStatus !== 'accepted') {
-      if (!firstMine || c.requestStatus === 'declined') return;
-      later(() => {
-        setS(x => ({
-          ...x,
-          conversations: x.conversations.map(y => y.id === cid ? {
-            ...y, requestStatus: 'accepted', unread: y.unread + 1,
-            messages: [...y.messages, { id: uid('x'), from: 'system', text: tr("{peerName} hamkorlik so'rovingizni qabul qildi", { peerName: c.peerName }), at: now() }, { id: uid('x'), from: 'them', text: AUTO_REPLIES[1], at: now() }],
-          } : y),
-        }));
-        notice({ icon: 'people', title: tr("So'rov qabul qilindi"), text: tr("{peerName} siz bilan bog'lanishga rozi", { peerName: c.peerName }), href: `/chat/${cid}` });
-      }, 5000);
-      return;
-    }
-    later(() => {
-      setS(x => ({
-        ...x,
-        conversations: x.conversations.map(y => y.id === cid && !y.blocked
-          ? { ...y, unread: y.unread + 1, messages: [...y.messages, { id: uid('x'), from: 'them', text: y.peerKind === 'support' ? tr('Murojaatingiz qabul qilindi. Operator 5 daqiqa ichida javob beradi.') : tr(AUTO_REPLIES[Math.floor(Math.random() * AUTO_REPLIES.length)]), at: now() }] }
-          : y),
-      }));
-    }, 2600);
-  };
-
-  const openChat: Ctx['openChat'] = (peer, opts = {}) => {
-    const existing = s.conversations.find(c => c.peerId === peer.peerId);
-    const cid = existing?.id ?? uid('cv');
-    const conv: Conversation = existing ?? {
-      ...peer, id: cid, kind: opts.request ? 'request' : 'chat', incoming: false,
-      requestStatus: opts.request ? 'pending' : undefined, subject: opts.subject, messages: [], unread: 0,
-    };
-    const first: Message[] = opts.text ? [{ id: uid('x'), from: 'me', text: opts.text, at: now() }] : [];
-    setS(x => {
-      const cur = x.conversations.find(c => c.id === cid) ?? conv;
-      return { ...x, conversations: [{ ...cur, messages: [...cur.messages, ...first] }, ...x.conversations.filter(c => c.id !== cid)] };
-    });
-    if (opts.text) afterSend(cid, conv, !conv.messages.some(m => m.from === 'me'));
-    return cid;
-  };
-
-  const sendMessage: Ctx['sendMessage'] = (cid, text, file) => {
-    setS(x => ({
-      ...x,
-      conversations: x.conversations.map(c => (c.id === cid ? { ...c, messages: [...c.messages, { id: uid('x'), from: 'me', text, at: now(), file }] } : c)),
-    }));
-    const c = s.conversations.find(y => y.id === cid);
-    if (c) afterSend(cid, c, !c.messages.some(m => m.from === 'me'));
-  };
-
-  const publicProjects = useMemo(() => s.projects.filter(p => p.status === 'published' && !s.blocked.includes('project:' + p.id)), [s.projects, s.blocked]);
-  const publicMarket = useMemo(() => s.market.filter(p => p.status === 'published' && !s.blocked.includes('market:' + p.id)), [s.market, s.blocked]);
-  // Savatdagi e'lonlar: o'chirilgan yoki yashirilganlari chiqarib tashlanadi
-  const cartItems = useMemo(() => s.cart.flatMap(l => {
-    const item = s.market.find(m => m.id === l.id && m.status === 'published' && !s.blocked.includes('market:' + m.id));
+  /* ---------- Hosilalar ---------- */
+  const projects = useMemo(() => {
+    const all = byId(publicProjects);
+    // moderator navbatidagi (boshqalarning) loyihalar ham id bo'yicha ochiladi
+    for (const p of queue?.projects ?? []) all.set(p.id, p);
+    for (const p of myProjects) all.set(p.id, p);
+    for (const p of Object.values(opened)) all.set(p.id, { ...all.get(p.id), ...p });
+    return [...all.values()];
+  }, [publicProjects, myProjects, opened, queue]);
+  const market = useMemo(() => {
+    const all = byId(publicMarket);
+    for (const m of queue?.market ?? []) all.set(m.id, m);
+    for (const m of myMarket) all.set(m.id, m);
+    return [...all.values()];
+  }, [publicMarket, myMarket, queue]);
+  const cartItems = useMemo(() => cart.flatMap(l => {
+    const item = market.find(m => m.id === l.id && m.status === 'published');
     return item ? [{ item, qty: l.qty }] : [];
-  }), [s.cart, s.market, s.blocked]);
-  const myProjects = useMemo(() => s.projects.filter(p => p.ownerId === me), [s.projects, me]);
-  const myMarket = useMemo(() => s.market.filter(p => p.sellerId === me), [s.market, me]);
-  const isBlocked = useCallback((kind: ReportTarget, id: string) => s.blocked.includes(`${kind}:${id}`), [s.blocked]);
+  }), [cart, market]);
+
+  const saveCart = (next: CartLine[]) => { setCart(next); AsyncStorage.setItem(CART_KEY, JSON.stringify(next)).catch(() => {}); };
+  const upsertMine = (p: Project) => {
+    setMyProjects(list => [p, ...list.filter(x => x.id !== p.id)]);
+    setOpened(o => ({ ...o, [p.id]: p }));
+    if (p.status === 'published') setPublicProjects(list => [p, ...list.filter(x => x.id !== p.id)]);
+    else setPublicProjects(list => list.filter(x => x.id !== p.id));
+  };
+
+  const plan: Plan = (pricing?.plan as Plan | undefined) ?? 'free';
 
   const ctxValue: Ctx = {
-    ...s,
-    companies: SEED_COMPANIES,
-    specialists: SEED_SPECIALISTS,
-    investors: SEED_INVESTORS,
-    publicProjects,
-    publicMarket,
-    myProjects,
-    myMarket,
-    myVerification,
-    isVerified,
-    unread: s.conversations.reduce((n, c) => n + (c.blocked ? 0 : c.unread), 0),
-    unreadNotices: s.notices.filter(n => !n.read).length,
-    isBlocked,
-
-    saveProject,
-    setProjectActive: (id, active) => setS(x => ({
-      ...x,
-      projects: x.projects.map(p => (p.id === id && (p.status === 'published' || p.status === 'paused') ? { ...p, status: active ? 'published' : 'paused' } : p)),
-    })),
-    deleteProject: id => setS(x => ({ ...x, projects: x.projects.filter(p => p.id !== id), favorites: x.favorites.filter(f => f !== 'project:' + id) })),
-    submitProject,
-    boostProject: id => {
-      const credit = s.boostCredits > 0;
-      setS(x => ({ ...x, boostCredits: credit ? x.boostCredits - 1 : x.boostCredits, projects: x.projects.map(p => (p.id === id ? { ...p, boosted: true } : p)) }));
-      return credit ? 'credit' : 'paid';
+    ready,
+    companies: directory.companies,
+    specialists: directory.specialists,
+    investors: directory.investors,
+    projects, market, publicProjects, publicMarket, myProjects, myMarket,
+    conversations, meetings,
+    reports: queue?.reports ?? [],
+    verifications: queue?.verifications ?? [],
+    reviewAds: queue?.ads ?? [],
+    notices, security, favorites,
+    blocked: [],
+    plan, planUntil: pricing?.until, boostCredits: pricing?.boostCredits ?? 0, planList, pricing,
+    twoFactor: !!user?.twoFactor,
+    ads, cart, myVerification,
+    isVerified: !!user?.registryVerified,
+    unread: conversations.reduce((n, c) => n + (c.blocked ? 0 : c.unread), 0),
+    unreadNotices: notices.filter(n => !n.read).length,
+    isBlocked: () => false,
+    ownerOf: id => directory.owners[id],
+    refresh,
+    loadProject: async id => {
+      try {
+        const p = await papi.projectById(id);
+        setOpened(o => ({ ...o, [id]: p }));
+        return p;
+      } catch {
+        return null;
+      }
     },
-    viewProject: id => setS(x => ({ ...x, projects: x.projects.map(p => (p.id === id && p.ownerId !== me ? { ...p, views: p.views + 1 } : p)) })),
-    addMarketItem,
-    deleteMarketItem: id => setS(x => ({ ...x, market: x.market.filter(m => m.id !== id) })),
+
+    saveProject: async (input, { id, submit }) => {
+      try {
+        const p = id ? await papi.updateProject(id, input, submit) : await papi.createProject(input, submit);
+        upsertMine(p);
+        return p.id;
+      } catch (error) {
+        fail(error);
+        return null;
+      }
+    },
+    deleteProject: id => {
+      papi.deleteProject(id)
+        .then(() => {
+          setMyProjects(l => l.filter(x => x.id !== id));
+          setPublicProjects(l => l.filter(x => x.id !== id));
+          setFavorites(f => f.filter(k => k !== `project:${id}`));
+        })
+        .catch(fail);
+    },
+    setProjectActive: (id, active) => { papi.setProjectActive(id, active).then(upsertMine).catch(fail); },
+    submitProject: id => { papi.submitProject(id).then(upsertMine).catch(fail); },
+    boostProject: async id => {
+      try {
+        const r = await papi.boostProject(id);
+        upsertMine(r.project);
+        papi.myPlan().then(setPricing).catch(() => {});
+        return r.paidWith === 'CREDIT' ? 'credit' : 'paid';
+      } catch (error) {
+        fail(error);
+        return null;
+      }
+    },
+    viewProject: id => { papi.viewProject(id).catch(() => {}); },
+    addMarketItem: async input => {
+      try {
+        const m = await papi.createMarketItem(input);
+        setMyMarket(l => [m, ...l]);
+        if (m.status === 'published') setPublicMarket(l => [m, ...l]);
+        return m.id;
+      } catch (error) {
+        fail(error);
+        return null;
+      }
+    },
+    deleteMarketItem: id => {
+      papi.deleteMarketItem(id).then(() => { setMyMarket(l => l.filter(x => x.id !== id)); setPublicMarket(l => l.filter(x => x.id !== id)); }).catch(fail);
+    },
     moderate: (kind, id, approve, reason) => {
-      setS(x => kind === 'project'
-        ? { ...x, projects: x.projects.map(p => (p.id === id ? { ...p, status: approve ? 'published' : 'rejected', rejectReason: approve ? undefined : reason } : p)) }
-        : { ...x, market: x.market.map(m => (m.id === id ? { ...m, status: approve ? 'published' : 'rejected' } : m)) });
+      papi.decide(kind === 'project' ? 'projects' : kind === 'market' ? 'market' : 'ads', id, approve, reason)
+        .then(() => Promise.all([loadQueue(), kind === 'ad' ? loadAccount() : loadListings()]))
+        .catch(fail);
     },
 
     cartItems,
     cartCount: cartItems.reduce((n, x) => n + x.qty, 0),
-    cartQty: id => s.cart.find(x => x.id === id)?.qty ?? 0,
-    setCartQty: (id, qty) => setS(x => {
-      const rest = x.cart.filter(l => l.id !== id);
-      if (qty <= 0) return { ...x, cart: rest };
-      const at = x.cart.findIndex(l => l.id === id);
+    cartQty: id => cart.find(x => x.id === id)?.qty ?? 0,
+    setCartQty: (id, qty) => {
+      const rest = cart.filter(l => l.id !== id);
+      if (qty <= 0) { saveCart(rest); return; }
       const line = { id, qty: Math.min(999, Math.round(qty)) };
-      return { ...x, cart: at < 0 ? [...x.cart, line] : x.cart.map(l => (l.id === id ? line : l)) };
-    }),
-    clearCart: () => setS(x => ({ ...x, cart: [] })),
-    isFav: key => s.favorites.includes(key),
+      saveCart(cart.some(l => l.id === id) ? cart.map(l => (l.id === id ? line : l)) : [...cart, line]);
+    },
+    clearCart: () => saveCart([]),
+    isFav: key => favorites.includes(key),
     toggleFav: key => {
-      const on = !s.favorites.includes(key);
-      setS(x => ({ ...x, favorites: on ? [key, ...x.favorites] : x.favorites.filter(f => f !== key) }));
+      const on = !favorites.includes(key);
+      setFavorites(f => (on ? [key, ...f] : f.filter(x => x !== key)));
+      papi.setFavorite(key, on).catch(error => { fail(error); setFavorites(f => (on ? f.filter(x => x !== key) : [key, ...f])); });
       return on;
     },
 
-    report: r => setS(x => ({ ...x, reports: [{ ...r, id: uid('rp'), by: meName, status: 'open', createdAt: now() }, ...x.reports] })),
-    resolveReport: (id, action) => setS(x => {
-      const r = x.reports.find(y => y.id === id);
-      if (!r) return x;
-      const key = `${r.targetKind}:${r.targetId}`;
-      const block = action === 'block';
-      return {
-        ...x,
-        reports: x.reports.map(y => (y.targetKind === r.targetKind && y.targetId === r.targetId && y.status === 'open') || y.id === id
-          ? { ...y, status: block ? 'resolved' : 'dismissed', action: block ? tr('Kontent bloklandi') : tr('Asos topilmadi') } : y),
-        blocked: block && !x.blocked.includes(key) ? [...x.blocked, key] : x.blocked,
-        projects: block && r.targetKind === 'project' ? x.projects.map(p => (p.id === r.targetId ? { ...p, status: 'blocked' } : p)) : x.projects,
-        market: block && r.targetKind === 'market' ? x.market.map(m => (m.id === r.targetId ? { ...m, status: 'blocked' } : m)) : x.market,
-      };
-    }),
+    report: r => { papi.report(r).then(() => loadQueue().catch(() => {})).catch(fail); },
+    resolveReport: (id, action) => { papi.resolveReport(id, action).then(() => Promise.all([loadQueue(), loadListings(), papi.loadDirectory().then(setDirectory)])).catch(fail); },
 
-    requestVerification: docs => {
-      setS(x => ({
-        ...x,
-        verifications: [
-          { id: uid('v'), name: meName, kind: user?.kind ?? 'person', country: user?.country ?? 'UZ', docs, status: 'pending', isMe: true, createdAt: now() },
-          ...x.verifications.filter(v => !v.isMe),
-        ],
-      }));
+    requestVerification: async files => {
+      try {
+        setMyVerification(await papi.requestVerification(files));
+        return true;
+      } catch (error) {
+        fail(error);
+        return false;
+      }
     },
-    decideVerification: (id, approve) => {
-      const v = s.verifications.find(x => x.id === id);
-      setS(x => ({
-        ...x,
-        verifications: x.verifications.map(y => (y.id === id ? { ...y, status: approve ? 'approved' : 'rejected' } : y)),
-        projects: v?.isMe && approve ? x.projects.map(p => (p.ownerId === me ? { ...p, ownerVerified: true } : p)) : x.projects,
-      }));
-      if (v?.isMe) notice({ icon: approve ? 'shield-checkmark' : 'alert-circle', title: approve ? tr('Profil tasdiqlandi') : tr('Tasdiqlash rad etildi'), text: approve ? tr("Profilingizda «Tasdiqlangan» belgisi paydo bo'ldi") : tr("Hujjatlar aniq ko'rinmadi — qayta yuboring"), href: '/verify' });
+    decideVerification: (id, approve, reason) => {
+      papi.decide('verifications', id, approve, approve ? undefined : reason ?? tr("Hujjatlar aniq ko'rinmadi yoki ma'lumotlar mos kelmadi")).then(() => loadQueue()).catch(fail);
     },
 
-    openChat,
-    sendMessage,
-    markRead: cid => setS(x => (x.conversations.some(c => c.id === cid && c.unread) ? { ...x, conversations: x.conversations.map(c => (c.id === cid ? { ...c, unread: 0 } : c)) } : x)),
-    respondRequest: (cid, accept) => setS(x => ({
-      ...x,
-      conversations: x.conversations.map(c => (c.id === cid ? {
-        ...c, requestStatus: accept ? 'accepted' : 'declined',
-        messages: [...c.messages, { id: uid('x'), from: 'system', text: accept ? tr("Siz so'rovni qabul qildingiz — endi yozishishingiz mumkin") : tr("So'rov rad etildi"), at: now() }],
-      } : c)),
-    })),
-    toggleBlockChat: cid => setS(x => ({ ...x, conversations: x.conversations.map(c => (c.id === cid ? { ...c, blocked: !c.blocked } : c)) })),
+    openChat: async (peer, opts = {}) => {
+      // katalog profili bo'lsa — profil egasi bilan, aks holda foydalanuvchining o'zi bilan
+      const target = directory.owners[peer.peerId] ? { profileId: peer.peerId } : { userId: peer.peerId };
+      try {
+        const c = await papi.openConversation(target, opts);
+        const conv = papi.toConversation(c);
+        setConversations(cs => [conv, ...cs.filter(x => x.id !== conv.id)]);
+        return conv.id;
+      } catch (error) {
+        fail(error);
+        return null;
+      }
+    },
+    loadMessages: async cid => {
+      try {
+        const list = await papi.messages(cid);
+        setConversations(cs => cs.map(c => (c.id === cid ? { ...c, messages: list } : c)));
+      } catch (error) {
+        fail(error);
+      }
+    },
+    sendMessage: (cid, text, file) => {
+      if (file?.size && file.size > papi.FILE_LIMIT) { toast(tr('Fayl juda katta — 1 MB gacha yuboring'), 'alert-circle'); return; }
+      papi.sendMessage(cid, text, file)
+        .then((m: Message) => setConversations(cs => cs.map(c => (c.id === cid ? { ...c, messages: [...c.messages, m] } : c))))
+        .catch(fail);
+    },
+    markRead: cid => {
+      if (!convRef.current.find(c => c.id === cid)?.unread) return;
+      setConversations(cs => cs.map(c => (c.id === cid ? { ...c, unread: 0 } : c)));
+      papi.markRead(cid).catch(() => {});
+    },
+    respondRequest: (cid, accept) => {
+      papi.respond(cid, accept).then(() => Promise.all([loadChats(), papi.messages(cid).then(list => setConversations(cs => cs.map(c => (c.id === cid ? { ...c, messages: list } : c))))])).catch(fail);
+    },
+    toggleBlockChat: cid => {
+      const c = convRef.current.find(x => x.id === cid);
+      if (!c) return;
+      papi.setBlocked(cid, !c.blocked).then(() => loadChats()).catch(fail);
+    },
     scheduleMeeting: (cid, at, title, durationMin) => {
-      const c = s.conversations.find(y => y.id === cid);
-      const id = uid('mt');
-      const meeting: Meeting = { id, convId: cid, title, with: c?.peerName ?? '', at: at.toISOString(), durationMin, link: `https://meet.yums.example/${id}`, status: 'scheduled' };
-      setS(x => ({
-        ...x,
-        meetings: [...x.meetings, meeting].sort((a, b) => a.at.localeCompare(b.at)),
-        conversations: x.conversations.map(y => (y.id === cid ? { ...y, messages: [...y.messages, { id: uid('x'), from: 'me', text: title, at: now(), meetingId: id }] } : y)),
-      }));
+      papi.scheduleMeeting(cid, at, title, durationMin)
+        .then(m => { setMeetings(ms => [...ms, m].sort((a, b) => a.at.localeCompare(b.at))); return papi.messages(cid); })
+        .then(list => setConversations(cs => cs.map(c => (c.id === cid ? { ...c, messages: list } : c))))
+        .catch(fail);
     },
-    cancelMeeting: id => setS(x => ({ ...x, meetings: x.meetings.map(m => (m.id === id ? { ...m, status: 'cancelled' } : m)) })),
+    cancelMeeting: id => { papi.cancelMeeting(id).then(m => setMeetings(ms => ms.map(x => (x.id === id ? m : x)))).catch(fail); },
 
-    markNoticesRead: () => setS(x => ({ ...x, notices: x.notices.map(n => ({ ...n, read: true })) })),
-    logEvent: (event, ok = true) => setS(x => ({ ...x, security: [{ id: uid('se'), at: now(), event, device: device(), ok }, ...x.security].slice(0, 30) })),
-    setPlan: (plan, yearly) => {
-      const until = new Date();
-      until.setMonth(until.getMonth() + (yearly ? 12 : 1));
-      setS(x => ({ ...x, plan, planUntil: plan === 'free' ? undefined : until.toISOString(), boostCredits: plan === 'free' ? 0 : plan === 'pro' ? 2 : 5 }));
+    markNoticesRead: () => {
+      if (!notices.some(n => !n.read)) return;
+      setNotices(ns => ns.map(n => ({ ...n, read: true })));
+      papi.markInboxRead().catch(() => {});
     },
-    setTwoFactor: on => setS(x => ({ ...x, twoFactor: on })),
-    createAd: (title, b, image) => {
-      const id = uid('ad');
-      setS(x => ({ ...x, ads: [{ id, title, budget: b, status: 'review', image }, ...x.ads] }));
-      later(() => setS(x => ({ ...x, ads: x.ads.map(a => (a.id === id ? { ...a, status: 'active' } : a)) })), 6000);
+    setPlan: async (p, yearly) => {
+      try {
+        setPricing(await papi.subscribe(p, yearly));
+        return true;
+      } catch (error) {
+        fail(error);
+        return false;
+      }
     },
-    exportData: () => JSON.stringify({
-      exportedAt: now(),
-      account: user,
-      projects: s.projects.filter(p => p.ownerId === me),
-      market: s.market.filter(m => m.sellerId === me),
-      favorites: s.favorites,
-      conversations: s.conversations.map(c => ({ with: c.peerName, messages: c.messages.length })),
-      meetings: s.meetings,
-      plan: s.plan,
-      security: s.security,
-    }, null, 2),
-    resetPlatform: () => { timers.current.forEach(clearTimeout); setS(initial()); },
+    setTwoFactor: async on => {
+      try {
+        adoptUser(await saveTwoFactor(on));
+        securityEvents().then(log => setSecurity(log.map(e => ({ id: e.id, at: e.at, event: tr(EVENT_TEXT[e.event]), device: e.device ?? '—', ok: e.ok })))).catch(() => {});
+        return true;
+      } catch (error) {
+        fail(error);
+        return false;
+      }
+    },
+    createAd: async (title, budgetUsd, image) => {
+      try {
+        const a = await papi.createAd(title, budgetUsd, image);
+        setAds(l => [{ id: a.id, title: a.title, budget: a.budgetUsd, image: a.image, status: 'review' }, ...l]);
+        return true;
+      } catch (error) {
+        fail(error);
+        return false;
+      }
+    },
+    exportData: async () => {
+      try {
+        return JSON.stringify(await exportMyData(), null, 2);
+      } catch (error) {
+        fail(error);
+        return null;
+      }
+    },
+    resetPlatform: () => {
+      setPublicProjects([]); setMyProjects([]); setPublicMarket([]); setMyMarket([]); setConversations([]); setMeetings([]);
+      setQueue(null); setNotices([]); setSecurity([]); setFavorites([]); setPricing(null); setAds([]); saveCart([]); setMyVerification(undefined);
+    },
   };
 
   return <PCtx.Provider value={ctxValue}>{children}</PCtx.Provider>;

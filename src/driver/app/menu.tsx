@@ -82,14 +82,14 @@ export default function Menu() {
       </Card>
 
       <Card style={{ paddingVertical: 6, paddingHorizontal: 4 }}>
-        <ListItem icon="settings" art={ART.settings} title={tr('Sozlamalar')} sub={tr('Navigator, mavzu, demo rejim')} onPress={() => go('/settings')} />
+        <ListItem icon="settings" art={ART.settings} title={tr('Sozlamalar')} sub={tr('Navigator, mavzu, ulanish holati')} onPress={() => go('/settings')} />
         <Divider style={{ marginLeft: 62 }} />
         <ListItem icon="headset" art={ART.support} title={tr('Yordam markazi')} sub={tr('24/7 · chat, savol-javoblar')} onPress={() => go('/support')} />
         <Divider style={{ marginLeft: 62 }} />
         <ListItem icon="shield-checkmark" art={ART.safety} title={tr('Xavfsizlik')} sub={tr('Favqulodda vaziyat · 112')} onPress={() => callNumber('112')} />
       </Card>
 
-      <Txt v="tiny" faint style={{ textAlign: 'center' }}>{tr('YUMS Driver 1.0 · {v2}', { v2: d.live ? tr('YUMS bilan jonli ulangan') : tr('demo rejim') })}</Txt>
+      <Txt v="tiny" faint style={{ textAlign: 'center' }}>{tr('YUMS Driver 1.0 · {v2}', { v2: d.live ? tr('YUMS bilan jonli ulangan') : tr('ulanish tiklanmoqda…') })}</Txt>
     </Screen>
   );
 }

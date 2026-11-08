@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -16,6 +17,8 @@ import { TARIFFS, type Gender } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
 import { tr, tx } from '@/lib/i18n';
+
+const HERO_BG = require('@/assets/menu/card-register.webp');
 
 // rang nomi profilda o'zbekcha saqlanadi, ekranda tr() bilan
 const COLORS = [tx('Oq'), tx('Qora'), tx('Kumush'), tx('Kulrang'), tx("Ko'k"), tx('Qizil'), tx('Sariq')];
@@ -71,20 +74,33 @@ export default function Register() {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Screen title={tr("Haydovchi bo'lish")} subtitle={tr("YUMS Driver · ro'yxatdan o'tish")} back={false} right={<LangButton />} footer={<Button title={tr("Ro'yxatdan o'tish")} icon="arrow-forward-circle" loading={busy} onPress={submit} />}>
-        <View style={[styles.hero, { backgroundColor: '#0F1E3D' }]}>
+        <LinearGradient colors={['#13254A', '#0B1530']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+          {/* Fon: tungi shahar va o'ngda taksi. Ustidan chapdan va pastdan qorong'ilatish — matn har doim o'qiladi */}
+          <Image source={HERO_BG} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="center" accessible={false} />
+          <LinearGradient pointerEvents="none" colors={['rgba(8,14,32,0.94)', 'rgba(8,14,32,0.74)', 'rgba(8,14,32,0.3)']} locations={[0, 0.5, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+          <LinearGradient pointerEvents="none" colors={['rgba(8,14,32,0)', 'rgba(8,14,32,0.78)']} locations={[0.45, 1]} style={StyleSheet.absoluteFill} />
           <Row gap={10}>
-            <BrandMark size={44} />
-            <View style={{ flex: 1 }}>
+            <BrandMark size={40} />
+            <View style={{ flex: 1, gap: 2 }}>
               <Text style={styles.heroTitle}>YUMS Driver</Text>
-              <Txt v="small" color="rgba(255,255,255,0.7)">{tr("Buyurtmalar YUMS ilovasidagi yo'lovchilardan to'g'ridan-to'g'ri keladi")}</Txt>
+              <Text style={styles.heroSub}>{tr("Buyurtmalar YUMS ilovasidagi yo'lovchilardan to'g'ridan-to'g'ri keladi")}</Text>
             </View>
           </Row>
-          <Row gap={8} style={{ marginTop: 14 }}>
-            {[tr("Buyurtmaga 1 200 so'm"), tr('Erkin grafik')].map(t => (
-              <View key={t} style={styles.perk}><Txt v="tiny" color="#FFC800" style={{ fontFamily: F.bold }}>{t}</Txt></View>
+          <View style={styles.heroRule} />
+          {/* Teng ustunlar: ikonka, katta qiymat, ostida izoh. Faqat shartnomadagi faktlar */}
+          <View style={styles.perks}>
+            {([['pie-chart', tr("1 200 so'm"), tr('har buyurtmaga')], ['time', tr('Erkin grafik'), tr('xohlagan vaqtda ishlang')]] as const).map(([icon, big, small], i) => (
+              <View key={icon} style={[styles.perk, i === 0 ? { paddingStart: 0 } : styles.perkSep]}>
+                {/* ikonka qiymat yonida — karta past va ixcham bo'ladi */}
+                <View style={styles.perkHead}>
+                  <Ionicons name={icon} size={13} color="#FFC800" />
+                  <Text style={styles.perkBig} numberOfLines={1}>{big}</Text>
+                </View>
+                <Text style={styles.perkSmall} numberOfLines={2}>{small}</Text>
+              </View>
             ))}
-          </Row>
-        </View>
+          </View>
+        </LinearGradient>
 
         <Field label={tr('Ism va familiya')} placeholder={tr('Masalan: Jasur Karimov')} value={name} onChangeText={setName} error={tried ? err.name : ''} />
         <View style={{ gap: 8 }}>
@@ -105,23 +121,27 @@ export default function Register() {
           <Pressable onPress={() => setCarSheet(true)} accessibilityLabel={tr('Avtomobilni tanlash')}
             style={[styles.pick, { backgroundColor: c.surface2, borderColor: tried && err.car ? c.danger : c.line }]}>
             <Ionicons name="car-sport-outline" size={20} color={c.muted} />
-            <Txt v="h3" color={car ? c.text : c.faint} style={{ flex: 1 }}>{car || tr('Modelni tanlang')}</Txt>
-            {model ? <Txt v="tiny" muted>{tr(CLASS_NAME[model.cls])}</Txt> : null}
+            <Txt v="h3" color={car ? c.text : c.faint} style={{ flex: 1 }} numberOfLines={1}>{car || tr('Modelni tanlang')}</Txt>
+            {model ? <View style={[styles.cls, { backgroundColor: c.surface }]}><Txt v="tiny" muted numberOfLines={1}>{tr(CLASS_NAME[model.cls])}</Txt></View> : null}
             <Ionicons name="chevron-down" size={18} color={c.faint} />
           </Pressable>
           {tried && err.car ? <Txt v="tiny" color={c.danger} style={{ marginLeft: 2 }}>{err.car}</Txt> : null}
         </View>
         <Field label={tr('Ishlab chiqarilgan yili')} placeholder="2021" keyboardType="number-pad" maxLength={4} value={year} onChangeText={v => setYear(v.replace(/\D/g, ''))} error={tried ? err.year : ''} />
         <View style={{ gap: 8 }}>
-          <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>{tr('Rangi')}</Txt>
-          <Row gap={10} style={{ flexWrap: 'wrap' }}>
+          <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>
+            {tr('Rangi')} · <Txt v="small" style={{ fontFamily: F.bold }}>{tr(color)}</Txt>
+          </Txt>
+          {/* 7 ta rang bitta qatorda teng taqsimlanadi — oxirgisi alohida qatorga tushib qolmaydi */}
+          <View style={styles.swatches}>
             {COLORS.map(col => (
-              <Pressable key={col} onPress={() => setColor(col)} accessibilityLabel={tr(col)} style={[styles.swatchWrap, { borderColor: color === col ? c.brand : 'transparent' }]}>
-                <View style={[styles.swatch, { backgroundColor: SWATCH[col], borderColor: c.line }]} />
+              <Pressable key={col} onPress={() => setColor(col)} accessibilityLabel={tr(col)} accessibilityState={{ selected: color === col }} style={[styles.swatchWrap, { borderColor: color === col ? c.brand : 'transparent' }]}>
+                <View style={[styles.swatch, { backgroundColor: SWATCH[col], borderColor: c.line }]}>
+                  {color === col ? <Ionicons name="checkmark" size={16} color={col === 'Oq' || col === 'Sariq' || col === 'Kumush' ? '#0E1525' : '#fff'} /> : null}
+                </View>
               </Pressable>
             ))}
-          </Row>
-          <Txt v="tiny" faint style={{ marginLeft: 2 }}>{tr(color)}</Txt>
+          </View>
         </View>
         <Field label={tr('Davlat raqami')} placeholder="01 A 123 BC" autoCapitalize="characters" value={plate} onChangeText={v => setPlate(fmtPlate(v))} error={tried ? err.plate : ''} inputStyle={{ fontFamily: F.heavy, letterSpacing: 1.5 }} />
         <View style={{ gap: 8 }}>
@@ -149,11 +169,20 @@ export default function Register() {
 }
 
 const styles = StyleSheet.create({
-  hero: { borderRadius: 22, padding: 18 },
-  heroTitle: { fontFamily: F.brand, fontSize: 20, color: '#fff', marginBottom: 2 },
-  perk: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99, backgroundColor: 'rgba(255,200,0,0.14)' },
+  hero: { borderRadius: 20, paddingHorizontal: 14, paddingVertical: 13, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.08)' },
+  heroTitle: { fontFamily: F.brand, fontSize: 17, color: '#fff' },
+  heroSub: { fontFamily: F.medium, fontSize: 12.5, lineHeight: 17, color: 'rgba(255,255,255,0.66)' },
+  heroRule: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 11 },
+  perks: { flexDirection: 'row' },
+  perk: { flex: 1, minWidth: 0, alignItems: 'flex-start', gap: 2, paddingHorizontal: 9 },
+  perkSep: { borderStartWidth: StyleSheet.hairlineWidth, borderStartColor: 'rgba(255,255,255,0.12)' },
+  perkHead: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  perkBig: { fontFamily: F.heavy, fontSize: 15, color: '#fff', letterSpacing: -0.2 },
+  perkSmall: { fontFamily: F.medium, fontSize: 11, lineHeight: 14, color: 'rgba(255,255,255,0.58)' },
+  swatches: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 2 },
   swatchWrap: { padding: 3, borderRadius: 99, borderWidth: 2 },
-  swatch: { width: 30, height: 30, borderRadius: 15, borderWidth: 1 },
+  swatch: { width: 30, height: 30, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  cls: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, maxWidth: 110 },
   gender: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 16, borderWidth: 1.5 },
   genderPic: { width: 40, height: 40, borderRadius: 14 },
   pick: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 50, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1 },

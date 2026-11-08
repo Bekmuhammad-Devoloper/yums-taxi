@@ -9,11 +9,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Logo, PickerSheet, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
 import { Avatar, BrandLogo, BrandMark, DEFAULT_AVATAR, Button, Field, Flag, IconTile, Row, Txt } from '@/components/ui';
-import { requestOtp, saveProfile, verifyOtp, type OtpContact } from '@/lib/account-api';
+import { type OtpContact, requestOtp, saveProfile, type SecondStep, verifyOtp, verifySecondFactor } from '@/lib/account-api';
 import { ApiError, errorText } from '@/lib/api';
+import { som } from '@/lib/geo';
 import { COUNTRIES } from '@/lib/platform-data';
-import { countryOf, usePlatform } from '@/lib/platform';
-import { checkPinfl, checkStir, companyMatches, DEMO_REGISTRY, directorMatches, lookupCompany, type LookupResult } from '@/lib/registry';
+import { countryOf } from '@/lib/platform';
+import { checkPinfl, checkStir, companyMatches, directorMatches, lookupCompany, type LookupResult } from '@/lib/registry';
 import { haptic, useStore, type AccountKind, type User } from '@/lib/store';
 import { F } from '@/lib/theme';
 import { tr, tx, flipRTL } from '@/lib/i18n';
@@ -70,8 +71,8 @@ type Step = 'accounts' | 'contact' | 'code' | 'profile';
  * Qurilmada avval kirilgan hisoblar «Hisobni tanlang» ro'yxatida chiqadi.
  */
 export default function Login() {
-  const { colors: c, signIn, savedAccounts, forgetAccount } = useStore();
-  const { logEvent } = usePlatform();
+  const { colors: c, signIn, savedAccounts, forgetAccount, settings } = useStore();
+  const bonus = settings?.signupBonus ?? 0;
   const insets = useSafeAreaInsets();
   const [step, setStep] = useState<Step>(() => (savedAccounts.length ? 'accounts' : 'contact'));
   const [method, setMethod] = useState<'phone' | 'email'>('phone');
@@ -83,6 +84,8 @@ export default function Login() {
   const [attemptsLeft, setAttemptsLeft] = useState(MAX_ATTEMPTS);
   const contactRef = useRef<OtpContact>({ phone: '' });
   const newUserRef = useRef<User | null>(null);
+  // Ikki bosqichli himoya: birinchi kod to'g'ri, ikkinchisi boshqa manzilga yuborildi
+  const [second, setSecond] = useState<SecondStep | null>(null);
   const [codeError, setCodeError] = useState<'wrong' | 'locked' | null>(null);
   const [kind, setKind] = useState<AccountKind>('person');
   const [name, setName] = useState('');
@@ -125,6 +128,7 @@ export default function Login() {
 
   const sendCode = async (contact: OtpContact = typedContact()) => {
     contactRef.current = contact;
+    setSecond(null);
     setBusy(true);
     try {
       const { resendInSec } = await requestOtp(contact);
@@ -161,11 +165,25 @@ export default function Login() {
   const checkCode = async (d: string) => {
     setBusy(true);
     try {
-      const { user, isNewUser } = await verifyOtp(contactRef.current, d);
+      if (second) {
+        const user = await verifySecondFactor(second.challengeId, d);
+        haptic.success();
+        signIn(user);
+        toast(tr('Xush kelibsiz, {name}!', { name: user.name.split(' ')[0] }), 'hand-right');
+        router.replace('/');
+        return;
+      }
+      const result = await verifyOtp(contactRef.current, d);
       haptic.success();
+      if ('second' in result) {
+        setSecond(result.second);
+        setCode(''); setAttemptsLeft(MAX_ATTEMPTS); setCodeError(null); setTimer(result.second.resendInSec);
+        setTimeout(() => codeRef.current?.focus(), 300);
+        return;
+      }
+      const { user, isNewUser } = result;
       if (isNewUser) { newUserRef.current = user; setStep('profile'); return; }
       signIn(user);
-      logEvent(method === 'phone' ? tr('Tizimga kirish (SMS kod)') : tr('Tizimga kirish (email kod)'));
       toast(tr('Xush kelibsiz, {name}!', { name: user.name.split(' ')[0] }), 'hand-right');
       router.replace('/');
     } catch (error) {
@@ -185,10 +203,12 @@ export default function Login() {
     setCodeError(left > 0 ? 'wrong' : 'locked');
   };
 
-  // STIR / JShShIR: O'zbekiston uchun majburiy; kompaniya reyestr bilan solishtiriladi
+  // STIR va mas'ul shaxs JShShIRi faqat O'zbekistondagi kompaniyadan so'raladi (reyestr bilan solishtiriladi).
+  // Jismoniy shaxs ro'yxatdan o'tishda JShShIR kiritmaydi.
   const local = country === 'UZ';
+  const needPinfl = local && kind === 'company';
   const pin = checkPinfl(pinfl);
-  const pinOk = !local || !pin.error;
+  const pinOk = !needPinfl || !pin.error;
   const stirErr = stir.length === 9 ? checkStir(stir) : null;
   const rec = lookup.state === 'done' && lookup.result.ok ? lookup.result.record : null;
   const active = !!rec && rec.status === 'active';
@@ -211,10 +231,9 @@ export default function Login() {
     try {
       const user = await saveProfile({
         fullName: name.trim(), kind, company: kind === 'company' ? company.trim() : undefined, country,
-        pinfl: local && pinfl ? pinfl : undefined, stir: kind === 'company' && local ? stir : undefined,
+        pinfl: needPinfl ? pinfl : undefined, stir: kind === 'company' && local ? stir : undefined,
       });
       signIn(user);
-      logEvent(method === 'phone' ? tr("Ro'yxatdan o'tish (SMS kod)") : tr("Ro'yxatdan o'tish (email kod)"));
       router.replace('/');
     } catch (error) {
       toast(errorText(error), 'alert-circle');
@@ -377,9 +396,9 @@ export default function Login() {
                 <View style={[styles.codeIcon, { backgroundColor: c.brandSoft }]}>
                   <Ionicons name={method === 'phone' ? 'chatbubble-ellipses-outline' : 'mail-outline'} size={28} color={c.brandDeep} />
                 </View>
-                <Txt v="h1" style={{ textAlign: 'center' }}>{method === 'phone' ? tr('SMS kodni kiriting') : tr('Emaildagi kodni kiriting')}</Txt>
-                <Txt muted style={{ textAlign: 'center' }}>{tr('{CODE_LEN} xonali kod yuborildi', { CODE_LEN })}</Txt>
-                <Txt v="h3" style={{ textAlign: 'center', fontVariant: ['tabular-nums'] }}>{target}</Txt>
+                <Txt v="h1" style={{ textAlign: 'center' }}>{second ? tr('Ikkinchi kodni kiriting') : method === 'phone' ? tr('SMS kodni kiriting') : tr('Emaildagi kodni kiriting')}</Txt>
+                <Txt muted style={{ textAlign: 'center' }}>{second ? tr('Ikki bosqichli himoya yoqilgan: kod boshqa manzilingizga yuborildi') : tr('{CODE_LEN} xonali kod yuborildi', { CODE_LEN })}</Txt>
+                <Txt v="h3" style={{ textAlign: 'center', fontVariant: ['tabular-nums'] }}>{second ? second.destination : target}</Txt>
                 <Pressable onPress={() => setStep('contact')} hitSlop={8}>
                   <Txt v="small" color={c.accent} style={{ fontFamily: F.semi }}>{method === 'phone' ? tr("Raqamni o'zgartirish") : tr("Emailni o'zgartirish")}</Txt>
                 </Pressable>
@@ -516,21 +535,12 @@ export default function Login() {
                       )}
                     </Row>
                   ))}
-                  {!process.env.EXPO_PUBLIC_REGISTRY_API && lookup.state !== 'done' && (
-                    <Pressable onPress={() => onStir(DEMO_REGISTRY[0].stir)} style={[styles.demoPill, { backgroundColor: c.surface2, alignSelf: 'flex-start' }]}>
-                      <Ionicons name="flask-outline" size={15} color={c.muted} />
-                      <Txt v="small" muted>{tr('Demo STIR')}</Txt>
-                      <Txt v="small" style={{ fontFamily: F.bold }}>{DEMO_REGISTRY[0].stir}</Txt>
-                      <View style={[styles.demoDivider, { backgroundColor: c.line }]} />
-                      <Txt v="small" color={c.accent} style={{ fontFamily: F.bold }}>{tr("Qo'yish")}</Txt>
-                    </Pressable>
-                  )}
                 </>
               )}
 
               {kind === 'company' && (
                 <View style={{ gap: 6 }}>
-                  <Field label={tr('Kompaniya nomi')} value={company} onChangeText={setCompany} placeholder={tr('Masalan: YUMS Demo')} />
+                  <Field label={tr('Kompaniya nomi')} value={company} onChangeText={setCompany} placeholder={tr('Masalan: «Agro Invest» MChJ')} />
                   {rec && company.trim().length > 1 && (
                     <Match ok={nameOk} yes={tr('Reyestrdagi nom bilan mos')} no={tr('Reyestrda: {name}', { name: rec.name })} />
                   )}
@@ -550,9 +560,9 @@ export default function Login() {
                   <Match ok={dirOk} yes={tr('Kompaniya rahbari bilan mos')} no={tr("Mas'ul shaxs reyestrdagi rahbar bilan mos kelmadi")} />
                 )}
               </View>
-              {local && (
+              {needPinfl && (
                 <Field
-                  label={kind === 'company' ? tr("Mas'ul shaxsning JShShIRi") : tr('JShShIR')}
+                  label={tr("Mas'ul shaxsning JShShIRi")}
                   value={pinfl}
                   onChangeText={v => setPinfl(v.replace(/\D/g, '').slice(0, 14))}
                   placeholder={tr('14 xonali shaxsiy raqam')}
@@ -572,7 +582,7 @@ export default function Login() {
                 <IconTile name="gift-outline" color={c.brandDeep} size={44} />
                 <View style={{ flex: 1 }}>
                   <Txt v="h3">{tr("Xush kelibsiz sovg'asi")}</Txt>
-                  <Txt v="small" muted>{tr("Birinchi loyiha joylashtirish bepul + YUMS Taxi balansiga 25 000 so'm")}</Txt>
+                  <Txt v="small" muted>{bonus > 0 ? tr('Birinchi loyiha joylashtirish bepul + YUMS Taxi balansiga {sum}', { sum: som(bonus) }) : tr('Birinchi loyiha joylashtirish bepul')}</Txt>
                 </View>
               </View>
               <Button title={tr('Hisob yaratish')} icon="arrow-forward" disabled={!profileOk} loading={busy} onPress={finish} />
@@ -616,8 +626,6 @@ const styles = StyleSheet.create({
   codeHead: { alignItems: 'center', gap: 6, paddingTop: 4 },
   codeIcon: { width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
   status: { alignItems: 'center', gap: 8, minHeight: 24 },
-  demoPill: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center', height: 38, paddingHorizontal: 14, borderRadius: 19 },
-  demoDivider: { width: StyleSheet.hairlineWidth * 2, height: 16 },
   card: { flex: 1, marginTop: -28, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, gap: 16 },
   accList: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 18, overflow: 'hidden' },
   accRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },

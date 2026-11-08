@@ -6,7 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Row } from '@/components/ui';
-import { DOC_META, SAMPLE, type DocKind, type DocStatus, type DriverDoc } from '@/driver/lib/docs';
+import { DOC_META, type DocKind, type DocStatus, type DriverDoc } from '@/driver/lib/docs';
 import type { Driver } from '@/lib/data';
 import { F } from '@/lib/theme';
 import { tr, tx } from '@/lib/i18n';
@@ -45,7 +45,7 @@ export function DocCard({ doc, profile, side = 'front' }: { doc: DriverDoc; prof
   const given = rest.reverse().join(' ');
   const photo = side === 'front' ? doc.front : doc.back;
   // haydovchi o'zi yuklagan rasm bo'lsa — shu rasm ko'rsatiladi
-  if (photo && photo !== SAMPLE) {
+  if (photo) {
     return <Image source={{ uri: photo }} style={styles.card} contentFit="cover" accessibilityLabel={side === 'front' ? tr('{title} — old tomoni', { title: tr(DOC_META[doc.kind].title) }) : tr('{title} — orqa tomoni', { title: tr(DOC_META[doc.kind].title) })} />;
   }
   const f = (n: string, label: string, value?: string, big?: boolean) => (

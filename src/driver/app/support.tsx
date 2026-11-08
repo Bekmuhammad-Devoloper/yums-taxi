@@ -18,7 +18,7 @@ export default function Support() {
   const [q, setQ] = useState('');
   const [open, setOpen] = useState<string | null>(null);
   const query = q.trim().toLowerCase();
-  const groups = faqGroups().map(g => ({ ...g, items: g.items.filter(f => !query || (f.q + ' ' + f.a).toLowerCase().includes(query)) })).filter(g => g.items.length);
+  const groups = faqGroups(d.rules, d.commission).map(g => ({ ...g, items: g.items.filter(f => !query || (f.q + ' ' + f.a).toLowerCase().includes(query)) })).filter(g => g.items.length);
 
   return (
     <Screen title={tr('Yordam markazi')} subtitle={tr("24/7 · o'rtacha javob 2 daqiqa")}>
@@ -95,8 +95,8 @@ export default function Support() {
 function Action({ icon, label, onPress, primary }: { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void; primary?: boolean }) {
   return (
     <Pressable onPress={onPress} accessibilityLabel={label} style={({ pressed }) => [styles.action, { backgroundColor: primary ? '#FFC800' : 'rgba(255,255,255,0.1)', opacity: pressed ? 0.8 : 1 }]}>
-      <Ionicons name={icon} size={18} color={primary ? '#0E1525' : '#fff'} />
-      <Text style={[styles.actionText, { color: primary ? '#0E1525' : '#fff' }]}>{label}</Text>
+      <Ionicons name={icon} size={20} color={primary ? '#0E1525' : '#fff'} />
+      <Text style={[styles.actionText, { color: primary ? '#0E1525' : '#fff' }]} numberOfLines={1}>{label}</Text>
     </Pressable>
   );
 }
@@ -105,7 +105,8 @@ const styles = StyleSheet.create({
   hero: { borderRadius: 24, padding: 18 },
   heroIcon: { width: 48, height: 48, borderRadius: 16, backgroundColor: 'rgba(255,200,0,0.14)', alignItems: 'center', justifyContent: 'center' },
   heroTitle: { fontFamily: F.heavy, fontSize: 18, color: '#fff' },
-  action: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, height: 44, borderRadius: 14 },
+  // ikonka tepada, yozuv pastda — uzun so'zlar («Позвонить», «Тамос») ham tugmaga sig'adi
+  action: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 4, height: 60, paddingHorizontal: 6, borderRadius: 14 },
   actionText: { fontFamily: F.heavy, fontSize: 13.5 },
   icon: { width: 40, height: 40, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   caps: { fontFamily: F.bold, textTransform: 'uppercase', letterSpacing: 0.6 },

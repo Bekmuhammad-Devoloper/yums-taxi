@@ -57,7 +57,7 @@ export default function Invest() {
 
       <Card style={{ padding: 6 }}>
         <ListItem icon="add-circle-outline" title={tr('Investitsiya uchun loyiha joylashtirish')} sub={tr("Bepul · moderatsiyadan so'ng ko'rinadi")} onPress={() => router.push('/project/edit')} />
-        <ListItem icon="briefcase-outline" title={tr("Investor sifatida qo'shilish")} sub={tr('Hujjatlar tekshiruvi talab qilinadi')} onPress={() => router.push('/verify')} />
+        <ListItem icon="briefcase-outline" title={tr("Investor sifatida qo'shilish")} sub={tr("Katalogga profil · «Tasdiqlangan» belgisi hujjatlar bilan")} onPress={() => router.push({ pathname: '/directory-edit', params: { type: 'investor' } })} />
         <ListItem icon="analytics-outline" title={tr('Loyiha tahlili xizmati')} sub={tr('Investorlar uchun ekspert xulosasi')} onPress={() => router.push('/plans')} />
       </Card>
     </Screen>

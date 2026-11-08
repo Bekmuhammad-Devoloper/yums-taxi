@@ -49,6 +49,9 @@ async function currentTokens(): Promise<Tokens | null> {
 
 export const hasSession = async (): Promise<boolean> => (await currentTokens()) !== null;
 
+/** Realtime ulanish uchun joriy kirish tokeni */
+export const accessToken = async (): Promise<string | null> => (await currentTokens())?.accessToken ?? null;
+
 export async function saveTokens(next: Tokens): Promise<void> {
   tokens = next;
   restored = true;

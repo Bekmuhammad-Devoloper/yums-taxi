@@ -5,7 +5,7 @@ import { LangButton } from '@/components/lang-picker';
 import { toast } from '@/components/toast';
 import { BrandMark, Button, Field, Row, Screen, Txt } from '@/components/ui';
 import { useDriver } from '@/driver/lib/driver-store';
-import { requestOtp, verifyOtp } from '@/lib/account-api';
+import { requestOtp, verifyOtp, verifySecondFactor, type SecondStep } from '@/lib/account-api';
 import { errorText } from '@/lib/api';
 import { tr } from '@/lib/i18n';
 import { useStore } from '@/lib/store';
@@ -22,6 +22,7 @@ export default function Login() {
   const { loadAccount } = useDriver();
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
+  const [second, setSecond] = useState<SecondStep | null>(null);
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
 
@@ -42,10 +43,19 @@ export default function Login() {
   const verify = async () => {
     setBusy(true);
     try {
-      const { user } = await verifyOtp({ phone: fullPhone }, code);
+      const result = second
+        ? { user: await verifySecondFactor(second.challengeId, code) }
+        : await verifyOtp({ phone: fullPhone }, code);
+      if ('second' in result) {
+        // ikki bosqichli himoya: ikkinchi kod emailga yuborildi
+        setSecond(result.second);
+        setCode('');
+        toast(tr('Ikkinchi kod {destination} manziliga yuborildi', { destination: result.second.destination }), 'shield-checkmark');
+        return;
+      }
       // Hisob avval yuklanadi: haydovchi ro'yxatdan o'tish sahifasini ko'rmaydi
       await loadAccount();
-      signIn(user);
+      signIn(result.user);
     } catch (error) {
       toast(errorText(error), 'alert-circle');
       setCode('');

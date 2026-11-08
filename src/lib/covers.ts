@@ -2,18 +2,11 @@ import type { ImageSource } from 'expo-image';
 
 import type { Project } from './platform-data';
 
-// Namuna loyihalar va reklamalar uchun tayyor bannerlar (16:9 va 2:1)
-const SEED_COVERS: Record<string, number> = {
-  p1: require('@/assets/covers/p1-agrosmart.webp'),
-  p2: require('@/assets/covers/p2-edubridge.webp'),
-  p11: require('@/assets/covers/p11-yums-taxi.webp'),
-};
-
+// Reklama va taksi kartasi uchun tayyor bannerlar (2:1)
 export const AD_BANNER = require('@/assets/banners/silk-road.webp');
 export const TAXI_CARD = require('@/assets/banners/taxi-card.webp');
 
-/** Loyiha muqovasi: foydalanuvchi yuklagan rasm, bo'lmasa namuna banner */
+/** Loyiha muqovasi: egasi yuklagan rasm (bo'lmasa soha belgisi ko'rsatiladi) */
 export function coverOf(p: Pick<Project, 'id' | 'cover'>): ImageSource | number | undefined {
-  if (p.cover) return { uri: p.cover };
-  return SEED_COVERS[p.id];
+  return p.cover ? { uri: p.cover } : undefined;
 }

@@ -13,6 +13,7 @@ import { confirm } from '@/lib/confirm';
 import { coverOf } from '@/lib/covers';
 import { LANGUAGES, SEEKS, STAGES } from '@/lib/platform-data';
 import { ago, budget, countryOf, fileSize, flagged, sectorOf, short, usePlatform } from '@/lib/platform';
+import { openFile } from '@/lib/open-file';
 import { useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
 import { flipRTL, tr } from '@/lib/i18n';
@@ -29,9 +30,18 @@ export default function ProjectScreen() {
   const pr = p.projects.find(x => x.id === id);
   const mine = pr?.ownerId === (user?.id ?? 'me');
   const staff = user?.role === 'moderator' || user?.role === 'admin';
-  const { viewProject } = p;
+  const [loading, setLoading] = useState(!pr);
+  const [boosting, setBoosting] = useState(false);
+  const { viewProject, loadProject } = p;
 
-  useEffect(() => { if (id) viewProject(id); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // To'liq ma'lumot (fayllar, tavsif) serverdan; ko'rish soni ham serverda sanaladi
+  useEffect(() => {
+    if (!id) return;
+    viewProject(id);
+    loadProject(id).catch(() => {}).finally(() => setLoading(false));
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!pr && loading) return <Screen title={tr('Loyiha')}><EmptyState icon="hourglass-outline" title={tr('Yuklanmoqda…')} /></Screen>;
 
   if (!pr || (!mine && !staff && (pr.status !== 'published' || p.isBlocked('project', pr.id)))) {
     return <Screen title={tr('Loyiha')}><EmptyState icon="alert-circle-outline" title={tr('Loyiha topilmadi')} sub={tr("U o'chirilgan, moderatsiyada yoki bloklangan bo'lishi mumkin")} action={tr('Katalogga qaytish')} onAction={() => router.replace('/projects')} /></Screen>;
@@ -43,7 +53,7 @@ export default function ProjectScreen() {
   const peer = { peerId: pr.ownerId, peerName: pr.ownerName, peerKind: pr.ownerKind === 'company' ? 'company' as const : 'person' as const, peerVerified: pr.ownerVerified };
   const warn = flagged(pr.title, pr.summary, pr.description);
 
-  const share = () => Share.share({ message: tr('YUMS: {title}\n{summary}\nhttps://yums.example/p/{id}', { title: pr.title, summary: pr.summary, id: pr.id }) }).catch(() => {});
+  const share = () => Share.share({ message: tr('YUMS: {title}\n{summary}\n{link}', { title: pr.title, summary: pr.summary, link: `yumstaxi://project/${pr.id}` }) }).catch(() => {});
   const contact = () => {
     if (pr.contact === 'email' && pr.contactValue) Linking.openURL(`mailto:${pr.contactValue}?subject=${encodeURIComponent('YUMS: ' + pr.title)}`).catch(() => toast(tr('Pochta ilovasi topilmadi'), 'mail'));
     else if (pr.contact === 'phone' && pr.contactValue) Linking.openURL(`tel:${pr.contactValue.replace(/\s/g, '')}`).catch(() => {});
@@ -54,9 +64,13 @@ export default function ProjectScreen() {
     <Row gap={10}>
       <Button title={tr('Tahrirlash')} kind="ghost" icon="create-outline" style={{ flex: 1 }} onPress={() => router.push({ pathname: '/project/edit', params: { id: pr.id } })} />
       {pr.status === 'published' ? (
-        <Button title={pr.boosted ? tr('TOPda') : tr('TOPga chiqarish')} icon="flash" disabled={pr.boosted} style={{ flex: 1.3 }} onPress={() => {
-          if (p.boostCredits > 0) { p.boostProject(pr.id); toast(tr('Loyiha TOPga chiqarildi — tarif krediti ishlatildi'), 'flash'); }
-          else router.push({ pathname: '/plans', params: { boost: pr.id } });
+        <Button title={pr.boosted ? tr('TOPda') : tr('TOPga chiqarish')} icon="flash" disabled={pr.boosted || boosting} style={{ flex: 1.3 }} onPress={() => {
+          if (p.boostCredits <= 0) { router.push({ pathname: '/plans', params: { boost: pr.id } }); return; }
+          setBoosting(true);
+          p.boostProject(pr.id)
+            .then(r => { if (r) toast(tr('Loyiha TOPga chiqarildi — tarif krediti ishlatildi'), 'flash'); })
+            .catch(() => {})
+            .finally(() => setBoosting(false));
         }} />
       ) : pr.status === 'paused' ? (
         <Button title={tr('Faollashtirish')} icon="play" style={{ flex: 1.3 }} onPress={() => { p.setProjectActive(pr.id, true); toast(tr('Loyiha yana katalogda'), 'eye'); }} />
@@ -209,7 +223,9 @@ export default function ProjectScreen() {
             {pr.attachments.length ? pr.attachments.map(a => (
               <ListItem key={a.id} icon={a.name.endsWith('.pdf') ? 'document-text-outline' : 'document-attach-outline'} title={a.name} sub={fileSize(a.size)}
                 right={<Ionicons name="download-outline" size={20} color={c.muted} />}
-                onPress={() => (a.uri ? Linking.openURL(a.uri).catch(() => toast(tr("Faylni ochib bo'lmadi"), 'alert-circle')) : toast(tr("Fayl muallif ruxsati bilan yuboriladi — so'rov yozing"), 'document-lock'))} />
+                onPress={() => (a.uri
+                  ? openFile(a.uri, a.name).then(ok => { if (!ok) toast(tr("Faylni ochib bo'lmadi"), 'alert-circle'); }).catch(() => toast(tr("Faylni ochib bo'lmadi"), 'alert-circle'))
+                  : toast(tr("Fayl muallif ruxsati bilan yuboriladi — so'rov yozing"), 'document-lock'))} />
             )) : <Txt v="small" faint style={{ padding: 10, paddingTop: 0 }}>{tr('Fayllar biriktirilmagan')}</Txt>}
           </Card>
 

@@ -1,5 +1,5 @@
-// YUMS Driver holati: profil, liniya, buyurtma takliflari, faol va zanjir safar, faollik, balans va daromad.
-// Dispetcher serveri ulangan bo'lsa — haqiqiy yo'lovchi buyurtmalari, aks holda demo buyurtmalar.
+// YUMS Driver holati. Hisob, hujjatlar, smena, takliflar, safar, faollik, balans va daromad —
+// backendda (docs/MOBILE-INTEGRATION.md §6). Takliflar socket orqali keladi, holat REST'dan tekshiriladi.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import * as Location from 'expo-location';
@@ -7,18 +7,21 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { Platform, Vibration } from 'react-native';
 
 import { toast } from '@/components/toast';
-import { DEFAULT_CENTER, PLACES, TARIFFS, type Driver, type LatLng, type Place } from '@/lib/data';
-import { DispatchClient, DISPATCH_URL, type ConnState, type DocSync, type OrderOffer } from '@/lib/dispatch';
-import { bearing, distanceKm, fetchRoute, nearbyPoint, pathLength, pointAt, priceFor, som } from '@/lib/geo';
+import { updateProfile as saveUserProfile } from '@/lib/account-api';
+import { ApiError, errorText } from '@/lib/api';
+import { DEFAULT_CENTER, TARIFFS, type Driver, type LatLng, type PaymentId, type Place } from '@/lib/data';
+import * as dapi from '@/lib/driver-api';
+import type { DriverAccount, DriverOrder, DriverTrip, OfferView } from '@/lib/driver-api';
+import { bearing, curve, decodePolyline, distanceKm, pathLength, pointAt } from '@/lib/geo';
+import { getLang, isLang, onLangChange, tr } from '@/lib/i18n';
+import { registerThisDevice } from '@/lib/push';
+import { onRealtime, onRealtimeReady, startRealtime, stopRealtime } from '@/lib/realtime';
 import { nameGender } from '@/lib/registry';
-import { errorText } from '@/lib/api';
-import { loadDriverAccount, loadDriverWallet, registerDriver, requestPayout, type DriverAccount } from '@/lib/driver-api';
-import { commissionOf, surgeLevel, zoneRing, type RemoteConfig } from '@/lib/remote-config';
-import { getLang, isLang, onLangChange, tr, tx } from '@/lib/i18n';
 import { haptic, useStore } from '@/lib/store';
+import { publicSettings, type PublicSettings } from '@/lib/trip-api';
 
-import { demandSlot, demandZones, surgeAt, type DemandZone } from './demand';
-import { DOC_KINDS, DOC_META, emptyDoc, reviewDoc, sampleDoc, type DocKind, type DriverDoc } from './docs';
+import { toZones, type DemandZone } from './demand';
+import { DOC_KINDS, DOC_META, emptyDoc, fromServerDoc, serverKind, toServerDoc, type DocKind, type DriverDoc } from './docs';
 import { nextManeuver } from './nav';
 import { tariffChecks, type Check } from './requirements';
 import { say, setVoiceEnabled, setVoiceLang, type VoiceLang } from './voice';
@@ -26,56 +29,79 @@ import { say, setVoiceEnabled, setVoiceLang, type VoiceLang } from './voice';
 /** tariffs — haydovchi yoqqan tariflar (ishlashi uchun shartlari ham bajarilishi kerak), year — avtomobil yili */
 export type DriverProfile = Driver & { tariffs: string[]; city: string; joinedAt: string; year?: number; deliveryTerms?: boolean };
 
-/** chain — joriy safardan keyin bajariladigan (zanjir) buyurtma taklifi */
-export type Offer = { order: OrderOffer; distanceKm: number; expiresAt: number; total: number; chain?: boolean };
+/** Haydovchiga taklif qilinadigan yoki u olgan buyurtma */
+export type OrderOffer = {
+  id: string;
+  number?: string;
+  passenger: { name: string; rating: number; gender?: 'm' | 'f'; phone?: string };
+  pickup: Place;
+  destination: Place;
+  route: { km: number; min: number; coords: LatLng[] };
+  tariffId: string;
+  /** Yo'lovchi to'laydigan summa */
+  price: number;
+  /** Haydovchiga qoladigan qism (komissiyadan keyin) */
+  earning: number;
+  surge?: number;
+  payment: PaymentId;
+  options: string[];
+  comment: string;
+  createdAt: string;
+};
+
+export type Offer = { id: string; order: OrderOffer; distanceKm: number; expiresAt: number; total: number; chain?: boolean };
 
 /** Safar bosqichlari: mijozga borish → kutish → yo'lda */
 export type TripStage = 'toPickup' | 'waiting' | 'inride';
-export type Trip = { order: OrderOffer; stage: TripStage; approach: LatLng[]; arrivedAt?: number; startedAt?: number; waitFee: number };
+export type Trip = { order: OrderOffer; stage: TripStage; approach: LatLng[]; arrivedAt?: number; startedAt?: number; waitFee: number; cashToCollect: number };
 
 export type Earning = {
   id: string; at: string; price: number; waitFee?: number; fee?: number; tip: number; stars?: number; passengerStars?: number;
-  km: number; min: number; from: string; to: string; payment: OrderOffer['payment']; tariffId?: string; surge?: number;
-  /** mijoz chiqmadi — kutish uchun kompensatsiya */
+  km: number; min: number; from: string; to: string; payment: PaymentId; tariffId?: string; surge?: number;
+  /** mijoz chiqmadi */
   noShow?: boolean;
 };
-export type Payout = { id: string; at: string; amount: number };
+export type Payout = { id: string; at: string; amount: number; status?: string };
 export type NavApp = 'yandex' | 'google';
 export type GpsState = 'demo' | 'searching' | 'ok' | 'denied';
 
 /** Safar tugagach ko'rsatiladigan hisob-kitob */
-export type Summary = { earning: Earning; passenger: string };
+export type Summary = { earning: Earning; passenger: string; orderId: string };
 
-export const COMMISSION = 0.1;
-export const FREE_WAIT_SEC = 180;
-export const WAIT_PER_MIN = 500;
-/** Pullik kutish boshlangandan keyin «Mijoz chiqmadi» tugmasi chiqadi */
-export const NO_SHOW_AFTER_SEC = FREE_WAIT_SEC + 120;
-export const CHAIN_KM = 2;
-export const HOME_USES_PER_DAY = 2;
-export const ACTIVITY = { accept: 2, decline: -5, missed: -5, cancel: -10 };
-export const feeOf = (e: Earning) => e.fee ?? Math.round((e.price + (e.waitFee ?? 0)) * COMMISSION);
-export const waitFeeOf = (arrivedAt: number | undefined, now: number) =>
-  arrivedAt ? Math.ceil(Math.max(0, (now - arrivedAt) / 1000 - FREE_WAIT_SEC) / 60) * WAIT_PER_MIN : 0;
+export const feeOf = (e: Earning) => e.fee ?? 0;
 
 export type TariffState = { id: string; checks: Check[]; eligible: boolean; enabled: boolean };
 type Docs = Record<DocKind, DriverDoc>;
 const emptyDocs = () => Object.fromEntries(DOC_KINDS.map(k => [k, emptyDoc(k)])) as Docs;
-/** Hujjat tekshiruvi (demo moderator) qancha vaqt oladi */
-const REVIEW_MS = 4000;
+
+/** Ekranda ko'rinadigan qoidalar — server sozlamalari (GET /settings/public) bilan almashtiriladi */
+export type DriverRules = { freeWaitSec: number; waitPerMin: number; noShowAfterSec: number; activity: { accept: number; decline: number; missed: number; cancel: number }; homeUsesPerDay: number; chainRadiusKm: number };
+const DEFAULT_RULES: DriverRules = { freeWaitSec: 180, waitPerMin: 500, noShowAfterSec: 120, activity: { accept: 2, decline: -5, missed: -5, cancel: -10 }, homeUsesPerDay: 2, chainRadiusKm: 2 };
+const rulesOf = (s: PublicSettings): DriverRules => ({
+  freeWaitSec: s.freeWaitSec,
+  waitPerMin: s.waitPerMin,
+  noShowAfterSec: s.noShowAfterSec,
+  activity: { accept: s.activityAcceptBonus, decline: -s.activityDeclinePenalty, missed: -s.activityMissPenalty, cancel: -s.activityCancelPenalty },
+  homeUsesPerDay: s.homeUsesPerDay,
+  chainRadiusKm: s.chainRadiusKm ?? 0,
+});
+/** Pullik kutish (ko'rsatish uchun; summani server safar boshlanganda hisoblaydi) */
+export const waitFeeOf = (rules: DriverRules, arrivedAt: number | undefined, now: number) =>
+  arrivedAt ? Math.ceil(Math.max(0, (now - arrivedAt) / 1000 - rules.freeWaitSec) / 60) * rules.waitPerMin : 0;
 
 type Ctx = {
   ready: boolean;
+  rules: DriverRules;
   docs: Docs;
   docsApproved: boolean;
-  submitDoc: (d: DriverDoc) => void;
-  fillDemoDocs: () => void;
+  /** Hujjatni tekshiruvga yuboradi; server rad etsa xabar ko'rsatib false qaytaradi */
+  submitDoc: (d: DriverDoc) => Promise<boolean>;
   tariffState: TariffState[];
   activeTariffs: string[];
   setTariffEnabled: (id: string, on: boolean) => boolean;
   /** Avtomobil almashsa texnik pasport qayta tekshiriladi */
   updateCar: (car: string, year: number) => void;
-  acceptDeliveryTerms: () => void;
+  acceptDeliveryTerms: () => Promise<boolean>;
   profile: DriverProfile | null;
   /** Xato bo'lsa rad etiladi: ekran server xabarini ko'rsatadi */
   register: (p: Omit<DriverProfile, 'id' | 'rating' | 'trips' | 'joinedAt'>, tariffIds: string[]) => Promise<void>;
@@ -94,7 +120,7 @@ type Ctx = {
   accept: () => void;
   decline: () => void;
   trip: Trip | null;
-  /** Zanjirdagi keyingi buyurtma (joriy safar tugagach boshlanadi) */
+  /** Zanjir buyurtma (hozircha server tomonidan berilmaydi) */
   next: OrderOffer | null;
   /** Yo'ldagi safarda manzilgacha qolgan masofa */
   leftKm: number | null;
@@ -121,17 +147,17 @@ type Ctx = {
   /** «Uyga» rejimi: buyurtmalar tanlangan manzil tomonga */
   homeDest: Place | null;
   homeUsesLeft: number;
-  setHomeDest: (p: Place | null) => boolean;
+  setHomeDest: (p: Place | null) => Promise<boolean>;
   navApp: NavApp;
   setNavApp: (a: NavApp) => void;
   voice: boolean;
   setVoice: (v: boolean) => void;
   voiceLang: VoiceLang;
   setVoiceLang: (l: VoiceLang) => void;
-  /** Demo harakat: mashina marshrut bo'ylab o'zi yuradi (GPS o'rniga) */
+  /** Faqat ishlab chiqish rejimida: GPS o'rniga mashina marshrut bo'ylab o'zi yuradi */
   autopilot: boolean;
   setAutopilot: (v: boolean) => void;
-  conn: ConnState;
+  /** Serverga jonli ulanish */
   live: boolean;
   lastRating: { stars: number; tip: number } | null;
   clearRating: () => void;
@@ -140,8 +166,9 @@ type Ctx = {
   /** Operatordan kelgan so'nggi xabar (bosh ekranda yopilguncha turadi) */
   notice: { title: string; text: string; at: string } | null;
   dismissNotice: () => void;
-  /** YUMS komissiyasi ulushi (server ulangan bo'lsa — admin belgilagan) */
+  /** Bitta safardan YUMS komissiyasi (so'm) — so'nggi taklif va safarlardan */
   commission: number;
+  sos: (at?: LatLng) => Promise<boolean>;
 };
 
 const DCtx = createContext<Ctx | null>(null);
@@ -152,63 +179,113 @@ export const useDriver = () => {
 };
 
 const K = {
-  profile: 'yd:profile', earnings: 'yd:earnings', autopilot: 'yd:autopilot', activity: 'yd:activity', payouts: 'yd:payouts',
-  online: 'yd:onlineLog', home: 'yd:home', homeUses: 'yd:homeUses', navApp: 'yd:navApp', voice: 'yd:voice', voiceLang: 'yd:voiceLang', session: 'yd:session', docs: 'yd:docs',
-  blocked: 'yd:blocked',
+  local: 'yd:profileLocal', autopilot: 'yd:autopilot', online: 'yd:onlineLog', navApp: 'yd:navApp', voice: 'yd:voice', voiceLang: 'yd:voiceLang',
 };
-/** Ilova qayta ochilganda safar davom etishi uchun saqlanadigan holat */
-type Session = { trip: Trip | null; next: OrderOffer | null; summary: Summary | null; online: boolean; pos: LatLng; savedAt: number };
-const SESSION_TTL = 6 * 3600000;
+/** Faqat qurilmada saqlanadigan qismlar: jins, shahar, yetkazish shartlari roziligi */
+type LocalProfile = { gender?: 'm' | 'f'; city?: string; deliveryTerms?: boolean };
 
-const persist = (k: string, v: unknown) => { AsyncStorage.setItem(k, JSON.stringify(v)).catch(() => {}); };
-// demo yo'lovchilar (jinsi — standart rasm uchun)
-const PASSENGERS: { name: string; gender: 'm' | 'f' }[] = [
-  { name: 'Aziza', gender: 'f' }, { name: 'Bekzod', gender: 'm' }, { name: 'Dilshod', gender: 'm' }, { name: 'Madina', gender: 'f' },
-  { name: 'Sherzod', gender: 'm' }, { name: 'Nigora', gender: 'f' }, { name: 'Javohir', gender: 'm' }, { name: 'Kamola', gender: 'f' },
-];
-// demo izohlar (ekranda tr() bilan — yo'lovchi tilida yozilgan izoh o'zgarmaydi)
-const COMMENTS = [tx('Podyezd oldida kutaman'), tx("Bolalar o'rindig'i kerak emas"), tx('Yukim bor, bagaj kerak'), tx("Tezroq bo'ling, iltimos")];
+const PING_MS = 3000;
+const OFFER_POLL_MS = 5000;
+const TRIP_POLL_MS = 7000;
+const DEMAND_MS = 60000;
 const APPROACH_KMH = 32;
 const RIDE_KMH = 38;
-const DEMO_SPEEDUP = 6; // demo: real vaqtdan tezroq — sinab ko'rish uchun
-const OFFER_MS = 15000;
+const DEMO_SPEEDUP = 6;
+const DEFAULT_COMMISSION = 1200;
+const DEV = typeof __DEV__ !== 'undefined' && __DEV__;
 const dayKey = () => new Date().toDateString();
-const clamp = (n: number) => Math.max(0, Math.min(100, n));
+const persist = (k: string, v: unknown) => { AsyncStorage.setItem(k, JSON.stringify(v)).catch(() => {}); };
+
+const PAY: Record<'CASH' | 'BALANCE' | 'CARD', PaymentId> = { CASH: 'cash', BALANCE: 'balance', CARD: 'card' };
+/** Server shart kodlari → ilovadagi shart turlari */
+const CHECK_ID: Record<dapi.TariffCheckServer['check'], Check['id']> = {
+  DOCUMENTS: 'docs', CLASS: 'class', YEAR: 'year', SEATS: 'seats', RATING: 'rating', TRIPS: 'trips', ACTIVITY: 'activity', TERMS: 'terms',
+};
+const placeOf = (p: { id?: string; title: string; subtitle?: string; latitude: number; longitude: number }): Place =>
+  ({ id: p.id, title: p.title, subtitle: p.subtitle, latitude: p.latitude, longitude: p.longitude });
+
+function offerOf(v: OfferView): Offer {
+  const pickup = placeOf(v.order.pickup);
+  const destination = placeOf(v.order.destination);
+  return {
+    id: v.id,
+    chain: v.chained,
+    distanceKm: v.pickupDistanceKm,
+    expiresAt: Date.now() + v.secondsLeft * 1000,
+    total: Math.max(1, v.secondsLeft) * 1000,
+    order: {
+      id: v.order.id, number: v.order.orderNumber, passenger: { name: tr("Yo'lovchi"), rating: 5 },
+      pickup, destination, route: { km: v.order.distanceKm, min: v.order.durationMin, coords: curve(pickup, destination) },
+      tariffId: v.order.tariffId, price: v.order.fare, earning: v.order.earning, payment: PAY[v.order.paymentMethod],
+      options: v.order.options, comment: v.order.comment ?? '', createdAt: v.expiresAt,
+    },
+  };
+}
+
+function orderOf(o: DriverOrder): OrderOffer {
+  return {
+    id: o.id, number: o.orderNumber,
+    passenger: { name: o.passenger.firstName, rating: o.passenger.rating, gender: nameGender(o.passenger.firstName) },
+    pickup: placeOf(o.pickup), destination: placeOf(o.destination),
+    route: { km: o.route.distanceKm, min: o.route.durationMin, coords: decodePolyline(o.route.polyline) },
+    tariffId: o.tariffId, price: o.fare, earning: o.earning, payment: PAY[o.paymentMethod],
+    options: o.options, comment: o.comment ?? '', createdAt: o.createdAt,
+  };
+}
+
+const STAGE: Partial<Record<DriverOrder['status'], TripStage>> = { DRIVER_ASSIGNED: 'toPickup', DRIVER_ARRIVED: 'waiting', IN_PROGRESS: 'inride' };
+
+function tripOf(o: DriverOrder, me: LatLng): Trip | null {
+  const stage = STAGE[o.status];
+  if (!stage) return null;
+  const order = orderOf(o);
+  return {
+    order, stage,
+    approach: o.approachPolyline ? decodePolyline(o.approachPolyline) : [me, order.pickup],
+    arrivedAt: o.arrivedAt ? new Date(o.arrivedAt).getTime() : undefined,
+    startedAt: o.startedAt ? new Date(o.startedAt).getTime() : undefined,
+    waitFee: o.waitFee, cashToCollect: o.cashToCollect,
+  };
+}
+
+const earningOf = (t: DriverTrip): Earning => ({
+  id: t.id, at: t.at, price: t.price, waitFee: t.waitFee, fee: t.commission, tip: t.tip, stars: t.stars, passengerStars: t.passengerStars,
+  km: t.distanceKm, min: t.durationMin, from: t.from, to: t.to, payment: PAY[t.paymentMethod], tariffId: t.tariffId,
+  surge: t.surge > 1 ? t.surge : undefined, noShow: t.noShow,
+});
 
 export function DriverProvider({ children }: { children: ReactNode }) {
+  const { lang, user, logout: endSession } = useStore();
   const [ready, setReady] = useState(false);
-  const [profile, setProfile] = useState<DriverProfile | null>(null);
+  const [rules, setRules] = useState<DriverRules>(DEFAULT_RULES);
+  const [account, setAccount] = useState<DriverAccount | null>(null);
+  const [local, setLocal] = useState<LocalProfile>({});
   const [earnings, setEarnings] = useState<Earning[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [balance, setBalance] = useState(0);
   const [minBalance, setMinBalance] = useState(0);
-  const [activity, setActivity] = useState(100);
   const [online, setOnlineState] = useState(false);
   const [onlineLog, setOnlineLog] = useState<{ date: string; ms: number }>({ date: dayKey(), ms: 0 });
   const [onlineSince, setOnlineSince] = useState<number | null>(null);
   const [pos, setPos] = useState<LatLng>(DEFAULT_CENTER);
   const [heading, setHeading] = useState(0);
-  const [gps, setGps] = useState<GpsState>('demo');
+  const [gps, setGps] = useState<GpsState>('searching');
   const [gpsTry, setGpsTry] = useState(0);
   const [offer, setOffer] = useState<Offer | null>(null);
   const [trip, setTrip] = useState<Trip | null>(null);
+  /** Zanjir: joriy safar tugagach boshlanadigan buyurtma */
   const [next, setNext] = useState<OrderOffer | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [homeDest, setHomeDestState] = useState<Place | null>(null);
-  const [homeUses, setHomeUses] = useState<{ date: string; used: number }>({ date: dayKey(), used: 0 });
   const [navApp, setNavAppState] = useState<NavApp>('yandex');
   const [voice, setVoiceState] = useState(true);
   const [voiceLang, setVoiceLangState] = useState<VoiceLang>('uz');
-  const [autopilot, setAutopilotState] = useState(Platform.OS === 'web');
-  const [conn, setConn] = useState<ConnState>('off');
-  const [client, setClient] = useState<DispatchClient | null>(null);
+  const [autopilot, setAutopilotState] = useState(DEV && Platform.OS === 'web');
+  const [live, setLive] = useState(false);
   const [lastRating, setLastRating] = useState<{ stars: number; tip: number } | null>(null);
-  const [slot, setSlot] = useState(() => demandSlot());
   const [docs, setDocs] = useState<Docs>(emptyDocs);
-  /** Admin panel sozlamalari (narx, komissiya, yuqori talab hududlari) — server ulanganda keladi */
-  const [remote, setRemote] = useState<RemoteConfig | null>(null);
-  const [blocked, setBlocked] = useState<{ reason: string } | null>(null);
+  const [zones, setZones] = useState<DemandZone[]>([]);
   const [notice, setNotice] = useState<{ title: string; text: string; at: string } | null>(null);
+  const [commission, setCommission] = useState(DEFAULT_COMMISSION);
 
   const posRef = useRef(pos);
   useEffect(() => { posRef.current = pos; }, [pos]);
@@ -216,55 +293,31 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   useEffect(() => { headingRef.current = heading; }, [heading]);
   const tripRef = useRef(trip);
   useEffect(() => { tripRef.current = trip; }, [trip]);
-  const nextRef = useRef(next);
-  useEffect(() => { nextRef.current = next; }, [next]);
   const offerRef = useRef(offer);
   useEffect(() => { offerRef.current = offer; }, [offer]);
-  const summaryRef = useRef(summary);
-  useEffect(() => { summaryRef.current = summary; }, [summary]);
+  const nextRef = useRef(next);
+  useEffect(() => { nextRef.current = next; }, [next]);
+  /** Taklif qabul qila oladimi: bo'sh yoki safar oxirida (zanjir uchun), keyingi buyurtmasi yo'q */
+  const canTakeOffer = useCallback(() => !tripRef.current || (tripRef.current.stage === 'inride' && !nextRef.current), []);
   const sinceRef = useRef(onlineSince);
   useEffect(() => { sinceRef.current = onlineSince; }, [onlineSince]);
-  /** Serverda tasdiqlanishi kutilayotgan «qabul qilish» */
-  const pendingAccept = useRef<string | null>(null);
-  /** Zanjir taklifi so'ralgan safarlar (demo) */
-  const chainAsked = useRef(new Set<string>());
+  const speedRef = useRef<number | undefined>(undefined);
+  const autopilotOn = DEV && autopilot;
 
+  /* ---------- Qurilmadagi sozlamalar ---------- */
   useEffect(() => {
+    publicSettings().then(s => setRules(rulesOf(s))).catch(() => {});
     (async () => {
       try {
         const e = Object.fromEntries((await AsyncStorage.multiGet(Object.values(K))).map(([k, v]) => [k, v ? JSON.parse(v) : undefined]));
-        if (e[K.profile]) {
-          // eski profillarda jins saqlanmagan — ismdan taxmin qilib saqlaymiz (profilda o'zgartirsa bo'ladi)
-          const p: DriverProfile = e[K.profile].gender ? e[K.profile] : { ...e[K.profile], gender: nameGender(e[K.profile].name) };
-          if (p !== e[K.profile]) persist(K.profile, p);
-          setProfile(p);
-        }
-        if (e[K.earnings]) setEarnings(e[K.earnings]);
-        if (e[K.payouts]) setPayouts(e[K.payouts]);
-        if (typeof e[K.activity] === 'number') setActivity(e[K.activity]);
-        if (typeof e[K.autopilot] === 'boolean') setAutopilotState(e[K.autopilot]);
+        if (e[K.local]) setLocal(e[K.local]);
+        if (typeof e[K.autopilot] === 'boolean') setAutopilotState(DEV && e[K.autopilot]);
         if (e[K.online]?.date === dayKey()) setOnlineLog(e[K.online]);
-        if (e[K.home]) setHomeDestState(e[K.home]);
-        if (e[K.blocked]?.reason) setBlocked(e[K.blocked]);
-        if (e[K.homeUses]?.date === dayKey()) setHomeUses(e[K.homeUses]);
         if (e[K.navApp]) setNavAppState(e[K.navApp]);
         if (typeof e[K.voice] === 'boolean') { setVoiceState(e[K.voice]); setVoiceEnabled(e[K.voice]); }
-        // ovoz tili: saqlangani, bo'lmasa ilova tili
         const vl: VoiceLang = isLang(e[K.voiceLang]) ? e[K.voiceLang] : getLang();
         setVoiceLangState(vl);
         setVoiceLang(vl);
-        const loadedDocs: Docs = { ...emptyDocs(), ...(e[K.docs] ?? {}) };
-        setDocs(loadedDocs);
-        const docsOk = DOC_KINDS.every(k => loadedDocs[k].status === 'approved');
-        // to'xtab qolgan safar va liniyadagi holat tiklanadi
-        const s: Session | undefined = e[K.session];
-        if (e[K.profile] && docsOk && s && Date.now() - s.savedAt < SESSION_TTL) {
-          if (s.pos) setPos(s.pos);
-          if (s.trip) setTrip(s.trip);
-          if (s.next) setNext(s.next);
-          if (s.summary) setSummary(s.summary);
-          if (s.online || s.trip) { setOnlineState(true); setOnlineSince(Date.now()); }
-        }
       } catch {
         // xotira mavjud emas
       }
@@ -272,137 +325,156 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
-  // Sessiyani saqlash: safar holati o'zgarganda darhol, joylashuv — har 5 soniyada
-  const saveSession = useCallback(() => {
-    persist(K.session, { trip: tripRef.current, next: nextRef.current, summary: summaryRef.current, online: sinceRef.current != null, pos: posRef.current, savedAt: Date.now() } satisfies Session);
-  }, []);
-  useEffect(() => { if (ready) saveSession(); }, [ready, trip, next, summary, onlineSince, saveSession]);
-  useEffect(() => {
-    if (!online) return;
-    const iv = setInterval(saveSession, 5000);
-    return () => clearInterval(iv);
-  }, [online, saveSession]);
-
-  // Liniyada yoki safarda ekran o'chmaydi
-  const awake = online || !!trip;
-  useEffect(() => {
-    if (!awake) return;
-    activateKeepAwakeAsync('yums-driver').catch(() => {});
-    return () => { deactivateKeepAwake('yums-driver').catch(() => {}); };
-  }, [awake]);
-
-  // Talab xaritasi har 10 daqiqada yangilanadi
-  useEffect(() => {
-    const iv = setInterval(() => setSlot(demandSlot()), 60000);
-    return () => clearInterval(iv);
-  }, []);
-  // Server ulangan bo'lsa — admin belgilagan hududlar, aks holda taxminiy talab xaritasi
-  const zones = useMemo<DemandZone[]>(() => (remote
-    ? remote.zones.map(z => ({ id: z.id, center: z.center, ring: zoneRing(z), level: surgeLevel(z.surge), surge: z.surge, radiusKm: z.radiusKm }))
-    : demandZones(slot)), [slot, remote]);
-  const zonesRef = useRef(zones);
-  useEffect(() => { zonesRef.current = zones; }, [zones]);
-
-  const bumpActivity = useCallback((d: number) => {
-    setActivity(a => { const n = clamp(a + d); persist(K.activity, n); return n; });
-  }, []);
-
-  /* ---------- Hujjatlar ---------- */
-  const updateDocs = useCallback((fn: (d: Docs) => Docs) => {
-    setDocs(cur => { const n = fn(cur); persist(K.docs, n); return n; });
-  }, []);
-  const docsApproved = DOC_KINDS.every(k => docs[k].status === 'approved');
-  const docsRef = useRef(docs);
-  useEffect(() => { docsRef.current = docs; }, [docs]);
-
-  // Demo moderator: yuborilgan hujjat bir necha soniyada tekshiriladi (server ulangan bo'lsa — qarorni moderator/server beradi)
-  useEffect(() => {
-    if (client) return;
-    const pending = DOC_KINDS.filter(k => docs[k].status === 'review');
-    if (!pending.length) return;
-    const timers = pending.map(k => setTimeout(() => {
-      const cur = docsRef.current;
-      if (cur[k].status !== 'review') return;
-      const r = reviewDoc(cur[k]);
-      updateDocs(c => ({ ...c, [k]: { ...c[k], ...r, checkedAt: new Date().toISOString() } }));
-      toast(r.status === 'approved' ? tr('{short} tasdiqlandi', { short: tr(DOC_META[k].short) }) : tr('{short} rad etildi: {note}', { short: tr(DOC_META[k].short), note: r.note }), r.status === 'approved' ? 'checkmark-circle' : 'close-circle');
-      if (r.status === 'approved' && DOC_KINDS.every(x => x === k || cur[x].status === 'approved')) {
-        setTimeout(() => toast(tr('Hujjatlar tasdiqlandi — liniyaga chiqishingiz mumkin'), 'shield-checkmark'), 1600);
-      }
-    }, Math.max(0, new Date(docs[k].submittedAt ?? 0).getTime() + REVIEW_MS - Date.now())));
-    return () => timers.forEach(clearTimeout);
-  }, [docs, updateDocs, client]);
-
-  const submitDoc = useCallback((d: DriverDoc) => {
-    const doc: DriverDoc = { ...d, status: 'review', note: undefined, submittedAt: new Date().toISOString(), checkedAt: undefined };
-    updateDocs(cur => ({ ...cur, [d.kind]: doc }));
-    client?.send({ t: 'doc', doc });
-  }, [updateDocs, client]);
-
-  const fillDemoDocs = useCallback(() => {
-    const t = Date.now();
-    const all = Object.fromEntries(DOC_KINDS.map((k, i) => [k, { ...sampleDoc(k), status: 'review', submittedAt: new Date(t + i * 700).toISOString() }])) as Docs;
-    updateDocs(() => all);
-    for (const k of DOC_KINDS) client?.send({ t: 'doc', doc: all[k] });
-  }, [updateDocs, client]);
-
   // foydalanuvchi ilova tilini almashtirsa — ovozli yo'riqnoma ham shu tilda gapiradi
-  useEffect(() => onLangChange((l, user) => {
-    if (!user) return;
+  useEffect(() => onLangChange((l, byUser) => {
+    if (!byUser) return;
     setVoiceLangState(l);
     setVoiceLang(l);
     persist(K.voiceLang, l);
   }), []);
 
-  /* ---------- Tariflar: shartlar bajarilganda yoqiladi ---------- */
-  const rating = useMemo(() => {
-    const st = earnings.filter(e => e.stars).slice(0, 50);
-    return st.length ? st.reduce((s, e) => s + (e.stars ?? 0), 0) / st.length : profile?.rating ?? 5;
-  }, [earnings, profile]);
+  /* ---------- Profil: serverdagi hisob + qurilmadagi qo'shimchalar ---------- */
+  const profile = useMemo<DriverProfile | null>(() => {
+    if (!account) return null;
+    const v = account.vehicle;
+    return {
+      id: account.id, name: account.fullName, phone: account.phone, rating: account.rating, trips: account.trips,
+      car: v ? `${v.brand} ${v.model}` : '', color: v?.color ?? '', plate: v?.plate ?? '', year: v?.year,
+      tariffs: v?.tariffIds ?? [], city: account.city ?? local.city ?? 'Toshkent', joinedAt: user?.joinedAt ?? new Date().toISOString(),
+      gender: account.gender ? (account.gender === 'F' ? 'f' : 'm') : local.gender ?? nameGender(account.fullName),
+      photo: user?.avatar, deliveryTerms: account.deliveryTermsAccepted,
+    };
+  }, [account, local, user?.joinedAt, user?.avatar]);
 
-  // shartlar matni joriy tilda (til almashganda qayta hisoblanadi)
-  const { lang, user, logout: endSession } = useStore();
+  const refreshWallet = useCallback(async () => {
+    const wallet = await dapi.loadDriverWallet();
+    setBalance(wallet.balance);
+    setMinBalance(wallet.minBalance);
+  }, []);
+
+  const refreshDocs = useCallback(async () => {
+    const list = await dapi.listDocuments();
+    const next = emptyDocs();
+    for (const d of list) { const doc = fromServerDoc(d); next[doc.kind] = doc; }
+    setDocs(next);
+  }, []);
+
+  const refreshEarnings = useCallback(async () => {
+    const list = (await dapi.driverTrips()).map(earningOf);
+    setEarnings(list);
+    const last = list.find(e => !e.noShow && e.fee);
+    if (last?.fee) setCommission(last.fee);
+  }, []);
+
+  const loadAccount = useCallback(async () => {
+    const acc = await dapi.loadDriverAccount();
+    setAccount(acc);
+    if (!acc) return;
+    if (acc.online) { setOnlineState(true); setOnlineSince(s => s ?? Date.now()); }
+    await Promise.all([
+      refreshWallet().catch(() => {}),
+      refreshDocs().catch(() => {}),
+      refreshEarnings().catch(() => {}),
+      dapi.listPayouts().then(ps => setPayouts(ps.map(p => ({ id: p.id, at: p.createdAt, amount: p.amount, status: p.status })))).catch(() => {}),
+    ]);
+  }, [refreshWallet, refreshDocs, refreshEarnings]);
+
+  /* ---------- Faol safar va taklifni serverdan tiklash ---------- */
+  const applyOrder = useCallback((o: DriverOrder | null) => {
+    if (!o) { setTrip(t => (t ? null : t)); return; }
+    if (o.status === 'COMPLETED') {
+      setTrip(null);
+      // Yo'lovchi hali baholanmagan — hisob-kitob oynasi
+      if (o.passengerRating === undefined) {
+        setSummary(s => s ?? {
+          orderId: o.id, passenger: o.passenger.firstName,
+          earning: { id: o.id, at: o.completedAt ?? new Date().toISOString(), price: o.fare - o.waitFee, waitFee: o.waitFee, fee: o.fare - o.earning, tip: 0, km: o.route.distanceKm, min: o.route.durationMin, from: o.pickup.title, to: o.destination.title, payment: PAY[o.paymentMethod], tariffId: o.tariffId },
+        });
+      }
+      return;
+    }
+    const next = tripOf(o, posRef.current);
+    setTrip(next);
+    if (next && o.fare > o.earning) setCommission(o.fare - o.earning);
+  }, []);
+
+  const syncState = useCallback(async () => {
+    try {
+      const [active, upcoming] = await Promise.all([dapi.activeDriverOrder(), dapi.nextDriverOrder()]);
+      applyOrder(active);
+      setNext(upcoming ? orderOf(upcoming) : null);
+      if (canTakeOffer()) {
+        const v = await dapi.currentOffer();
+        setOffer(cur => (v ? (cur?.id === v.id ? cur : offerOf(v)) : null));
+      }
+    } catch {
+      // tarmoq yo'q — keyingi urinishda
+    }
+  }, [applyOrder, canTakeOffer]);
+
+  const accountOwner = user?.id;
+  useEffect(() => {
+    if (!accountOwner) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- server javobi kelgach yangilanadi
+    loadAccount().then(() => syncState()).catch(() => {});
+  }, [accountOwner, loadAccount, syncState]);
+
+  /* ---------- Hujjatlar ---------- */
+  const docsApproved = DOC_KINDS.every(k => docs[k].status === 'approved') && (account?.documentsBlocking.length ?? 0) === 0;
+
+  const submitDoc = useCallback(async (d: DriverDoc) => {
+    try {
+      const saved = fromServerDoc(await dapi.submitDocument(serverKind(d.kind), toServerDoc(d)));
+      setDocs(cur => ({ ...cur, [d.kind]: saved }));
+      loadAccount().catch(() => {});
+      return true;
+    } catch (error) {
+      toast(errorText(error), 'alert-circle');
+      return false;
+    }
+  }, [loadAccount]);
+
+  // Avvalgi versiya jinsi, shahar va yetkazish qoidalarini telefonda saqlagan — bir marta serverga o'tkazamiz
+  useEffect(() => {
+    if (!account || (!local.gender && !local.city && !local.deliveryTerms)) return;
+    const personal = {
+      gender: !account.gender && local.gender ? (local.gender === 'f' ? 'F' as const : 'M' as const) : undefined,
+      city: !account.city ? local.city : undefined,
+    };
+    const jobs: Promise<unknown>[] = [];
+    if (personal.gender || personal.city) jobs.push(dapi.updateDriverPersonal(personal));
+    if (local.deliveryTerms && !account.deliveryTermsAccepted) jobs.push(dapi.acceptDeliveryTerms());
+    Promise.all(jobs)
+      .then(() => { setLocal({}); persist(K.local, {}); return jobs.length ? loadAccount() : undefined; })
+      .catch(() => {});
+  }, [account, local, loadAccount]);
+
+  /* ---------- Tariflar: shartlar bajarilganda yoqiladi ---------- */
+  const rating = account?.rating ?? 5;
+  const activity = account?.activity ?? 100;
+  const serverTariffs = account?.tariffs;
   const tariffState = useMemo<TariffState[]>(() => TARIFFS.map(t => {
     void lang;
-    const checks = tariffChecks(t.id, profile?.car, profile?.year, { docsApproved, rating, trips: profile?.trips ?? 0, activity, deliveryTerms: !!profile?.deliveryTerms });
-    const ok = checks.every(c => c.ok);
-    return { id: t.id, checks, eligible: ok, enabled: ok && !!profile?.tariffs.includes(t.id) };
-  }), [profile, docsApproved, rating, activity, lang]);
+    const rows = tariffChecks(t.id, profile?.car, profile?.year, { docsApproved, rating, trips: profile?.trips ?? 0, activity, deliveryTerms: !!profile?.deliveryTerms });
+    const server = serverTariffs?.find(s => s.tariffId === t.id);
+    if (!server) {
+      const ok = rows.every(c => c.ok);
+      return { id: t.id, checks: rows, eligible: ok, enabled: ok && !!profile?.tariffs.includes(t.id) };
+    }
+    // Shartlar serverda tekshiriladi: matnlar ilovada, natija («bajarildimi») serverdan
+    const checks = rows.map(c => {
+      const s = server.checks.find(x => CHECK_ID[x.check] === c.id);
+      return s ? { ...c, ok: s.ok } : c;
+    });
+    return { id: t.id, checks, eligible: server.eligible, enabled: server.eligible && server.enabled };
+  }), [profile, docsApproved, rating, activity, lang, serverTariffs]);
   const activeKey = tariffState.filter(t => t.enabled).map(t => t.id).join(',');
   const activeTariffs = useMemo(() => (activeKey ? activeKey.split(',') : []), [activeKey]);
-  const activeRef = useRef(activeTariffs);
-  useEffect(() => { activeRef.current = activeTariffs; }, [activeTariffs]);
 
-  /* ---------- Server ---------- */
-  const driverId = profile?.id ?? null;
+  /* ---------- Joylashuv: GPS (ishlab chiqishda — avtopilot) ---------- */
+  const hasProfile = !!account;
   useEffect(() => {
-    if (!DISPATCH_URL || !driverId) return;
-    const cl = new DispatchClient('driver', driverId);
-    const off = cl.onState(setConn);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- tashqi ulanish obyekti
-    setClient(cl);
-    return () => { off(); cl.close(); setClient(null); };
-  }, [driverId]);
-  const live = conn === 'online';
-
-  // Ulanganda profil va hujjatlar holati yuboriladi — server qarorlarini, kerak bo'lsa hujjat so'rovini qaytaradi
-  useEffect(() => {
-    if (!client || !live || !profile) return;
-    const cur = docsRef.current;
-    const docsSync: DocSync = Object.fromEntries(DOC_KINDS.map(k => [k, { status: cur[k].status, submittedAt: cur[k].submittedAt, note: cur[k].note }]));
-    client.send({ t: 'sync', profile, docs: docsSync });
-  }, [client, live, profile]);
-  const blockedRef = useRef(blocked);
-  useEffect(() => { blockedRef.current = blocked; }, [blocked]);
-  const commission = commissionOf(remote);
-  const commissionRef = useRef(commission);
-  useEffect(() => { commissionRef.current = commission; }, [commission]);
-  /** Server sababli liniyadan chiqarish (blok, rad etilgan hujjat) — setOnline pastda e'lon qilingan */
-  const goOfflineRef = useRef<() => void>(() => {});
-
-  /* ---------- Joylashuv: GPS yoki avtopilot ---------- */
-  useEffect(() => {
-    if (autopilot || !profile) return;
+    if (autopilotOn || !hasProfile) return;
     let stop: (() => void) | undefined;
     let cancelled = false;
     (async () => {
@@ -414,6 +486,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
         const sub = await Location.watchPositionAsync({ accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1500, distanceInterval: 5 }, loc => {
           const p = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
           setGps('ok');
+          speedRef.current = loc.coords.speed != null && loc.coords.speed >= 0 ? loc.coords.speed * 3.6 : undefined;
           setHeading(h => (loc.coords.heading != null && loc.coords.heading >= 0 && (loc.coords.speed ?? 0) > 1 ? loc.coords.heading : distanceKm(posRef.current, p) > 0.008 ? bearing(posRef.current, p) : h));
           setPos(p);
         });
@@ -423,17 +496,16 @@ export function DriverProvider({ children }: { children: ReactNode }) {
       }
     })();
     return () => { cancelled = true; stop?.(); };
-  }, [autopilot, profile, gpsTry]);
-  const gpsState: GpsState = autopilot ? 'demo' : gps;
+  }, [autopilotOn, hasProfile, gpsTry]);
+  const gpsState: GpsState = autopilotOn ? 'demo' : gps;
 
-  // Avtopilot: faol safar yo'li bo'ylab harakat
+  // Avtopilot (faqat ishlab chiqishda): faol safar yo'li bo'ylab harakat
   useEffect(() => {
-    if (!autopilot || !trip || trip.stage === 'waiting') return;
+    if (!autopilotOn || !trip || trip.stage === 'waiting') return;
     const path = trip.stage === 'toPickup' ? trip.approach : trip.order.route.coords;
     if (path.length < 2) return;
     const kmh = (trip.stage === 'toPickup' ? APPROACH_KMH : RIDE_KMH) * DEMO_SPEEDUP;
     const total = pathLength(path);
-    // tiklangan safarda mashina yo'lning qayerida bo'lsa, o'sha joydan davom etadi
     const startT = Math.max(0, 1 - nextManeuver(path, posRef.current).leftKm / Math.max(0.05, total));
     const t0 = Date.now();
     const iv = setInterval(() => {
@@ -445,362 +517,280 @@ export function DriverProvider({ children }: { children: ReactNode }) {
       if (t >= 1) clearInterval(iv);
     }, 500);
     return () => clearInterval(iv);
-  }, [autopilot, trip]);
+  }, [autopilotOn, trip]);
 
-  // Yo'ldagi safar: manzilgacha qolgan masofa (zanjir buyurtma uchun)
   const leftKm = useMemo(() => (trip?.stage === 'inride' ? nextManeuver(trip.order.route.coords, pos).leftKm : null), [trip, pos]);
-  const chainReady = leftKm != null && leftKm < CHAIN_KM && !next;
 
-  // Joylashuvni serverga yuborish
+  // Liniyada yoki safarda joylashuv serverga yuboriladi (u yo'lovchining xaritasida mashinani yurgizadi)
+  const sending = online || !!trip;
   useEffect(() => {
-    if (!client || !online) return;
-    const iv = setInterval(() => client.send({ t: 'pos', pos: posRef.current, heading: headingRef.current }), 2000);
-    return () => clearInterval(iv);
-  }, [client, online]);
-
-  // Serverga zanjir buyurtmaga tayyorlikni bildirish
-  useEffect(() => {
-    if (!client || !live) return;
-    const dest = tripRef.current?.order.destination;
-    client.send({ t: 'chain', on: chainReady, from: chainReady && dest ? { latitude: dest.latitude, longitude: dest.longitude } : undefined });
-  }, [client, live, chainReady]);
-
-  /* ---------- Safarni boshlash ---------- */
-  const startTrip = useCallback((order: OrderOffer, stage: TripStage = 'toPickup') => {
-    const me = posRef.current;
-    setTrip({ order, stage, approach: [me, order.pickup], waitFee: 0, arrivedAt: stage === 'waiting' ? Date.now() : undefined, startedAt: stage === 'inride' ? Date.now() : undefined });
-    if (stage === 'toPickup') {
-      fetchRoute(me, order.pickup).then(r => setTrip(t => (t?.order.id === order.id && t.stage === 'toPickup' ? { ...t, approach: r.coords } : t)));
-    }
-  }, []);
-
-  /* ---------- Server xabarlari ---------- */
-  useEffect(() => {
-    if (!client) return;
-    return client.on(m => {
-      switch (m.t) {
-        case 'offer': {
-          const t = tripRef.current;
-          // band haydovchiga faqat yo'ldagi safarda zanjir taklifi keladi
-          if (offerRef.current || (t && !(m.chain && t.stage === 'inride' && !nextRef.current))) { client.send({ t: 'decline', orderId: m.order.id }); return; }
-          notifyOffer();
-          setOffer({ order: m.order, distanceKm: m.distanceKm, expiresAt: Date.now() + m.expiresIn, total: m.expiresIn, chain: m.chain });
-          break;
-        }
-        case 'offerGone':
-          setOffer(o => (o?.order.id === m.orderId ? null : o));
-          // qabul qilgan edik, lekin server tasdiqlamadi (vaqt tugadi yoki boshqa haydovchi oldi)
-          if (pendingAccept.current === m.orderId) {
-            pendingAccept.current = null;
-            if (tripRef.current?.order.id === m.orderId) setTrip(null);
-            if (nextRef.current?.id === m.orderId) setNext(null);
-            toast(tr("Buyurtma boshqa haydovchiga o'tdi"), 'alert-circle');
-          }
-          break;
-        case 'assigned':
-          if (pendingAccept.current === m.order.id) pendingAccept.current = null;
-          setOffer(o => (o?.order.id === m.order.id ? null : o));
-          if (m.chain) {
-            if (!nextRef.current) setNext(m.order);
-          } else if (tripRef.current?.order.id !== m.order.id) {
-            startTrip(m.order, m.status === 'arrived' ? 'waiting' : m.status === 'started' ? 'inride' : 'toPickup');
-          }
-          break;
-        case 'cancelled':
-          if (tripRef.current?.order.id === m.orderId) {
-            haptic.error();
-            say('passengerCancelled', true);
-            toast(tr("Yo'lovchi buyurtmani bekor qildi"), 'close-circle');
-            const nx = nextRef.current;
-            setTrip(null);
-            if (nx) { setNext(null); startTrip(nx); }
-          } else if (nextRef.current?.id === m.orderId) {
-            setNext(null);
-            toast(tr('Keyingi buyurtma bekor qilindi'), 'close-circle');
-          }
-          break;
-        case 'rated':
-          setEarnings(es => {
-            const n = es.map(e => (e.id === m.orderId ? { ...e, stars: m.stars || undefined, tip: m.tip } : e));
-            persist(K.earnings, n);
-            return n;
-          });
-          if (m.stars) setLastRating({ stars: m.stars, tip: m.tip });
-          break;
-        case 'config':
-          setRemote(m.config);
-          break;
-        case 'docStatus': {
-          const prev = docsRef.current[m.kind];
-          if (prev.status === m.status && prev.note === m.note) break;
-          updateDocs(c => ({ ...c, [m.kind]: { ...c[m.kind], status: m.status, note: m.note, checkedAt: m.checkedAt } }));
-          if (m.status === 'approved') {
-            toast(tr('{short} tasdiqlandi', { short: tr(DOC_META[m.kind].short) }), 'checkmark-circle');
-            if (DOC_KINDS.every(x => x === m.kind || docsRef.current[x].status === 'approved')) {
-              setTimeout(() => toast(tr('Hujjatlar tasdiqlandi — liniyaga chiqishingiz mumkin'), 'shield-checkmark'), 1600);
-            }
-          } else if (m.status === 'rejected') {
-            haptic.error();
-            toast(tr('{short} rad etildi: {note}', { short: tr(DOC_META[m.kind].short), note: m.note ?? '' }), 'close-circle');
-            if (!tripRef.current) goOfflineRef.current();
-          }
-          break;
-        }
-        case 'needDoc': {
-          const doc = docsRef.current[m.kind];
-          if (doc.status !== 'missing') client.send({ t: 'doc', doc });
-          break;
-        }
-        case 'blocked':
-          if (blockedRef.current?.reason !== m.reason) {
-            haptic.error();
-            toast(tr('Hisobingiz bloklandi: {reason}', { reason: m.reason }), 'lock-closed');
-            setBlocked({ reason: m.reason });
-            persist(K.blocked, { reason: m.reason });
-          }
-          if (!tripRef.current) goOfflineRef.current();
-          break;
-        case 'unblocked':
-          if (blockedRef.current) {
-            toast(tr('Hisobingiz blokdan chiqarildi — liniyaga chiqishingiz mumkin'), 'lock-open');
-            setBlocked(null);
-            persist(K.blocked, null);
-          }
-          break;
-        case 'notice':
-          haptic.success();
-          setNotice({ title: m.title, text: m.text, at: new Date().toISOString() });
-          toast(m.title || m.text, 'megaphone');
-          break;
-      }
-    });
-  }, [client, startTrip, updateDocs]);
-
-  // Server ulanganda liniyadagi holatni qayta e'lon qilish
-  useEffect(() => {
-    if (client && profile && online && conn === 'online') {
-      client.send({ t: 'online', driver: profile, pos: posRef.current, heading: headingRef.current, tariffs: activeTariffs });
-    }
-  }, [client, profile, online, conn, activeTariffs]);
-
-  /* ---------- Demo buyurtmalar (server yo'q) ---------- */
-  const makeDemoOrder = useCallback(async (from: LatLng): Promise<{ order: OrderOffer; km: number } | null> => {
-    if (!profile) return null;
-    const pickupPt = nearbyPoint(from);
-    const pickup = { ...pickupPt, title: nearestTitle(pickupPt), subtitle: tr('Toshkent') };
-    const near = homeDest ? PLACES.filter(p => distanceKm(p, homeDest) < 3) : [];
-    const dest = homeDest ? (near.length && Math.random() < 0.5 ? near[Math.floor(Math.random() * near.length)] : homeDest) : PLACES[Math.floor(Math.random() * PLACES.length)];
-    if (distanceKm(pickup, dest) < 1) return null;
-    const route = await fetchRoute(pickup, dest);
-    const pool = activeRef.current;
-    const tariffId = pool[Math.floor(Math.random() * pool.length)] ?? 'start';
-    const tf = TARIFFS.find(x => x.id === tariffId) ?? TARIFFS[0];
-    const surge = surgeAt(zonesRef.current, pickup);
-    const order: OrderOffer = {
-      id: 'd' + Date.now().toString(36), pickup, destination: dest,
-      route: { km: route.km, min: route.min, coords: route.coords }, tariffId, price: priceFor(tf, route.km, route.min, surge), surge: surge > 1 ? surge : undefined,
-      payment: Math.random() < 0.5 ? 'cash' : 'card', options: Math.random() < 0.3 ? ['ac'] : [], comment: Math.random() < 0.35 ? COMMENTS[Math.floor(Math.random() * COMMENTS.length)] : '',
-      passenger: { ...PASSENGERS[Math.floor(Math.random() * PASSENGERS.length)], rating: 4.6 + Math.round(Math.random() * 4) / 10, phone: '+998 90 123 45 67' },
-      createdAt: new Date().toISOString(),
+    if (!sending || !hasProfile) return;
+    const ping = () => {
+      dapi.reportLocation(posRef.current, headingRef.current, speedRef.current)
+        .then(r => { if (!r.online && sinceRef.current != null && !tripRef.current) { setOnlineState(false); setOnlineSince(null); } })
+        .catch(() => {});
     };
-    return { order, km: Math.round(distanceKm(from, pickup) * 10) / 10 };
-  }, [profile, homeDest]);
+    ping();
+    const iv = setInterval(ping, PING_MS);
+    return () => clearInterval(iv);
+  }, [sending, hasProfile]);
 
+  // Liniyada yoki safarda ekran o'chmaydi
   useEffect(() => {
-    if (live || !online || trip || offer || summary || !profile) return;
-    const hot = surgeAt(zonesRef.current, posRef.current) > 1;
-    // faollik past bo'lsa buyurtmalar kamroq, yuqori talab hududida — tezroq keladi
-    const delay = (6000 + Math.random() * 6000) * (activity < 40 ? 1.8 : 1) * (hot ? 0.6 : 1);
-    let alive = true;
-    const t = setTimeout(async () => {
-      const made = await makeDemoOrder(posRef.current);
-      if (!made || !alive || offerRef.current || tripRef.current) return;
-      notifyOffer();
-      setOffer({ order: made.order, distanceKm: made.km, expiresAt: Date.now() + OFFER_MS, total: OFFER_MS });
-    }, delay);
-    return () => { alive = false; clearTimeout(t); };
-  }, [live, online, trip, offer, summary, profile, activity, makeDemoOrder]);
+    if (!sending) return;
+    activateKeepAwakeAsync('yums-driver').catch(() => {});
+    return () => { deactivateKeepAwake('yums-driver').catch(() => {}); };
+  }, [sending]);
 
-  // Demo zanjir: safar oxiriga yaqinlashganda keyingi buyurtma manzil yaqinidan taklif qilinadi
-  const tripId = trip?.order.id;
+  /* ---------- Jonli aloqa: takliflar va safar o'zgarishlari ---------- */
   useEffect(() => {
-    if (live || !online || !chainReady || offer || !tripId || chainAsked.current.has(tripId)) return;
-    chainAsked.current.add(tripId);
-    let alive = true;
-    const t = setTimeout(async () => {
-      const cur = tripRef.current;
-      if (!cur || cur.order.id !== tripId) return;
-      const made = await makeDemoOrder(cur.order.destination);
-      if (!made || !alive || offerRef.current || nextRef.current) return;
-      notifyOffer(true);
-      setOffer({ order: made.order, distanceKm: made.km, expiresAt: Date.now() + OFFER_MS, total: OFFER_MS, chain: true });
-    }, 1500 + Math.random() * 2000);
-    return () => { alive = false; clearTimeout(t); };
-  }, [live, online, chainReady, offer, tripId, makeDemoOrder]);
+    if (!accountOwner || !hasProfile) return;
+    startRealtime();
+    registerThisDevice().catch(() => {});
+    const offs = [
+      onRealtimeReady(() => { setLive(true); syncState().catch(() => {}); }),
+      onRealtime<OfferView>('offer.new', v => {
+        if (!canTakeOffer()) return;
+        notifyOffer();
+        setOffer(offerOf(v));
+      }),
+      onRealtime<{ offerId: string; orderId: string; reason: string }>('offer.closed', e => {
+        const cur = offerRef.current;
+        if (cur?.id !== e.offerId) return;
+        setOffer(null);
+        if (e.reason === 'EXPIRED') {
+          say('missed');
+          toast(tr("Buyurtma o'tkazib yuborildi · faollik {missed}", { missed: rules.activity.missed }), 'time-outline');
+          loadAccount().catch(() => {});
+        }
+      }),
+      onRealtime<{ orderId: string; cancelledBy: string }>('order.cancelled', e => {
+        if (nextRef.current?.id === e.orderId) {
+          haptic.error();
+          toast(tr("Keyingi buyurtmani yo'lovchi bekor qildi"), 'close-circle');
+          setNext(null);
+          return;
+        }
+        if (tripRef.current?.order.id !== e.orderId) return;
+        haptic.error();
+        say('passengerCancelled', true);
+        toast(e.cancelledBy === 'ADMIN' ? tr('Buyurtma operator tomonidan bekor qilindi') : tr("Yo'lovchi buyurtmani bekor qildi"), 'close-circle');
+        setTrip(null);
+      }),
+      // Joriy safar tugadi — zanjirdagi buyurtma endi asosiy safar
+      onRealtime<{ orderId: string }>('order.next_started', () => {
+        haptic.success();
+        syncState().catch(() => {});
+        toast(tr("Keyingi buyurtma boshlandi — mijozga yo'l oling"), 'navigate');
+      }),
+      onRealtime<{ reason: string }>('driver.offline', e => {
+        haptic.error();
+        setOnlineState(false);
+        setOnlineSince(null);
+        setOffer(null);
+        toast(e.reason === 'DEBT_LIMIT' ? tr("Balans minimal miqdordan kam — liniyadan chiqdingiz. Balansni to'ldiring") : tr('Operator sizni liniyadan chiqardi'), 'alert-circle');
+        loadAccount().catch(() => {});
+      }),
+      onRealtime<{ kind: dapi.DocKindServer; status: string; note: string | null }>('driver.document', e => {
+        refreshDocs().catch(() => {});
+        loadAccount().catch(() => {});
+        const short = tr(DOC_META[fromServerDoc({ kind: e.kind, number: '', frontImage: '', status: 'REVIEW', submittedAt: '' }).kind].short);
+        if (e.status === 'APPROVED') toast(tr('{short} tasdiqlandi', { short }), 'checkmark-circle');
+        if (e.status === 'REJECTED') { haptic.error(); toast(tr('{short} rad etildi: {note}', { short, note: e.note ?? '' }), 'close-circle'); }
+      }),
+      onRealtime<{ title: string; text: string }>('driver.notice', e => {
+        haptic.success();
+        setNotice({ title: e.title, text: e.text, at: new Date().toISOString() });
+        toast(e.title || e.text, 'megaphone');
+      }),
+      onRealtime<{ orderId: string; name: string; text: string }>('order.message', m => {
+        if (tripRef.current?.order.id !== m.orderId) return;
+        haptic.success();
+        if (Platform.OS !== 'web') Vibration.vibrate(200);
+        toast(`${m.name}: ${m.text}`, 'chatbubble-ellipses');
+      }),
+      onRealtime<{ orderId: string; stars: number; tip: number }>('order.rated', e => {
+        setLastRating({ stars: e.stars, tip: e.tip });
+        refreshEarnings().catch(() => {});
+        if (e.tip > 0) refreshWallet().catch(() => {});
+      }),
+    ];
+    return () => { offs.forEach(off => off()); setLive(false); };
+  }, [accountOwner, hasProfile, syncState, loadAccount, refreshDocs, refreshEarnings, refreshWallet, rules.activity.missed, canTakeOffer]);
 
-  // Taklif muddati tugadi — o'tkazib yuborilgan hisoblanadi
+  // Socket — signal; liniyada taklif, safarda holat REST orqali ham tekshirib turiladi
+  useEffect(() => {
+    if (!hasProfile || (!online && !trip)) return;
+    const iv = setInterval(() => { syncState().catch(() => {}); }, trip ? TRIP_POLL_MS : OFFER_POLL_MS);
+    return () => clearInterval(iv);
+  }, [hasProfile, online, trip, syncState]);
+
+  // Taklif muddati tugadi — server o'zi yopadi, ekrandan olib tashlaymiz
   useEffect(() => {
     if (!offer) return;
-    const t = setTimeout(() => {
-      if (offerRef.current?.order.id !== offer.order.id) return;
-      if (live) client?.send({ t: 'decline', orderId: offer.order.id });
-      setOffer(null);
-      bumpActivity(ACTIVITY.missed);
-      say('missed');
-      toast(tr("Buyurtma o'tkazib yuborildi · faollik {missed}", { missed: ACTIVITY.missed }), 'time-outline');
-    }, Math.max(0, offer.expiresAt - Date.now()));
+    const t = setTimeout(() => setOffer(o => (o?.id === offer.id ? null : o)), Math.max(0, offer.expiresAt - Date.now()) + 1500);
     return () => clearTimeout(t);
-  }, [offer, live, client, bumpActivity]);
+  }, [offer]);
+
+  /* ---------- Talab xaritasi ---------- */
+  useEffect(() => {
+    if (!hasProfile) return;
+    const load = () => dapi.demandAround(posRef.current).then(c => setZones(toZones(c))).catch(() => {});
+    load();
+    const iv = setInterval(load, DEMAND_MS);
+    return () => clearInterval(iv);
+  }, [hasProfile]);
 
   /* ---------- Amallar ---------- */
+  const fail = (error: unknown) => {
+    haptic.error();
+    if (error instanceof ApiError && error.code === 'TOO_FAR_FROM_PICKUP') {
+      toast(tr("Siz olish nuqtasidan hali {m} m uzoqdasiz", { m: Number(error.details?.distanceM ?? 0) }), 'navigate');
+      return;
+    }
+    toast(errorText(error), 'alert-circle');
+  };
+
   const accept = useCallback(() => {
     const o = offerRef.current;
     if (!o) return;
     haptic.success();
     setOffer(null);
-    bumpActivity(ACTIVITY.accept);
-    if (live) { pendingAccept.current = o.order.id; client?.send({ t: 'accept', orderId: o.order.id }); }
-    if (o.chain) {
-      setNext(o.order);
-      say('chainAccepted');
-    } else {
-      startTrip(o.order);
-      say('accepted');
-    }
-  }, [live, client, startTrip, bumpActivity]);
+    dapi.acceptOffer(o.id)
+      .then(order => {
+        if (order.chained) {
+          setNext(orderOf(order));
+          toast(tr('Keyingi buyurtma qabul qilindi — joriy safardan keyin boshlanadi'), 'link');
+        } else applyOrder(order);
+        say('accepted');
+        loadAccount().catch(() => {});
+      })
+      .catch(error => {
+        if (error instanceof ApiError && error.code === 'OFFER_GONE') { toast(tr("Buyurtma boshqa haydovchiga o'tdi"), 'alert-circle'); return; }
+        fail(error);
+      });
+  }, [applyOrder, loadAccount]);
 
   const decline = useCallback(() => {
     const o = offerRef.current;
     if (!o) return;
     haptic.tap();
-    if (live) client?.send({ t: 'decline', orderId: o.order.id });
     setOffer(null);
-    bumpActivity(ACTIVITY.decline);
-    toast(tr('Buyurtma rad etildi · faollik {decline}', { decline: ACTIVITY.decline }), 'remove-circle-outline');
-  }, [live, client, bumpActivity]);
+    dapi.declineOffer(o.id).catch(() => {});
+    toast(tr('Buyurtma rad etildi · faollik {decline}', { decline: rules.activity.decline }), 'remove-circle-outline');
+    setTimeout(() => loadAccount().catch(() => {}), 800);
+  }, [loadAccount, rules.activity.decline]);
 
   const arrived = useCallback(() => {
     const t = tripRef.current;
     if (!t) return;
-    haptic.success();
-    if (autopilot) setPos(t.order.pickup);
-    setTrip({ ...t, stage: 'waiting', arrivedAt: Date.now() });
-    if (live) client?.send({ t: 'arrived', orderId: t.order.id });
-    say('arrivedSent');
-  }, [live, client, autopilot]);
+    if (autopilotOn) setPos(t.order.pickup);
+    const send = () => dapi.markArrived(t.order.id).then(o => { haptic.success(); applyOrder(o); say('arrivedSent'); });
+    // avtopilotda nuqta endigina o'zgardi — avval uni serverga yetkazamiz
+    (autopilotOn ? dapi.reportLocation(t.order.pickup, headingRef.current).then(send) : send()).catch(fail);
+  }, [applyOrder, autopilotOn]);
 
   const startRide = useCallback(() => {
     const t = tripRef.current;
     if (!t) return;
     haptic.tap();
-    const waitFee = waitFeeOf(t.arrivedAt, Date.now());
-    setTrip({ ...t, stage: 'inride', startedAt: Date.now(), waitFee });
-    if (live) client?.send({ t: 'started', orderId: t.order.id });
-    say('rideStart');
-  }, [live, client]);
-
-  /** Joriy safar yopilgach zanjirdagi buyurtmaga o'tish */
-  const goNext = useCallback(() => {
-    const nx = nextRef.current;
-    setTrip(null);
-    if (nx) { setNext(null); startTrip(nx); }
-  }, [startTrip]);
-
-  const addEarning = useCallback((e: Earning) => {
-    setEarnings(es => { const n = [e, ...es].slice(0, 300); persist(K.earnings, n); return n; });
-    setProfile(p => { if (!p) return p; const n = { ...p, trips: p.trips + 1 }; persist(K.profile, n); return n; });
-  }, []);
+    dapi.startTrip(t.order.id).then(o => { applyOrder(o); say('rideStart'); }).catch(fail);
+  }, [applyOrder]);
 
   const finishRide = useCallback(() => {
     const t = tripRef.current;
     if (!t) return;
-    haptic.success();
-    const total = t.order.price + t.waitFee;
-    if (live) client?.send({ t: 'finished', orderId: t.order.id, price: total });
-    const e: Earning = {
-      id: t.order.id, at: new Date().toISOString(), price: t.order.price, waitFee: t.waitFee, fee: Math.round(total * commissionRef.current), tip: 0,
-      km: Math.round(t.order.route.km * 10) / 10,
-      min: t.startedAt ? Math.max(1, Math.round((Date.now() - t.startedAt) / 60000)) : t.order.route.min,
-      from: t.order.pickup.title, to: t.order.destination.title, payment: t.order.payment, tariffId: t.order.tariffId, surge: t.order.surge,
-    };
-    addEarning(e);
-    if (autopilot) setPos(t.order.destination);
-    setSummary({ earning: e, passenger: t.order.passenger.name });
-    say(t.order.payment === 'cash' ? 'finishCash' : 'finishCard');
-    goNext();
-    // demo: yo'lovchi baholaydi
-    if (!live) setTimeout(() => {
-      const stars = Math.random() < 0.8 ? 5 : 4;
-      const tip = Math.random() < 0.35 ? [2000, 5000, 10000][Math.floor(Math.random() * 3)] : 0;
-      setEarnings(es => { const n = es.map(x => (x.id === e.id ? { ...x, stars, tip } : x)); persist(K.earnings, n); return n; });
-      setLastRating({ stars, tip });
-    }, 2500);
-  }, [live, client, autopilot, addEarning, goNext]);
+    dapi.completeTrip(t.order.id)
+      .then(o => {
+        haptic.success();
+        if (autopilotOn) setPos(t.order.destination);
+        if (o.paymentMethod === 'CASH' && t.order.payment !== 'cash') toast(tr("Karta to'lovi o'tmadi — yo'lovchidan naqd oling"), 'cash');
+        say(o.paymentMethod === 'CASH' ? 'finishCash' : 'finishCard');
+        setTrip(null);
+        setSummary({
+          orderId: o.id, passenger: o.passenger.firstName,
+          earning: { id: o.id, at: o.completedAt ?? new Date().toISOString(), price: o.fare - o.waitFee, waitFee: o.waitFee, fee: o.fare - o.earning, tip: 0, km: o.route.distanceKm, min: o.route.durationMin, from: o.pickup.title, to: o.destination.title, payment: PAY[o.paymentMethod], tariffId: o.tariffId },
+        });
+        refreshWallet().catch(() => {});
+        refreshEarnings().catch(() => {});
+        loadAccount().catch(() => {});
+        // zanjirdagi buyurtma serverda boshlanadi — uni darhol olamiz
+        if (nextRef.current) syncState().catch(() => {});
+      })
+      .catch(fail);
+  }, [autopilotOn, refreshWallet, refreshEarnings, loadAccount, syncState]);
+
+  /** Keyingi buyurtmadan voz kechish: u boshqa haydovchiga qaytadi, faollik kamayadi */
+  const cancelNext = useCallback(() => {
+    const n = nextRef.current;
+    if (!n) return;
+    dapi.dropOrder(n.id)
+      .then(() => {
+        setNext(null);
+        toast(tr('Keyingi buyurtmadan voz kechildi · faollik {cancel}', { cancel: rules.activity.cancel }), 'unlink');
+        loadAccount().catch(() => {});
+      })
+      .catch(fail);
+  }, [loadAccount, rules.activity.cancel]);
 
   const closeSummary = useCallback((passengerStars?: number) => {
-    const s = summaryRef.current;
-    if (s && passengerStars) {
-      setEarnings(es => { const n = es.map(x => (x.id === s.earning.id ? { ...x, passengerStars } : x)); persist(K.earnings, n); return n; });
-    }
-    setSummary(null);
-  }, []);
+    setSummary(s => {
+      if (s && passengerStars) dapi.ratePassenger(s.orderId, passengerStars).then(() => refreshEarnings()).catch(() => {});
+      return null;
+    });
+  }, [refreshEarnings]);
 
   const cancelTrip = useCallback(() => {
     const t = tripRef.current;
     if (!t) return;
-    if (live) client?.send({ t: 'cancel', orderId: t.order.id });
-    bumpActivity(ACTIVITY.cancel);
-    toast(tr('Buyurtma bekor qilindi · faollik {cancel}', { cancel: ACTIVITY.cancel }), 'close-circle-outline');
-    goNext();
-  }, [live, client, bumpActivity, goNext]);
+    dapi.dropOrder(t.order.id)
+      .then(() => {
+        setTrip(null);
+        toast(tr('Buyurtma bekor qilindi · faollik {cancel}', { cancel: rules.activity.cancel }), 'close-circle-outline');
+        loadAccount().catch(() => {});
+      })
+      .catch(fail);
+  }, [loadAccount, rules.activity.cancel]);
 
-  // Mijoz chiqmadi: faollik kamaymaydi, pullik kutish uchun kompensatsiya yoziladi
+  // Mijoz chiqmadi: faollik kamaymaydi, buyurtma yopiladi
   const noShow = useCallback(() => {
     const t = tripRef.current;
     if (!t || t.stage !== 'waiting') return;
-    if (live) client?.send({ t: 'cancel', orderId: t.order.id, reason: 'noShow' });
-    const fee = waitFeeOf(t.arrivedAt, Date.now());
-    if (fee > 0) {
-      addEarning({
-        id: t.order.id, at: new Date().toISOString(), price: 0, waitFee: fee, fee: Math.round(fee * commissionRef.current), tip: 0, km: 0, min: 0,
-        from: t.order.pickup.title, to: tx('Mijoz chiqmadi'), payment: 'card', tariffId: t.order.tariffId, noShow: true,
-      });
-    }
-    say('noShow');
-    toast(fee > 0 ? tr('Mijoz chiqmadi · kompensatsiya {sum}', { sum: som(fee) }) : tr('Mijoz chiqmadi · buyurtma yopildi'), 'person-remove');
-    goNext();
-  }, [live, client, addEarning, goNext]);
-
-  const cancelNext = useCallback(() => {
-    const nx = nextRef.current;
-    if (!nx) return;
-    if (live) client?.send({ t: 'cancel', orderId: nx.id });
-    setNext(null);
-    bumpActivity(ACTIVITY.cancel);
-    toast(tr('Keyingi buyurtma bekor qilindi · faollik {cancel}', { cancel: ACTIVITY.cancel }), 'close-circle-outline');
-  }, [live, client, bumpActivity]);
+    dapi.closeNoShow(t.order.id)
+      .then(() => {
+        setTrip(null);
+        say('noShow');
+        toast(tr('Mijoz chiqmadi · buyurtma yopildi'), 'person-remove');
+        refreshEarnings().catch(() => {});
+      })
+      .catch(fail);
+  }, [refreshEarnings]);
 
   const setOnline = useCallback((v: boolean) => {
     haptic.tap();
-    if (v && blockedRef.current) { toast(tr('Hisobingiz bloklangan: {reason}', { reason: blockedRef.current.reason }), 'lock-closed'); return; }
-    if (v && !docsApproved) { toast(tr('Avval hujjatlaringiz tasdiqlanishi kerak'), 'document-text'); return; }
-    if (v && !activeRef.current.length) { toast(tr('Kamida bitta tarifni yoqing'), 'car'); return; }
-    setOnlineState(v);
-    const now = Date.now();
-    if (v) {
-      setOnlineSince(now);
-      say('online');
-    } else {
-      setOffer(null);
-      client?.send({ t: 'offline' });
-      say('offline');
-      const since = sinceRef.current;
-      if (since) setOnlineLog(l => { const n = { date: dayKey(), ms: (l.date === dayKey() ? l.ms : 0) + (now - since) }; persist(K.online, n); return n; });
-      setOnlineSince(null);
-    }
-  }, [client, docsApproved]);
-
-  useEffect(() => { goOfflineRef.current = () => { if (sinceRef.current != null) setOnline(false); }; }, [setOnline]);
+    if (v && !activeTariffs.length) { toast(tr('Kamida bitta tarifni yoqing'), 'car'); return; }
+    dapi.setDriverOnline(v)
+      .then(() => {
+        const now = Date.now();
+        setOnlineState(v);
+        if (v) {
+          setOnlineSince(now);
+          say('online');
+          dapi.reportLocation(posRef.current, headingRef.current).catch(() => {});
+        } else {
+          setOffer(null);
+          say('offline');
+          const since = sinceRef.current;
+          if (since) setOnlineLog(l => { const n = { date: dayKey(), ms: (l.date === dayKey() ? l.ms : 0) + (now - since) }; persist(K.online, n); return n; });
+          setOnlineSince(null);
+        }
+      })
+      .catch(error => {
+        if (error instanceof ApiError && error.code === 'DOCUMENTS_REQUIRED') { toast(tr('Avval hujjatlaringiz tasdiqlanishi kerak'), 'document-text'); return; }
+        if (error instanceof ApiError && error.code === 'DRIVER_DEBT_LIMIT') { toast(tr("Balans minimal miqdordan kam — avval balansni to'ldiring"), 'wallet'); return; }
+        fail(error);
+      });
+  }, [activeTariffs.length]);
 
   const onlineMsToday = useCallback((now: number) => (onlineLog.date === dayKey() ? onlineLog.ms : 0) + (onlineSince ? Math.max(0, now - onlineSince) : 0), [onlineLog, onlineSince]);
 
@@ -810,45 +800,10 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     return { sum: list.reduce((s, e) => s + e.price + (e.waitFee ?? 0) + e.tip - feeOf(e), 0), count: list.filter(e => !e.noShow).length, km: list.reduce((s, e) => s + e.km, 0) };
   }, [earnings]);
 
-  // Balans faqat serverda: to'ldirish, komissiya va shartnoma to'lovlari shu yerda hisoblanadi
-  const refreshWallet = useCallback(async () => {
-    const wallet = await loadDriverWallet();
-    setBalance(wallet.balance);
-    setMinBalance(wallet.minBalance);
-  }, []);
-
-  const adoptAccount = useCallback((account: DriverAccount) => {
-    setProfile(cur => {
-      const car = account.vehicle ? `${account.vehicle.brand} ${account.vehicle.model}` : cur?.car ?? '';
-      const next: DriverProfile = {
-        ...cur,
-        id: account.id, name: account.fullName, phone: account.phone, rating: account.rating, trips: account.trips,
-        car, color: account.vehicle?.color ?? cur?.color ?? '', plate: account.vehicle?.plate ?? cur?.plate ?? '',
-        tariffs: account.vehicle?.tariffIds ?? cur?.tariffs ?? [], city: cur?.city ?? 'Toshkent', joinedAt: cur?.joinedAt ?? new Date().toISOString(),
-      };
-      persist(K.profile, next);
-      return next;
-    });
-  }, []);
-
-  const loadAccount = useCallback(async () => {
-    const account = await loadDriverAccount();
-    if (!account) { setProfile(null); AsyncStorage.removeItem(K.profile).catch(() => {}); return; }
-    adoptAccount(account);
-    await refreshWallet();
-  }, [adoptAccount, refreshWallet]);
-
-  // Ilova ochilganda yoki hisob almashganda server holati olinadi
-  const accountOwner = user?.id;
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- server javobi kelgach yangilanadi
-    if (accountOwner) loadAccount().catch(() => {});
-  }, [accountOwner, loadAccount]);
-
   const withdraw = async (amount: number) => {
     try {
-      const payout = await requestPayout(amount);
-      setPayouts(ps => { const n = [{ id: payout.id, at: payout.createdAt, amount: payout.amount }, ...ps]; persist(K.payouts, n); return n; });
+      const payout = await dapi.requestPayout(amount);
+      setPayouts(ps => [{ id: payout.id, at: payout.createdAt, amount: payout.amount, status: 'PENDING' }, ...ps]);
       await refreshWallet();
       return true;
     } catch (error) {
@@ -857,78 +812,93 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const homeUsesLeft = HOME_USES_PER_DAY - (homeUses.date === dayKey() ? homeUses.used : 0);
-  const setHomeDest = (p: Place | null) => {
-    if (p) {
-      if (homeUsesLeft <= 0) return false;
-      const n = { date: dayKey(), used: HOME_USES_PER_DAY - homeUsesLeft + 1 };
-      setHomeUses(n); persist(K.homeUses, n);
+  const setHomeDest = async (p: Place | null) => {
+    try {
+      setAccount(p ? await dapi.setHome(p) : await dapi.clearHome());
+      return true;
+    } catch (error) {
+      toast(errorText(error), 'alert-circle');
+      return false;
     }
-    setHomeDestState(p);
-    persist(K.home, p);
-    return true;
   };
 
   const setTariffEnabled = (id: string, on: boolean) => {
     const st = tariffState.find(t => t.id === id);
     if (!profile || !st || (on && !st.eligible)) return false;
-    if (!on && activeTariffs.length === 1 && activeTariffs[0] === id && online) { toast(tr("Liniyada kamida bitta tarif yoqilgan bo'lishi kerak"), 'alert-circle'); return false; }
+    if (!on && activeTariffs.length === 1 && activeTariffs[0] === id) { toast(tr("Kamida bitta tarif yoqilgan bo'lishi kerak"), 'alert-circle'); return false; }
     const tariffs = on ? [...new Set([...profile.tariffs, id])] : profile.tariffs.filter(x => x !== id);
-    setProfile(cur => { if (!cur) return cur; const n = { ...cur, tariffs }; persist(K.profile, n); return n; });
+    dapi.setDriverTariffs(tariffs).then(setAccount).catch(fail);
     return true;
   };
 
   const updateCar = (car: string, year: number) => {
     if (!profile || (profile.car === car && profile.year === year)) return;
-    setProfile(cur => { if (!cur) return cur; const n = { ...cur, car, year }; persist(K.profile, n); return n; });
-    if (docs.techPassport.status !== 'missing') {
-      updateDocs(cur => ({ ...cur, techPassport: { ...cur.techPassport, status: 'rejected', note: tr("Avtomobil o'zgardi — yangi texnik pasportni yuklang") } }));
-      if (online) setOnline(false);
-      toast(tr('Yangi avtomobil uchun texnik pasportni yuklang'), 'document-text');
-    }
+    const [brand, ...model] = car.split(' ');
+    dapi.updateVehicle({ brand, model: model.join(' ') || brand, year })
+      .then(acc => {
+        setAccount(acc);
+        refreshDocs().catch(() => {});
+        if (acc.documentsBlocking.includes('TECH_PASSPORT')) {
+          setOnlineState(acc.online);
+          toast(tr('Yangi avtomobil uchun texnik pasportni yuklang'), 'document-text');
+        }
+      })
+      .catch(fail);
   };
 
+  const sos = async (at?: LatLng) => {
+    const id = tripRef.current?.order.id;
+    if (!id) return false;
+    try { await dapi.driverSos(id, at ?? posRef.current); return true; } catch (error) { fail(error); return false; }
+  };
+
+
   const value: Ctx = {
-    ready, profile,
-    docs, docsApproved, submitDoc, fillDemoDocs, tariffState, activeTariffs, setTariffEnabled, updateCar,
-    acceptDeliveryTerms: () => setProfile(cur => { if (!cur) return cur; const n = { ...cur, deliveryTerms: true }; persist(K.profile, n); return n; }),
+    ready, rules, profile,
+    docs, docsApproved, submitDoc, tariffState, activeTariffs, setTariffEnabled, updateCar,
+    acceptDeliveryTerms: () => dapi.acceptDeliveryTerms().then(acc => { setAccount(acc); return true; }).catch(error => { fail(error); return false; }),
     register: async (p, tariffIds) => {
       const [brand, ...model] = p.car.split(' ');
-      await registerDriver({ fullName: p.name, brand, model: model.join(' '), color: p.color, plate: p.plate, tariffIds });
-      setProfile({ ...p, id: user?.id ?? '', rating: 5, trips: 0, joinedAt: new Date().toISOString() });
+      await dapi.registerDriver({ fullName: p.name, gender: p.gender ? (p.gender === 'f' ? 'F' : 'M') : undefined, city: p.city, brand, model: model.join(' ') || brand, color: p.color, plate: p.plate, year: p.year, tariffIds });
       await loadAccount();
     },
     loadAccount, refreshWallet,
-    updateProfile: p => setProfile(cur => { if (!cur) return cur; const n = { ...cur, ...p }; persist(K.profile, n); return n; }),
+    updateProfile: p => {
+      if (p.gender || p.city) {
+        dapi.updateDriverPersonal({ gender: p.gender ? (p.gender === 'f' ? 'F' : 'M') : undefined, city: p.city }).then(setAccount).catch(fail);
+      }
+      if ('photo' in p) saveUserProfile({ avatar: p.photo ?? null }).catch(fail);
+      if (p.name && p.name !== profile?.name) saveUserProfile({ fullName: p.name }).then(() => loadAccount()).catch(fail);
+      if (p.color && p.color !== profile?.color) dapi.updateVehicle({ color: p.color }).then(setAccount).catch(fail);
+      if (p.plate && p.plate !== profile?.plate) dapi.updateVehicle({ plate: p.plate }).then(acc => { setAccount(acc); refreshDocs().catch(() => {}); }).catch(fail);
+    },
     logout: () => {
-      if (online) setOnline(false);
-      setOffer(null); setTrip(null); setNext(null); setSummary(null); setProfile(null); setDocs(emptyDocs()); setBlocked(null); setNotice(null);
-      setBalance(0); setMinBalance(0);
-      AsyncStorage.multiRemove([K.profile, K.session, K.docs, K.blocked]).catch(() => {});
+      if (online) dapi.setDriverOnline(false).catch(() => {});
+      setOffer(null); setTrip(null); setSummary(null); setAccount(null); setDocs(emptyDocs()); setNotice(null);
+      setBalance(0); setMinBalance(0); setEarnings([]); setPayouts([]); setOnlineState(false); setOnlineSince(null);
+      stopRealtime();
       endSession();
     },
     online, setOnline, pos, heading, gps: gpsState, retryGps: () => setGpsTry(n => n + 1),
     offer, accept, decline, trip, next, leftKm, arrived, startRide, finishRide, cancelTrip, noShow, cancelNext, summary, closeSummary,
     earnings, today, onlineMsToday, rating, activity, balance, minBalance, payouts, withdraw, zones,
-    homeDest, homeUsesLeft, setHomeDest,
+    homeDest: account?.home ? { title: account.home.title, latitude: account.home.latitude, longitude: account.home.longitude } : null,
+    homeUsesLeft: account?.homeUsesLeft ?? rules.homeUsesPerDay,
+    setHomeDest,
     navApp, setNavApp: a => { setNavAppState(a); persist(K.navApp, a); },
     voice, setVoice: v => { setVoiceState(v); setVoiceEnabled(v); persist(K.voice, v); },
     voiceLang, setVoiceLang: l => { setVoiceLangState(l); setVoiceLang(l); persist(K.voiceLang, l); },
-    autopilot, setAutopilot: v => { setAutopilotState(v); persist(K.autopilot, v); },
-    conn, live, lastRating, clearRating: () => setLastRating(null),
-    blocked, notice, dismissNotice: () => setNotice(null), commission,
+    autopilot: autopilotOn, setAutopilot: v => { setAutopilotState(DEV && v); persist(K.autopilot, DEV && v); },
+    live, lastRating, clearRating: () => setLastRating(null),
+    blocked: account?.status === 'BLOCKED' ? { reason: tr('Hisobingiz operator tomonidan bloklangan') } : null,
+    notice, dismissNotice: () => setNotice(null), commission, sos,
   };
   return <DCtx.Provider value={value}>{children}</DCtx.Provider>;
 }
 
 /** Yangi taklif: tebranish, ovoz va haptik */
-function notifyOffer(chain = false) {
+function notifyOffer() {
   haptic.success();
   if (Platform.OS !== 'web') Vibration.vibrate([0, 350, 180, 350]);
-  say(chain ? 'chainOrder' : 'newOrder', true);
-}
-
-function nearestTitle(p: LatLng) {
-  const n = PLACES.reduce((b, x) => (distanceKm(p, x) < distanceKm(p, b) ? x : b), PLACES[0]);
-  return distanceKm(p, n) < 0.3 ? n.title : `${n.title} yaqinida`;
+  say('newOrder', true);
 }

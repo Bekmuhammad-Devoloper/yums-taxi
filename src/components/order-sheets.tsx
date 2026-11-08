@@ -6,17 +6,19 @@ import { ActivityIndicator, Animated, Easing, Linking, Modal, Pressable, ScrollV
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TARIFF_ART } from '@/lib/cars';
-import { RATING_TAGS, RIDE_OPTIONS, TARIFFS, type Place } from '@/lib/data';
+import { RIDE_OPTIONS, TARIFFS, type Place } from '@/lib/data';
 import { som } from '@/lib/geo';
+import { errorText } from '@/lib/api';
 import { haptic, useStore } from '@/lib/store';
+import { messageDriver } from '@/lib/trip-api';
 import { F, radius } from '@/lib/theme';
 import { tr, trPlace, tx, route, flipRTL } from '@/lib/i18n';
 
 import { toast } from './toast';
-import { Button, Chip, Divider, Flag, IconTile, PersonAvatar, Row, Txt, type IconName } from './ui';
+import { ActionSheet, Button, Chip, Divider, Flag, IconTile, PersonAvatar, Row, Txt, type IconName } from './ui';
 
 /** Past baho sabablari (ekranda tr() bilan) */
-const BAD_TAGS = [tx('Kech keldi'), tx('Iflos mashina'), tx("Qo'pol muomala"), tx('Xavfli haydash'), tx("Noto'g'ri yo'l")];
+const PASSENGER_LINES = [tx('Chiqyapman'), tx('2 daqiqada chiqaman'), tx('Podyezd oldida turibman'), tx('Qayerdasiz?')];
 
 /* ---------- Kichik bo'laklar ---------- */
 function AddressRow({ dot, label, place, onPress, placeholder }: { dot: 'from' | 'to'; label: string; place?: Place | null; onPress?: () => void; placeholder?: string }) {
@@ -89,7 +91,7 @@ export function IdleSheet() {
 /* ---------- 2. Tarif tanlash ---------- */
 export function ChoosingSheet({ onOptions }: { onOptions: () => void }) {
   const s = useStore();
-  const { colors: c, order, priceOf, finalPrice, promo, surge } = s;
+  const { colors: c, order, priceOf, etaOf, finalPrice, promo, surge } = s;
   const pay = usePaymentLabel();
   const r = order.route;
   return (
@@ -97,7 +99,9 @@ export function ChoosingSheet({ onOptions }: { onOptions: () => void }) {
       <Row style={{ justifyContent: 'space-between' }}>
         <View style={{ flex: 1 }}>
           <Txt v="small" muted numberOfLines={1}>{route(trPlace(order.pickup?.title), trPlace(order.destination?.title))}</Txt>
-          {r ? <Txt v="h3">{tr('{min} daqiqa · {km} km', { min: r.min, km: r.km.toFixed(1) })}</Txt> : <Txt v="h3" muted>{tr('Marshrut hisoblanmoqda…')}</Txt>}
+          {r ? <Txt v="h3">{tr('{min} daqiqa · {km} km', { min: r.min, km: r.km.toFixed(1) })}</Txt>
+            : order.routeError ? <Txt v="small" color={c.danger} style={{ fontFamily: F.bold }}>{order.routeError}</Txt>
+              : <Txt v="h3" muted>{tr('Marshrut hisoblanmoqda…')}</Txt>}
         </View>
         {surge > 1 && (
           <View style={[styles.surge, { backgroundColor: c.dangerSoft }]}>
@@ -113,11 +117,11 @@ export function ChoosingSheet({ onOptions }: { onOptions: () => void }) {
           return (
             <Pressable key={t.id} onPress={() => { haptic.tap(); s.setTariff(t.id); }} style={[styles.tariff, { backgroundColor: on ? c.brandSoft : c.surface2, borderColor: on ? c.brand : 'transparent' }]}>
               <View style={[styles.eta, { backgroundColor: on ? c.brand : c.surface }]}>
-                <Txt v="tiny" color={on ? c.brandText : c.muted} style={{ fontFamily: F.bold }}>{tr('{min} daq', { min: 2 + t.etaExtra })}</Txt>
+                <Txt v="tiny" color={on ? c.brandText : c.muted} style={{ fontFamily: F.bold }}>{etaOf(t.id) !== null ? tr('{min} daq', { min: Math.max(1, etaOf(t.id) ?? 1) }) : '—'}</Txt>
               </View>
               <Image source={TARIFF_ART[t.id]} style={styles.tariffArt} contentFit="contain" />
               <Txt v="small" style={{ fontFamily: F.heavy }}>{tr(t.name)}</Txt>
-              {r ? <Txt v="h3" style={{ fontSize: 15 }}>{som(priceOf(t.id))}</Txt> : <ActivityIndicator size="small" color={c.muted} style={{ alignSelf: 'flex-start', height: 20 }} />}
+              {r ? <Txt v="h3" style={{ fontSize: 15 }}>{som(priceOf(t.id))}</Txt> : order.routeError ? <Txt v="h3" muted style={{ fontSize: 15 }}>—</Txt> : <ActivityIndicator size="small" color={c.muted} style={{ alignSelf: 'flex-start', height: 20 }} />}
               <Row gap={3}>
                 <Ionicons name={t.seats !== '—' ? 'person-outline' : 'cube-outline'} size={11} color={c.faint} />
                 <Txt v="tiny" faint>{t.seats !== '—' ? t.seats : tr('Posilka')}</Txt>
@@ -241,8 +245,9 @@ function ActionBtn({ icon, label, onPress, danger }: { icon: IconName; label: st
 const shareTrip = (text: string) => Share.share({ message: text }).catch(() => {});
 
 export function DriverSheet() {
-  const { colors: c, order, cancelOrder, finalPrice } = useStore();
+  const { colors: c, order, cancelOrder, finalPrice, settings } = useStore();
   const [confirm, setConfirm] = useState(false);
+  const [lines, setLines] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const pay = usePaymentLabel();
   useEffect(() => {
@@ -252,7 +257,7 @@ export function DriverSheet() {
   }, [order.phase]);
   const d = order.driver!;
   const arrived = order.phase === 'arrived';
-  const left = Math.max(0, 180 - Math.floor((now - (order.arrivedAt ?? now)) / 1000));
+  const left = Math.max(0, (settings?.freeWaitSec ?? 180) - Math.floor((now - (order.arrivedAt ?? now)) / 1000));
   return (
     <View style={{ gap: 14 }}>
       <View>
@@ -260,6 +265,9 @@ export function DriverSheet() {
         <Txt v="small" muted>
           {arrived ? tr('Bepul kutish: {time}', { time: `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` }) : `${tr(d.color)} ${d.car} · ${d.plate}`}
         </Txt>
+        {!arrived && order.chained ? (
+          <Txt v="small" color={c.accent} style={{ fontFamily: F.bold, marginTop: 2 }}>{tr("Haydovchi joriy safarini yakunlab, sizga yo'l oladi")}</Txt>
+        ) : null}
       </View>
       {!arrived && (
         <View style={[styles.track, { backgroundColor: c.surface2 }]}>
@@ -269,10 +277,24 @@ export function DriverSheet() {
       <DriverCard />
       <Row style={{ justifyContent: 'space-around' }}>
         <ActionBtn icon="call" label={tr("Qo'ng'iroq")} onPress={() => Linking.openURL(`tel:${d.phone}`).catch(() => toast(tr("Qo'ng'iroq qilib bo'lmadi"), 'alert-circle'))} />
-        <ActionBtn icon="chatbubble-ellipses" label={tr('Xabar')} onPress={() => Linking.openURL(`sms:${d.phone}`).catch(() => {})} />
+        <ActionBtn icon="chatbubble-ellipses" label={tr('Xabar')} onPress={() => setLines(true)} />
         <ActionBtn icon="share-social" label={tr('Ulashish')} onPress={() => shareTrip(tr("Men YUMS Taxi'da ketyapman: {color} {car}, {plate}. Haydovchi: {name}. Manzil: {to}", { color: tr(d.color), car: d.car, plate: d.plate, name: d.name, to: trPlace(order.destination?.title) }))} />
         <ActionBtn icon="close" label={tr('Bekor')} danger onPress={() => setConfirm(true)} />
       </Row>
+      <ActionSheet
+        visible={lines}
+        onClose={() => setLines(false)}
+        header={<Txt v="h3" style={{ textAlign: 'center' }}>{tr('Haydovchiga xabar')}</Txt>}
+        groups={[PASSENGER_LINES.map(q => ({
+          icon: 'chatbubble-ellipses-outline' as const,
+          title: tr(q),
+          onPress: () => {
+            setLines(false);
+            if (!order.liveId) return;
+            messageDriver(order.liveId, tr(q)).then(() => toast(tr('Xabar yuborildi'), 'paper-plane')).catch(error => toast(errorText(error), 'alert-circle'));
+          },
+        }))]}
+      />
       {confirm ? (
         <View style={[styles.confirm, { backgroundColor: c.dangerSoft }]}>
           <Txt v="h3" color={c.danger}>{tr('Buyurtmani bekor qilasizmi?')}</Txt>
@@ -321,7 +343,7 @@ export function RideSheet() {
 
 /* ---------- 6. Baholash ---------- */
 export function RatingModal() {
-  const { colors: c, order, finalPrice, finishRide } = useStore();
+  const { colors: c, order, finalPrice, finishRide, ratingTagList, settings } = useStore();
   const insets = useSafeAreaInsets();
   const [stars, setStars] = useState(0);
   const [tags, setTags] = useState<string[]>([]);
@@ -344,15 +366,15 @@ export function RatingModal() {
           {d && <Txt v="h3" style={{ textAlign: 'center' }}>{tr("{name} bilan safar qanday o'tdi?", { name: d.name })}</Txt>}
           <Row gap={6} style={{ justifyContent: 'center' }}>
             {[1, 2, 3, 4, 5].map(n => (
-              <Pressable key={n} onPress={() => { haptic.tap(); setStars(n); }} hitSlop={6}>
+              <Pressable key={n} onPress={() => { haptic.tap(); setStars(n); }} hitSlop={6} accessibilityRole="button" accessibilityLabel={tr('{n} yulduz', { n })}>
                 <Ionicons name={n <= stars ? 'star' : 'star-outline'} size={40} color={n <= stars ? '#F5A524' : c.faint} />
               </Pressable>
             ))}
           </Row>
           {stars > 0 && (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-              {(stars >= 4 ? RATING_TAGS : BAD_TAGS).map(t => (
-                <Chip key={t} label={tr(t)} active={tags.includes(t)} onPress={() => setTags(x => (x.includes(t) ? x.filter(y => y !== t) : [...x, t]))} />
+              {ratingTagList.filter(t => (stars >= 4 ? t.polarity === 'POSITIVE' : t.polarity === 'NEGATIVE')).map(t => (
+                <Chip key={t.id} label={tr(t.label)} active={tags.includes(t.id)} onPress={() => setTags(x => (x.includes(t.id) ? x.filter(y => y !== t.id) : [...x, t.id]))} />
               ))}
             </View>
           )}
@@ -360,12 +382,12 @@ export function RatingModal() {
             <View style={{ gap: 8 }}>
               <Txt v="small" muted style={{ textAlign: 'center' }}>{tr('Choy puli qoldirasizmi?')}</Txt>
               <Row gap={8} style={{ justifyContent: 'center' }}>
-                {[0, 2000, 5000, 10000].map(v => <Chip key={v} label={v ? som(v) : tr("Yo'q")} active={tip === v} onPress={() => setTip(v)} />)}
+                {[0, ...(settings?.tipOptions ?? [])].map(v => <Chip key={v} label={v ? som(v) : tr("Yo'q")} active={tip === v} onPress={() => setTip(v)} />)}
               </Row>
             </View>
           )}
           <Button title={stars ? tr('Yuborish') : tr("O'tkazib yuborish")} kind={stars ? 'brand' : 'ghost'} onPress={() => {
-            finishRide(stars, tip);
+            finishRide(stars, stars >= 4 ? tip : 0, tags);
             setStars(0); setTags([]); setTip(0);
             toast(stars ? tr('Rahmat! Bahoyingiz qabul qilindi') : tr('Safar yakunlandi'), 'heart');
           }} />

@@ -13,6 +13,7 @@ React Native + Expo (SDK 58), Expo Router, TypeScript.
 | YUMS INVEST | `/invest` | Investorlar katalogi, moliyalashtirish izlayotgan loyihalar, taklif yuborish, litsenziya ogohlantirishi |
 | YUMS MARKET | `/market`, `/market/[id]`, `/market/new` | Tovarlar, raqamli mahsulotlar, xizmatlar; e'lon joylashtirish (moderatsiya bilan) |
 | YUMS TECHNOLOGY | `/tech`, `/specialist/[id]` | Dasturchi, muhandis, dizayner va boshqa mutaxassislar |
+| Katalog profili | `/directory-edit?type=…` (company, specialist, investor) | O'zini kompaniya, mutaxassis yoki investor sifatida katalogga qo'shish; sharhlar (faqat suhbatlashganlar), reyting sharhlardan |
 | YUMS CONNECT | `/connect`, `/chat/[id]` | Xabarlar, hamkorlik so'rovlari, onlayn uchrashuvlar, hujjat almashish, bloklash |
 | YUMS WORLD | `/world`, `/sectors` | Mamlakat, mintaqa, til, soha, bosqich bo'yicha xalqaro qidiruv va filtrlar |
 | YUMS TAXI | `/taxi` va uning ekranlari | Xarita, marshrut, tariflar, to'lov, haydovchi, xavfsizlik |
@@ -29,11 +30,20 @@ React Native + Expo (SDK 58), Expo Router, TypeScript.
 - Daromad modeli (`/plans`): Free / Pro / Business tariflar, TOPga chiqarish, reklama kampaniyalari, professional xizmatlar, savdo komissiyasi
 - 25 ta soha, 28 mamlakat, 5 tilli interfeys (o'zbek, rus, ingliz, tojik, arab — arabchada o'ngdan chapga), yorug'/qorong'i mavzu
 
-> Taksidan tashqari server qismi hozircha yo'q: ma'lumotlar qurilmada saqlanadi, moderatsiya, javoblar, SMS kod va to'lovlar demo rejimida ishlaydi.
+> Barcha ma'lumotlar (hisob, taksi, haydovchi, platforma, chat, moderatsiya, to'lovlar) **UUMS-Backend** serverida — alohida repo (`omonovdev/UUMS-Backend`). Bu repoda faqat mobil ilova kodi bor; server kodi bu yerga qo'shilmaydi.
 
 ## Ishga tushirish
 
-Server manzili `EXPO_PUBLIC_API_URL` orqali o'zgaradi (standart: `https://api.yums.uz/api/v1`).
+Server manzili `EXPO_PUBLIC_API_URL` orqali o'zgaradi (standart: `https://api.yums.uz/api/v1`). Jonli aloqa (Socket.IO) shu manzilning `/realtime` nomlar fazosiga ulanadi.
+
+Lokal backend bilan (UUMS-Backend reposida `pnpm start:dev`, port 3000):
+
+```bash
+# PowerShell: $env:EXPO_PUBLIC_API_URL="http://192.168.1.10:3000/api/v1"; npx expo start
+EXPO_PUBLIC_API_URL=http://192.168.1.10:3000/api/v1 npx expo start
+```
+
+Vebda sinash uchun backend `.env`ida `CORS_ORIGINS=http://localhost:8081` bo'lishi kerak.
 
 ```bash
 npm install
@@ -45,35 +55,36 @@ Kirish Yandex Go uslubida — yagona oqim:
 - Telefon raqami (yoki email) → SMS kod → raqam ro'yxatda bo'lsa darhol ichkariga, yangi bo'lsa «Keling, tanishamiz» (profil) va hisob yaratiladi.
 - Qayta kirishda «Hisobni tanlang» — shu qurilmada avval kirgan hisoblar.
 - Noto'g'ri kodda xato ko'rsatiladi; 3 ta noto'g'ri urinishdan keyin yangi kod kerak.
-- Demo rejimda SMS o'rniga kod ekranda ko'rsatiladi; demo hisob: `+998 90 000 00 00`.
+- SMS kodni server yuboradi (Eskiz). Lokal/test serverda `OTP_DEV_CODE` o'rnatilgan bo'lsa, shu kod ishlaydi.
+- Profilda 2 bosqichli himoya yoqilgan bo'lsa, SMS koddan keyin emailga ikkinchi kod yuboriladi.
 
 Ro'yxatdan o'tishda (O'zbekiston):
 - **Jismoniy shaxs** — JShShIR (14 xona; tuzilishi va ichidagi tug'ilgan sana tekshiriladi, 18+).
 - **Kompaniya** — STIR (9 xona) davlat reyestridan tekshiriladi; kompaniya nomi va mas'ul shaxs (rahbar) reyestrdagi ma'lumot bilan mos kelsagina hisob yaratiladi; mas'ul shaxsning JShShIRi ham so'raladi.
-- Reyestr manzili `EXPO_PUBLIC_REGISTRY_API` orqali beriladi (`GET {API}/company/{stir}` → `{ name, director, status }`). Berilmasa demo reyestr ishlaydi: `301234567` — «YUMS DEMO» MChJ, rahbar Karimov Aziz Bahodirovich.
+- Reyestr: backenddagi `GET /registry/company/{stir}` (`{ name, director, status }`); boshqa manba bo'lsa — `EXPO_PUBLIC_REGISTRY_API`. Ro'yxatdan o'tishda server ham shu reyestr bilan solishtiradi.
 - Xorijiy kompaniyalar hujjatlar orqali tasdiqlanadi.
 
-Hisoblar hozircha qurilmada saqlanadi.
+Hisoblar serverda; qurilmada faqat kirish tokenlari (SecureStore) va «Hisobni tanlang» ro'yxati saqlanadi.
 
 Taksi xaritasi:
 - iOS/Android — `react-native-maps` (Apple / Google xaritalari).
 - Veb — Leaflet + OpenStreetMap/CARTO plitkalari (© OpenStreetMap, © CARTO). Plitka serveri ochilmasa, xarita avtomatik ravishda o'zi chizadigan sxematik qatlamga o'tadi — surish, kattalashtirish, marshrut va mashinalar ishlashda davom etadi.
-- Marshrut OSRM orqali olinadi, javob bo'lmasa — taxminiy egri chiziq.
+- Marshrut, narx, manzil qidiruvi, yaqin mashinalar va buyurtma holati — backenddan (`/quotes`, `/places`, `/nearby`, `/orders`).
 - Joylashuv: yuqori aniqlikdagi GPS bir necha soniya kuzatiladi (eski, keshlangan nuqta olinmaydi), aniqroq nuqta kelsa xarita va manzil yangilanadi. Vebda foydalanuvchi ko'k nuqta va aniqlik doirasi bilan ko'rsatiladi.
 - Manzil (ko'cha, uy): iOS/Android'da qurilma geokoderi, vebda va zaxira sifatida OpenStreetMap Nominatim.
 
-Demo ssenariylar:
-- Loyiha yaratib «Yuborish»ni bosing — bir necha soniyada avtomatik moderatsiyadan o'tadi. Matnda «kafolatlangan daromad» kabi iboralar bo'lsa, moderator navbatida qoladi.
-- Kabinet → Xavfsizlik → Ruxsat darajasi → «Moderator» — moderatsiya paneli ochiladi.
-- Investorga «Taklif yuborish» — so'rov bir necha soniyada qabul qilinadi.
-- Taksi promokodlari: `YUMS20`, `YANGI30`, `TOSHKENT`.
+Sinov ssenariylari (lokal backend, `SEED_DEMO=true`):
+- Loyiha yaratib «Yuborish»ni bosing — server avto-filtrdan o'tkazadi; shubhali iboralar bo'lsa moderator navbatiga tushadi.
+- Moderatsiya paneli — `MODERATOR`, `SUPPORT` yoki `ADMIN` roli berilgan hisob uchun (rol admin panelda yoki `POST /admin/platform/moderators/:userId` orqali beriladi).
+- Hamkorlik so'rovi — qarshi tomon o'z ilovasida qabul qiladi yoki rad etadi.
+- Taksi promokodlari (seed): `YUMS20`, `YANGI30`, `TOSHKENT`.
 
 ## YUMS Driver — haydovchi ilovasi
 
-Haydovchi uchun **alohida ilova** (nomi «YUMS Driver», `uz.yums.driver`, sxema `yumsdriver://`). U shu kod bazasidan yig'iladi va asosiy YUMS ilovasi bilan **dispetcher serveri** orqali real vaqtda bog'lanadi:
+Haydovchi uchun **alohida ilova** (nomi «YUMS Driver», `uz.yums.driver`, sxema `yumsdriver://`). U shu kod bazasidan yig'iladi va asosiy YUMS ilovasi bilan **UUMS-Backend** orqali real vaqtda (REST + Socket.IO) bog'lanadi:
 
 ```
-YUMS (yo'lovchi)  ──order──▶  dispetcher (server/dispatch.mjs)  ──offer──▶  YUMS Driver
+YUMS (yo'lovchi)  ──order──▶  UUMS-Backend (dispatch)  ──offer──▶  YUMS Driver
                   ◀─accepted / driverPos / arrived / started / finished──  (haydovchi)
                   ──rate (baho, choy puli)──────────────────────────────▶
 ```
@@ -92,29 +103,27 @@ YUMS (yo'lovchi)  ──order──▶  dispetcher (server/dispatch.mjs)  ──
   - **Kutish**: 3 daqiqa bepul, keyin daqiqasiga 500 so'm; taksometr.
   - **Safar yakuni** — «Naqd oling» / «Kartadan to'landi», komissiya va sof daromad, yo'lovchini baholash.
   - **Balans va pul yechish** (karta safarlari tushadi, naqd safarlar komissiyasi yechiladi), daromad (kun / 7 / 30 kun), faollik va reyting, avtomobil va hujjatlar, sozlamalar.
-  - **Hujjatlar** — haydovchilik guvohnomasi, texnik pasport, taksi litsenziyasi, OSAGO: raqam, sanalar, old/orqa tomoni rasmi → «Tekshirilmoqda» → «Tasdiqlangan» yoki sabab bilan «Rad etildi» (muddati o'tgan hujjat). Hujjatni bosganda uning o'zi (haqiqiy hujjat dizaynida yoki yuklangan rasm) ochiladi. To'rttasi tasdiqlanmaguncha liniyaga chiqib bo'lmaydi. Hozircha tekshiruvni ilovaning o'zi (demo moderator) bajaradi — real ishda moderator paneli/server kerak.
-  - **Tarif talablari** (Yandex Pro kabi): avtomobil katalogdan tanlanadi (sinfi: Ekonom / Komfort / Biznes / Miniven / Yuk) va yili kiritiladi. Start — hujjatlar + 2008 yildan; Komfort — komfort/biznes avtomobil, 2016+, reyting ≥ 4.70, faollik ≥ 50; Biznes — biznes avtomobil, 2019+, reyting ≥ 4.85, 200+ safar, faollik ≥ 70; Miniven — 6+ o'rindiq, 2012+, reyting ≥ 4.70; Yetkazish — yetkazish qoidalarini qabul qilish. Yopiq tarifni bossangiz, qaysi shart bajarilmagani va uni qanday bajarish ko'rsatiladi. Avtomobil almashsa, texnik pasport qayta tekshiriladi.
+  - **Hujjatlar** — haydovchilik guvohnomasi, texnik pasport, taksi litsenziyasi, OSAGO: raqam, sanalar, old/orqa tomoni rasmi → «Tekshirilmoqda» → «Tasdiqlangan» yoki sabab bilan «Rad etildi» (muddati o'tgan hujjat). Hujjatni bosganda uning o'zi (haqiqiy hujjat dizaynida yoki yuklangan rasm) ochiladi. To'rttasi tasdiqlanmaguncha liniyaga chiqib bo'lmaydi. Tekshiruvni xodim admin panelda bajaradi (`/admin/drivers/:id/documents/:kind/approve|reject`); lokal sinovda `DRIVER_AUTO_APPROVE=true`.
+  - **Tarif talablari** (Yandex Pro kabi): avtomobil katalogdan tanlanadi (sinfi: Ekonom / Komfort / Biznes / Miniven / Yuk) va yili kiritiladi. Start — hujjatlar + 2008 yildan; Komfort — komfort/biznes avtomobil, 2016+, reyting ≥ 4.70, faollik ≥ 50; Biznes — biznes avtomobil, 2019+, reyting ≥ 4.85, 200+ safar, faollik ≥ 70; Miniven — 6+ o'rindiq, 2012+, reyting ≥ 4.70; Yetkazish — yetkazish qoidalarini qabul qilish. Yopiq tarifni bossangiz, qaysi shart bajarilmagani va uni qanday bajarish ko'rsatiladi. Shartlarni server tekshiradi (`GET /driver/profile` → `tariffs`): bajarilmagan tarifni yoqib bo'lmaydi, liniyada faqat shartlari bajarilgan tariflar bo'yicha buyurtma keladi. Avtomobil almashsa, texnik pasport qayta tekshiriladi.
   - **Profil rasmi** — kamera yoki galereyadan; yuklanmagan bo'lsa jinsiga mos standart rasm (`assets/people/driver-m.webp`, `driver-f.webp` — rulda o'tirgan haydovchi). Jinsi ro'yxatdan o'tishda tanlanadi; jinsi saqlanmagan eski profillarda ismdan taxmin qilinadi (profilda o'zgartirsa bo'ladi). Yo'lovchi ilovasida ham haydovchining rasmi (yoki standart rasmi) ko'rinadi; yo'lovchining jinsi JShShIR'ning birinchi raqamidan olinadi.
   - **Menyu dizayni** — 3D ikonkalar va profil/balans kartalari foni `assets/menu/` papkasida (webp, foni shaffof ikonkalar 256×256, karta fonlari 1080×360). Kartalar fonida qorong'i mavzu uchun tungi, yorug' mavzu uchun kunduzgi rasm (`*-light.webp`) chiqadi.
   - **Yordam markazi** — savol-javoblar (qidiruv bilan), chat (operator javoblari), qo'ng'iroq, Telegram, favqulodda 112.
-  - **Zanjir buyurtma** — safar tugashiga 2 km qolganda keyingi buyurtma shu manzil yaqinidan taklif qilinadi; yakunlangach haydovchi darhol keyingi mijozga yo'l oladi (server ham qo'llab-quvvatlaydi).
-  - **Mijoz chiqmadi** — pullik kutish boshlangandan 2 daqiqa o'tib, faollik kamaymasdan buyurtmani yopish va kutish uchun kompensatsiya.
+  - **Mijoz chiqmadi** — server belgilagan kutish vaqti (`noShowAfterSec`) o'tgach, faollik kamaymasdan buyurtmani yopish.
+  - **Zanjir buyurtma** — safar tugashiga `chainRadiusKm` (2 km) qolganda, tushirish nuqtasi yaqinidagi buyurtma «Zanjir» belgisi bilan taklif qilinadi; qabul qilinsa, joriy safar tugashi bilan server uni boshlaydi. Yo'lovchi «haydovchi joriy safarini yakunlab keladi» yozuvini va mashinani xaritada ko'radi.
+  - **Faollik** 70 va undan yuqori bo'lsa, buyurtma shunday haydovchilarga birinchi taklif qilinadi.
   - **Ovozli yo'riqnoma** — ayol ovozi, ilovaning 5 tilida (ovoz tili ilova tili bilan birga almashadi; Sozlamalar → Ovoz tili): yangi buyurtma, burilishlar (200/300/400 m oldin va burilishda), pullik kutish, «naqd pul oling» va h.k. Batafsil — pastda «Ovoz to'plami».
   - Liniyada ekran o'chmaydi (expo-keep-awake), yangi buyurtmada tebranish; boshqa sahifada bo'lsangiz ham taklif xarita ekranida ochiladi.
-  - Ilova yopilib qayta ochilsa, faol safar, zanjir va liniyadagi holat tiklanadi.
+  - Ilova yopilib qayta ochilsa, faol safar va liniyadagi holat serverdan tiklanadi.
   - Telefonda navigator kamerasi mashina yo'nalishiga burilib, qiya ko'rinishda ergashadi; GPS ruxsati yo'q yoki aloqa uzilganda ogohlantirish chiqadi.
 
-Ishga tushirish (uchta terminal, kompyuter IP manzilini qo'ying):
+Ishga tushirish (backend ishlab turgan bo'lsin; kompyuter IP manzilini qo'ying):
 
 ```bash
-npm run dispatch                                                   # server: ws://0.0.0.0:8787
-EXPO_PUBLIC_DISPATCH_URL=ws://192.168.1.10:8787 npx expo start     # YUMS (yo'lovchi)
-EXPO_PUBLIC_DISPATCH_URL=ws://192.168.1.10:8787 npm run driver               # YUMS Driver (port 8082)
+EXPO_PUBLIC_API_URL=http://192.168.1.10:3000/api/v1 npx expo start     # YUMS (yo'lovchi), port 8081
+EXPO_PUBLIC_API_URL=http://192.168.1.10:3000/api/v1 npm run driver     # YUMS Driver, port 8082
 ```
 
-Faqat haydovchi ilovasini demo rejimda ko'rish: `npm run driver` (telefonda Expo Go bilan QR-kodni skanerlang) yoki brauzerda `npm run driver:web`. Windows'da ham shu buyruqlar ishlaydi; `EXPO_PUBLIC_DISPATCH_URL` ni PowerShell'da `$env:EXPO_PUBLIC_DISPATCH_URL="ws://..."` bilan bering.
-
-`EXPO_PUBLIC_DISPATCH_URL` berilmasa ikkala ilova ham demo rejimda ishlaydi: yo'lovchiga virtual haydovchi, haydovchiga sinov buyurtmalari keladi. Haydovchi ilovasida «Demo harakat» yoqilsa mashina marshrut bo'ylab o'zi yuradi (GPS o'rniga).
+Brauzerda: `npm run driver:web`. PowerShell'da o'zgaruvchi `$env:EXPO_PUBLIC_API_URL="http://..."` bilan beriladi. Ishlab chiqish rejimida (`__DEV__`) haydovchi sozlamalarida «GPS simulyatsiyasi» bor — mashina marshrut bo'ylab o'zi yuradi.
 
 EAS build: `npx eas-cli@latest build --profile driver-preview` (yoki `driver-production`). Bu profillarda `APP_VARIANT=driver` o'rnatilgan — `app.config.js` nom, bundle ID, sxema va marshrutlar papkasini (`src/driver/app`) almashtiradi.
 
@@ -167,25 +176,7 @@ O'zbekcha matnning o'zi kalit. Tarjimalar `src/lib/locales/*.ts` jadvallarida �
 
 ## Landing va admin panel
 
-Landing va admin panel UUMS papkasidagi alohida `uums-web` reposida saqlanadi. Landing `/`, admin panel `/admin` manzilida. Web ilova alohida demo rejimida ishlaydi; jonli taxi ma'lumotlari uchun quyidagi legacy dispetcher serveridan foydalanadi.
-
-## Server
-
-`server/dispatch.mjs` — mobil ilovalar va `uums-web` uchun legacy WebSocket/REST xizmat:
-
-| So'rov | Vazifasi |
-| --- | --- |
-| `GET /api/public` | Narxlar, hududlar, sayt matni va jonli ko'rsatkichlar (sayt uchun) |
-| `POST /api/leads` | Saytdan haydovchi arizasi (IP bo'yicha cheklov: 10 daqiqada 5 ta) |
-| `POST /api/admin/login` | Admin paneliga kirish: parol → vaqtinchalik token (12 soat) |
-
-Muhit o'zgaruvchilari:
-
-| O'zgaruvchi | Standart | Vazifasi |
-| --- | --- | --- |
-| `PORT` | `8787` | Server porti |
-| `ADMIN_PASSWORD` | — | Admin paroli. Berilmasa, har ishga tushishda tasodifiy parol yaratilib konsolga chiqariladi |
-| `YUMS_DB` | `server/data/db.json` | Ma'lumotlar fayli (haydovchilar, hujjatlar, arizalar, narxlar, sayt matni, jurnal) |
+Landing va admin panel alohida `uums-web` reposida saqlanadi (landing `/`, admin panel `/admin`).
 
 ## Tuzilma
 
@@ -200,15 +191,14 @@ src/
     app/          YUMS Driver marshrutlari (alohida ilova): index, register, earnings, profile
     lib/          haydovchi holati (driver-store.tsx)
   lib/
-    dispatch.ts       dispetcher protokoli va WebSocket klienti (ikkala ilova uchun)
+    api.ts            REST klient (tokenlar, yangilash, xatolar)
+    realtime.ts       Socket.IO klienti (/realtime)
+    trip-api.ts, driver-api.ts, platform-api.ts, account-api.ts, support-api.ts — backend so'rovlari
     store.tsx         hisob, mavzu, til, taksi holati
     platform.tsx      platforma holati: loyihalar, chatlar, moderatsiya, tariflar
-    platform-data.ts  turlar, sohalar, mamlakatlar, namuna ma'lumotlar
+    platform-data.ts  turlar, sohalar, mamlakatlar
     i18n.ts           til: tr(), tanlangan til, yo'nalish (arabcha — o'ngdan chapga), sana/son yordamchilari
     locales/          tarjima jadvallari: common (umumiy va taksi), driver, platform
-server/
-  dispatch.mjs    dispetcher serveri (Node + ws): buyurtmalarni haydovchilarga taqsimlash, REST API, admin kanali
-  registry.mjs    haydovchilar, hujjatlar, arizalar, narxlar, sayt matni, jurnal
 scripts/
   i18n-check.mjs  tarjimalar to'liqligini tekshirish
 ```

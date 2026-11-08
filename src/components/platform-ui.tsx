@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { REPORT_REASONS, type Conversation, SEED_SPECIALISTS, SEEKS, STAGES, STATUS_META, INVESTOR_KINDS, type Company, type Investor, type ListingStatus, type Project, type ReportTarget, type Specialist } from '@/lib/platform-data';
+import { REPORT_REASONS, type Conversation, SEEKS, STAGES, STATUS_META, INVESTOR_KINDS, type Company, type Investor, type ListingStatus, type Project, type ReportTarget, type Specialist } from '@/lib/platform-data';
 import { coverOf, AD_BANNER } from '@/lib/covers';
 import { budget, countryOf, sectorOf, short, usePlatform } from '@/lib/platform';
 import { SECTION_ART, SECTION_ART_SCALE } from '@/lib/section-art';
@@ -310,11 +310,12 @@ export const PEER_LABEL: Record<Conversation['peerKind'], string> = {
 
 export function PeerAvatar({ conv, size = 50 }: { conv: Conversation; size?: number }) {
   const { colors: c } = useStore();
+  const { specialists } = usePlatform();
   if (conv.peerKind === 'support') {
     return <BrandMark size={size} style={{ borderRadius: size / 3 }} />;
   }
   if (conv.peerKind === 'company' || conv.peerKind === 'investor') return <Logo name={conv.peerName} color={conv.peerKind === 'investor' ? c.violet : c.ok} size={size} />;
-  const sp = conv.peerKind === 'specialist' ? SEED_SPECIALISTS.find(x => x.id === conv.peerId) : undefined;
+  const sp = conv.peerKind === 'specialist' ? specialists.find(x => x.name === conv.peerName) : undefined;
   if (sp) return <SpecialistAvatar sp={sp} size={size} />;
   return <Avatar name={conv.peerName} size={size} bg={c.accent} />;
 }

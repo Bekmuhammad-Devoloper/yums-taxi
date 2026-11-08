@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Linking, Pressable, View } from 'react-native';
 
-import { useStartChat } from '@/lib/actions';
+import { router } from 'expo-router';
 
 import { toast } from '@/components/toast';
 import { Card, Divider, ListItem, Row, Screen, SectionTitle, Txt } from '@/components/ui';
@@ -23,15 +23,15 @@ const FAQ = [
 ];
 
 export default function Support() {
-  const { colors: c } = useStore();
-  const start = useStartChat();
+  const { colors: c, settings } = useStore();
+  const phone = settings?.supportPhone ?? '+998712000000';
   const [open, setOpen] = useState<number | null>(0);
   return (
     <Screen title={tr('Yordam')}>
       <Card style={{ padding: 6 }}>
-        <ListItem icon="chatbubbles" iconBg={c.brandSoft} title={tr('Ilovada yozish')} sub={tr("YUMS qo'llab-quvvatlash · 24/7")} onPress={() => start({ peerId: 'support', peerName: tr("YUMS qo'llab-quvvatlash"), peerKind: 'support', peerVerified: true })} />
-        <ListItem icon="paper-plane" iconBg="#E3F2FD" iconColor="#229ED9" title={tr('Telegram orqali yozish')} sub={tr('Odatda 2 daqiqada javob beramiz')} onPress={() => Linking.openURL('https://t.me/').catch(() => toast(tr('Telegram ochilmadi'), 'alert-circle'))} />
-        <ListItem icon="call" iconBg={c.okSoft} iconColor={c.ok} title={tr("Qo'ng'iroq qilish")} sub={tr('24/7 · bepul')} onPress={() => Linking.openURL('tel:+998712000000').catch(() => {})} />
+        <ListItem icon="chatbubbles" iconBg={c.brandSoft} title={tr('Ilovada yozish')} sub={tr("YUMS qo'llab-quvvatlash · 24/7")} onPress={() => router.push('/support-chat')} />
+        <ListItem icon="paper-plane" iconBg="#E3F2FD" iconColor="#229ED9" title={tr('Telegram orqali yozish')} sub={tr('Odatda 2 daqiqada javob beramiz')} onPress={() => Linking.openURL(settings?.supportTelegramUrl ?? 'https://t.me/').catch(() => toast(tr('Telegram ochilmadi'), 'alert-circle'))} />
+        <ListItem icon="call" iconBg={c.okSoft} iconColor={c.ok} title={tr("Qo'ng'iroq qilish")} sub={tr('24/7 · bepul')} onPress={() => Linking.openURL(`tel:${phone}`).catch(() => {})} />
       </Card>
 
       <SectionTitle>{tr("Ko'p beriladigan savollar")}</SectionTitle>

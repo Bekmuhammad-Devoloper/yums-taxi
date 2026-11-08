@@ -17,11 +17,14 @@ import type { TaxiMapProps } from './taxi-map';
 
 export type { MapHandle } from './taxi-map';
 
-export const TILES = {
-  light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-  dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-};
-export const ATTRIBUTION = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>';
+// CARTO plitkalari endi API kalit talab qiladi ("API KEY REQUIRED" yozuvi chiqadi) — ikkala mavzuda OSM.
+// Qorong'i mavzu plitkalarni CSS filtr bilan qorong'ilashtiradi (.ym-dark .ym-osm qoidasi); plitka qatlamiga
+// className: TILE_CLASS berilishi kerak.
+const OSM = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+export const TILES = { light: OSM, dark: OSM };
+export const TILE_CLASS = 'ym-osm';
+export const DARK_TILE_FILTER = 'invert(1) hue-rotate(180deg) brightness(.9) contrast(.85) saturate(.5)';
+export const ATTRIBUTION = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>';
 export const OFFLINE_ATTRIBUTION = tx("Sxematik xarita · xarita serveri bilan aloqa yo'q");
 
 const ll = (p: LatLng): L.LatLngTuple => [p.latitude, p.longitude];
@@ -187,6 +190,7 @@ const CSS = `
 .ym-map{background:var(--ym-land);font-family:inherit}
 .ym-map .leaflet-control-attribution{background:rgba(255,255,255,.72);backdrop-filter:blur(6px);border-radius:8px;margin:0 0 6px 8px!important;padding:1px 7px;font:10px/1.5 Onest_500Medium,system-ui,sans-serif;color:#5b6472}
 .ym-dark .leaflet-control-attribution{background:rgba(20,24,31,.72);color:#8b95a7}
+.ym-dark .ym-osm{filter:${DARK_TILE_FILTER}}
 .ym-map .leaflet-control-attribution a{color:inherit}
 .ym-icon{background:none;border:none}
 .ym-me{width:18px;height:18px;border-radius:50%;background:#2F7BFF;border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.35);box-sizing:border-box;position:relative}
@@ -367,7 +371,7 @@ export default function TaxiMap(props: TaxiMapProps) {
       m.attributionControl?.addAttribution(attr);
       return () => { off.remove(); m.attributionControl?.removeAttribution(attr); };
     }
-    const tiles = L.tileLayer(TILES[theme], { subdomains: 'abcd', maxZoom: 19, detectRetina: true, attribution: ATTRIBUTION, crossOrigin: true });
+    const tiles = L.tileLayer(TILES[theme], { maxZoom: 19, attribution: ATTRIBUTION, crossOrigin: true, className: TILE_CLASS });
     let loaded = false, errors = 0;
     tiles.on('tileload', () => { loaded = true; });
     tiles.on('tileerror', () => { if (!loaded && ++errors >= 2) setOffline(true); });

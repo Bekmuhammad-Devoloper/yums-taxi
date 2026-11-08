@@ -257,10 +257,12 @@ export function Screen({ title, subtitle, children, right, scroll = true, footer
   const insets = useSafeAreaInsets();
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <View style={[styles.header, { paddingTop: insets.top + 8 }, !back && { paddingLeft: 20 }]}>
+      {/* Sarlavha hamma ekranda bir xil o'lchamda va kontent bilan bir chiziqda (chap chekka 16) */}
+      {/* Xavfsiz zona bo'lmasa (veb, kesiksiz telefon) sarlavha ekran chetiga yopishmasin — kamida 16px */}
+      <View style={[styles.header, { paddingTop: insets.top + (insets.top > 0 ? 8 : 16) }]}>
         {back && <IconButton name="chevron-back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} size={42} />}
-        <View style={{ flex: 1 }}>
-          <Txt v={back ? 'h2' : 'h1'} numberOfLines={1}>{title}</Txt>
+        <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+          <Txt v="h2" numberOfLines={1}>{title}</Txt>
           {subtitle ? <Txt v="small" muted numberOfLines={1}>{subtitle}</Txt> : null}
         </View>
         {right}

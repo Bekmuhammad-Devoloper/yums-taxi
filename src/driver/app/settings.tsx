@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { LangList } from '@/components/lang-picker';
+import { LangRow } from '@/components/lang-picker';
 import { Button, Card, Divider, IOSSwitch, ListItem, Row, Screen, Segmented, Txt } from '@/components/ui';
 import { confirm } from '@/lib/confirm';
 import { useDriver, type NavApp } from '@/driver/lib/driver-store';
 import { say, voiceSource, type VoiceLang, type VoiceSource } from '@/driver/lib/voice';
-import { DISPATCH_URL } from '@/lib/dispatch';
+import { API_URL } from '@/lib/api';
 import { useStore } from '@/lib/store';
 import { LANGS, tr } from '@/lib/i18n';
 
@@ -15,9 +15,8 @@ export default function Settings() {
   const d = useDriver();
   return (
     <Screen title={tr('Sozlamalar')}>
-      <Card style={{ gap: 6 }}>
-        <Txt v="h3">{tr('Ilova tili')}</Txt>
-        <LangList />
+      <Card style={{ padding: 6 }}>
+        <LangRow label={tr('Ilova tili')} />
       </Card>
 
       <Card style={{ gap: 10 }}>
@@ -30,14 +29,19 @@ export default function Settings() {
 
       <Card style={{ gap: 4 }}>
         <SwitchRow title={tr('Tungi rejim')} sub={tr("Kechasi ko'zni charchatmaydi")} value={dark} onChange={v => setTheme(v ? 'dark' : 'light')} />
-        <Divider />
-        <SwitchRow title={tr('Demo harakat')} sub={tr("GPS o'rniga mashina marshrut bo'ylab o'zi yuradi")} value={d.autopilot} onChange={d.setAutopilot} />
+        {/* Faqat ishlab chiqish yig'masida: GPS'siz sinash uchun */}
+        {__DEV__ && (
+          <>
+            <Divider />
+            <SwitchRow title={tr('GPS simulyatsiyasi (dev)')} sub={tr("GPS o'rniga mashina marshrut bo'ylab o'zi yuradi")} value={d.autopilot} onChange={d.setAutopilot} />
+          </>
+        )}
       </Card>
 
       <Card style={{ gap: 6 }}>
         <Txt v="h3">{tr("YUMS bilan bog'lanish")}</Txt>
         <Txt v="small" muted>
-          {DISPATCH_URL ? (d.live ? tr('Dispetcher: {url} · ulangan', { url: DISPATCH_URL }) : tr('Dispetcher: {url} · ulanmoqda…', { url: DISPATCH_URL })) : tr('Dispetcher serveri sozlanmagan — demo buyurtmalar ishlatilmoqda. EXPO_PUBLIC_DISPATCH_URL ni bering.')}
+          {d.live ? tr('Server: {url} · ulangan', { url: API_URL }) : tr('Server: {url} · ulanmoqda…', { url: API_URL })}
         </Txt>
       </Card>
 

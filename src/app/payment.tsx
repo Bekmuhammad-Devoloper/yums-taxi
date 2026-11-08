@@ -169,8 +169,8 @@ export default function Payment() {
           <Row gap={8}>
             <TextInput value={code} onChangeText={setCode} autoCapitalize="characters" placeholder={tr('Masalan: YUMS20')} placeholderTextColor={c.faint} style={[styles.input, { flex: 1, backgroundColor: c.surface2, color: c.text }]} />
             <Button title={tr("Qo'llash")} small disabled={!code.trim()} onPress={() => {
-              if (s.applyPromo(code)) { toast(tr("Promokod qo'llandi"), 'pricetag'); setCode(''); }
-              else toast(tr("Promokod topilmadi yoki muddati o'tgan"), 'alert-circle');
+              // xato bo'lsa sababi (topilmadi, muddati o'tgan, sizga tegishli emas) serverdan keladi
+              s.applyPromo(code).then(ok => { if (ok) { toast(tr("Promokod qo'llandi"), 'pricetag'); setCode(''); } });
             }} />
           </Row>
         )}
