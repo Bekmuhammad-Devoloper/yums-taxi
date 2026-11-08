@@ -17,7 +17,7 @@ import { countryOf } from '@/lib/platform';
 import { checkPinfl, checkStir, companyMatches, directorMatches, lookupCompany, type LookupResult } from '@/lib/registry';
 import { haptic, useStore, type AccountKind, type User } from '@/lib/store';
 import { F } from '@/lib/theme';
-import { tr, tx, flipRTL } from '@/lib/i18n';
+import { tr, tx, flipRTL, LTR_STYLE, ltrProps } from '@/lib/i18n';
 
 const GLOW = require('@/assets/images/glow.png');
 // Server `otpLength` va urinishlar soni bilan bir xil
@@ -405,7 +405,7 @@ export default function Login() {
               </View>
 
               <Animated.View style={{ transform: [{ translateX: shake }] }}>
-                <Pressable onPress={() => codeRef.current?.focus()} style={styles.otpRow} accessibilityLabel={tr('Tasdiqlash kodi')}>
+                <Pressable onPress={() => codeRef.current?.focus()} style={[styles.otpRow, LTR_STYLE]} {...ltrProps} accessibilityLabel={tr('Tasdiqlash kodi')}>
                   {Array.from({ length: CODE_LEN }, (_, i) => {
                     const filled = i < code.length;
                     const active = !locked && codeFocus && i === Math.min(code.length, CODE_LEN - 1) && !(filled && code.length === CODE_LEN);
@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
   alt: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, height: 52, borderRadius: 16, borderWidth: 1 },
   legal: { textAlign: 'center', lineHeight: 16, paddingHorizontal: 8 },
   // kod raqamlari har doim chapdan o'ngga (arab tilida ham)
-  otpRow: { flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 4, direction: 'ltr' },
+  otpRow: { flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 4 },
   otp: { flex: 1, maxWidth: 64, height: 64, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   caret: { width: 2, height: 26, borderRadius: 1 },
   otpDot: { width: 6, height: 6, borderRadius: 3, opacity: 0.5 },

@@ -601,6 +601,13 @@ export function tr(text: string, vars?: Record<string, string | number | null | 
  */
 export const dirProps = (l: Lang = current): object => (Platform.OS === 'web' ? { dir: isRTL(l) ? 'rtl' : 'ltr' } : {});
 
+/**
+ * Doim chapdan o'ngga turadigan blok (kod kataklari, raqamlar): telefonda `direction` uslubi,
+ * vebda esa HTML `dir` atributi — react-native-web `direction` uslubini qabul qilmaydi.
+ */
+export const LTR_STYLE = Platform.OS === 'web' ? null : ({ direction: 'ltr' } as const);
+export const ltrProps: object = Platform.OS === 'web' ? { dir: 'ltr' } : {};
+
 /** O'ngdan chapga tillarda yo'nalish belgilari (strelka, chevron) aks ettiriladi */
 export const flipRTL = () => (isRTL() ? { transform: [{ scaleX: -1 }] } : undefined);
 /** Ionicons nomi yo'nalishli belgimi (chevron-back, arrow-forward…) */

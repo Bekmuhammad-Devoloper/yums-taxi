@@ -13,7 +13,7 @@ import { SECTIONS, SECTORS } from '@/lib/platform-data';
 import { usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
-import { flipRTL, tr } from '@/lib/i18n';
+import { flipRTL, LTR_STYLE, ltrProps, tr } from '@/lib/i18n';
 
 export default function Home() {
   const { colors: c, user, t } = useStore();
@@ -92,7 +92,7 @@ export default function Home() {
       {/* YUMS Taxi */}
       <View style={styles.pad}>
         <Pressable onPress={() => { haptic.tap(); router.push('/taxi'); }} style={({ pressed }) => ({ opacity: pressed ? 0.92 : 1 })}>
-          <LinearGradient colors={['#FFD84D', '#FFC800', '#F2B100']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.taxi}>
+          <LinearGradient colors={['#FFD84D', '#FFC800', '#F2B100']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.taxi, LTR_STYLE]} {...ltrProps}>
             <Image source={TAXI_CARD} style={StyleSheet.absoluteFill} contentFit="cover" contentPosition="right" />
             <View style={styles.taxiText}>
               {/* mashina tomidagi «YUMS» belgisi uslubida: qora plashka, oltin harflar */}
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   section: { width: '25%', alignItems: 'center', gap: 8 },
   sectionName: { fontSize: 10.5, fontFamily: F.bold, letterSpacing: 0.6 },
   // rasm kompozitsiyasi (mashina o'ngda) saqlanadi: arab tilida ham matn chap tomonda, mashina ustiga tushmaydi
-  taxi: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: radius.l, overflow: 'hidden', aspectRatio: 3, minHeight: 112, direction: 'ltr' },
+  taxi: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: radius.l, overflow: 'hidden', aspectRatio: 3, minHeight: 112 },
   taxiText: { flex: 1, maxWidth: '58%', gap: 7, alignItems: 'flex-start' },
   taxiSign: { backgroundColor: '#0E1525', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   taxiChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(14,21,37,0.12)', paddingHorizontal: 9, height: 24, borderRadius: 12, maxWidth: '100%' },
