@@ -24,7 +24,7 @@ const FAQ = [
 
 export default function Support() {
   const { colors: c, settings } = useStore();
-  const phone = settings?.supportPhone ?? '+998712000000';
+  const phone = settings?.supportPhone ?? '+998900152601';
   const [open, setOpen] = useState<number | null>(0);
   return (
     <Screen title={tr('Yordam')}>

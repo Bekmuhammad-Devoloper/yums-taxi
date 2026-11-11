@@ -66,8 +66,13 @@ export const toUser = (p: Profile): User => ({
   joinedAt: p.createdAt,
 });
 
-export const requestOtp = (contact: OtpContact) =>
-  api<{ resendInSec: number; expiresInSec: number }>('POST', '/auth/otp/request', contact);
+export type OtpChannel = 'SMS' | 'TELEGRAM' | 'EMAIL';
+
+/** Kod so'rash. Telefon uchun TELEGRAM — kod botga keladi; raqam botga ulanmagan bo'lsa telegramLink qaytadi */
+export const requestOtp = (contact: OtpContact, channel?: 'SMS' | 'TELEGRAM') =>
+  api<{ resendInSec: number; expiresInSec: number; channel?: OtpChannel; telegramLink?: string }>(
+    'POST', '/auth/otp/request', channel && 'phone' in contact ? { ...contact, channel } : contact,
+  );
 
 export type SignInResult = { user: User; isNewUser: boolean } | { second: SecondStep };
 

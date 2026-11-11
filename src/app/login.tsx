@@ -3,10 +3,12 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
-import { ActivityIndicator, Animated, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Logo, PickerSheet, SelectField } from '@/components/platform-ui';
+import { OtpStep } from '@/components/otp-step';
+import { openTelegram, SmsButton, TelegramButton } from '@/components/telegram-otp';
 import { toast } from '@/components/toast';
 import { Avatar, BrandLogo, BrandMark, DEFAULT_AVATAR, Button, Field, Flag, IconTile, Row, Txt } from '@/components/ui';
 import { type OtpContact, requestOtp, saveProfile, type SecondStep, verifyOtp, verifySecondFactor } from '@/lib/account-api';
@@ -17,11 +19,11 @@ import { countryOf } from '@/lib/platform';
 import { checkPinfl, checkStir, companyMatches, directorMatches, lookupCompany, type LookupResult } from '@/lib/registry';
 import { haptic, useStore, type AccountKind, type User } from '@/lib/store';
 import { F } from '@/lib/theme';
-import { tr, tx, flipRTL, LTR_STYLE, ltrProps } from '@/lib/i18n';
+import { tr, tx, flipRTL } from '@/lib/i18n';
 
 const GLOW = require('@/assets/images/glow.png');
-// Server `otpLength` va urinishlar soni bilan bir xil
-const CODE_LEN = 4;
+// Kod uzunligi serverdan (`otpLength`); sozlamalar hali kelmagan bo'lsa — 5
+const DEFAULT_CODE_LEN = 5;
 const MAX_ATTEMPTS = 5;
 
 const PILLS: { icon: 'rocket-outline' | 'trending-up-outline' | 'car-sport-outline'; label: string }[] = [
@@ -73,7 +75,17 @@ type Step = 'accounts' | 'contact' | 'code' | 'profile';
 export default function Login() {
   const { colors: c, signIn, savedAccounts, forgetAccount, settings } = useStore();
   const bonus = settings?.signupBonus ?? 0;
+  const CODE_LEN = settings?.otpLength ?? DEFAULT_CODE_LEN;
   const insets = useSafeAreaInsets();
+  // Hammasi bitta ekranga sig'adi; past ekranlarda logotip kichrayadi
+  const { height } = useWindowDimensions();
+  const short = height < 860;
+  // Kirish ekranida bo'sh joy tepadagi rasmga beriladi: logotip ekran balandligiga qarab kattalashadi
+  const logoW = height >= 900 ? 188 : height >= 790 ? 168 : height >= 710 ? 140 : 96;
+  const roomy = height >= 780;
+  // Aylantirish faqat joy yetmaganda (klaviatura ochilganda yoki uzun profil formasida)
+  const [viewH, setViewH] = useState(0);
+  const [contentH, setContentH] = useState(0);
   const [step, setStep] = useState<Step>(() => (savedAccounts.length ? 'accounts' : 'contact'));
   const [method, setMethod] = useState<'phone' | 'email'>('phone');
   const [cc, setCc] = useState(CODES[0]);
@@ -99,20 +111,22 @@ export default function Login() {
   const [phoneFocus, setPhoneFocus] = useState(false);
   const [picker, setPicker] = useState<'cc' | 'country' | null>(null);
   const codeRef = useRef<ComponentRef<typeof TextInput>>(null);
-  const [codeFocus, setCodeFocus] = useState(false);
-  const [blink] = useState(() => new Animated.Value(1));
-  const [shake] = useState(() => new Animated.Value(0));
+  // Kod bosqichi: xatolar soni (silkinish), taymer davomiyligi, to'g'ri kod (yashil)
+  const [rejections, setRejections] = useState(0);
+  const [resendSec, setResendSec] = useState(59);
+  const [success, setSuccess] = useState(false);
+  // Kod qayerga ketdi: SMS yoki Telegram. Raqam botga ulanmagan bo'lsa — bot havolasi
+  const telegramOn = !!settings?.telegramLogin;
+  const [via, setVia] = useState<'SMS' | 'TELEGRAM'>('SMS');
+  const [tgLink, setTgLink] = useState<string | null>(null);
+  const [sending, setSending] = useState<'SMS' | 'TELEGRAM' | null>(null);
 
-  // Faol katakdagi kursor miltillashi
+  // Telegram'dan qaytganda kod kataklari darhol tayyor
   useEffect(() => {
     if (step !== 'code') return;
-    const a = Animated.loop(Animated.sequence([
-      Animated.timing(blink, { toValue: 0, duration: 450, delay: 250, useNativeDriver: true }),
-      Animated.timing(blink, { toValue: 1, duration: 450, useNativeDriver: true }),
-    ]));
-    a.start();
-    return () => a.stop();
-  }, [step, blink]);
+    const sub = AppState.addEventListener('change', s => { if (s === 'active') setTimeout(() => codeRef.current?.focus(), 250); });
+    return () => sub.remove();
+  }, [step]);
 
   useEffect(() => {
     if (timer <= 0) return;
@@ -126,32 +140,38 @@ export default function Login() {
   const target = method === 'phone' ? `${cc.code} ${formatPhone(digits, cc.code)}` : email.trim();
   const typedContact = (): OtpContact => (method === 'phone' ? { phone: target.replace(/\s/g, '') } : { email: target });
 
-  const sendCode = async (contact: OtpContact = typedContact()) => {
+  const sendCode = async (contact: OtpContact = typedContact(), channel: 'SMS' | 'TELEGRAM' = 'SMS') => {
+    const telegram = channel === 'TELEGRAM' && 'phone' in contact;
     contactRef.current = contact;
     setSecond(null);
     setBusy(true);
+    setSending(telegram ? 'TELEGRAM' : 'SMS');
     try {
-      const { resendInSec } = await requestOtp(contact);
-      setCode(''); setAttemptsLeft(MAX_ATTEMPTS); setCodeError(null); setTimer(resendInSec);
+      const sent = await requestOtp(contact, telegram ? 'TELEGRAM' : undefined);
+      setVia(sent.channel === 'TELEGRAM' ? 'TELEGRAM' : 'SMS');
+      setTgLink(sent.telegramLink ?? null);
+      setCode(''); setAttemptsLeft(MAX_ATTEMPTS); setCodeError(null); setSuccess(false);
+      setTimer(sent.resendInSec); setResendSec(sent.resendInSec);
       setStep('code');
-      setTimeout(() => codeRef.current?.focus(), 300);
+      // Raqam botga ulanmagan: telefonda Telegram darhol ochiladi (brauzerda — tugma orqali)
+      if (sent.telegramLink && Platform.OS !== 'web') openTelegram(sent.telegramLink);
+      else setTimeout(() => codeRef.current?.focus(), 300);
     } catch (error) {
       toast(errorText(error), 'alert-circle');
     } finally {
       setBusy(false);
+      setSending(null);
     }
   };
 
   const chooseAccount = (a: User) => {
     haptic.tap();
     const parsed = a.phone ? parsePhone(a.phone) : null;
+    // Telegram yoqilgan bo'lsa raqam to'ldiriladi va kod qayerga kelishini o'zi tanlaydi
+    if (parsed && telegramOn) { setMethod('phone'); setCc(parsed.cc); setDigits(parsed.digits); setStep('contact'); return; }
     if (parsed) { setMethod('phone'); setCc(parsed.cc); setDigits(parsed.digits); sendCode({ phone: a.phone }); return; }
     if (a.email) { setMethod('email'); setEmail(a.email); sendCode({ email: a.email }); }
   };
-
-  const doShake = () => Animated.sequence(
-    [10, -10, 7, -7, 3, 0].map(v => Animated.timing(shake, { toValue: v, duration: 45, useNativeDriver: true })),
-  ).start();
 
   const onCode = (v: string) => {
     if (codeError === 'locked' || busy) return;
@@ -161,27 +181,36 @@ export default function Login() {
     if (d.length === CODE_LEN) checkCode(d);
   };
 
+  // To'g'ri kod: kataklar bir lahza yashil bo'ladi, keyin keyingi qadam
+  const accepted = async () => {
+    haptic.success();
+    setSuccess(true);
+    await new Promise(r => setTimeout(r, 420));
+  };
+
   // Kod to'g'ri: hisob bo'lsa — darhol ichkariga, yangi hisob bo'lsa — avval profil
   const checkCode = async (d: string) => {
     setBusy(true);
     try {
       if (second) {
         const user = await verifySecondFactor(second.challengeId, d);
-        haptic.success();
+        await accepted();
         signIn(user);
         toast(tr('Xush kelibsiz, {name}!', { name: user.name.split(' ')[0] }), 'hand-right');
         router.replace('/');
         return;
       }
       const result = await verifyOtp(contactRef.current, d);
-      haptic.success();
       if ('second' in result) {
+        haptic.success();
         setSecond(result.second);
-        setCode(''); setAttemptsLeft(MAX_ATTEMPTS); setCodeError(null); setTimer(result.second.resendInSec);
+        setCode(''); setAttemptsLeft(MAX_ATTEMPTS); setCodeError(null);
+        setTimer(result.second.resendInSec); setResendSec(result.second.resendInSec);
         setTimeout(() => codeRef.current?.focus(), 300);
         return;
       }
       const { user, isNewUser } = result;
+      await accepted();
       if (isNewUser) { newUserRef.current = user; setStep('profile'); return; }
       signIn(user);
       toast(tr('Xush kelibsiz, {name}!', { name: user.name.split(' ')[0] }), 'hand-right');
@@ -195,7 +224,7 @@ export default function Login() {
 
   const codeRejected = (error: unknown) => {
     haptic.error();
-    doShake();
+    setRejections(n => n + 1);
     setTimeout(() => setCode(''), 500);
     if (!(error instanceof ApiError) || error.status === 0) { toast(errorText(error), 'alert-circle'); return; }
     const left = error.code === 'OTP_INVALID' ? Number(error.details?.attemptsLeft ?? 0) : 0;
@@ -249,12 +278,21 @@ export default function Login() {
   const canBack = step === 'code' || step === 'profile' || (step === 'contact' && savedAccounts.length > 0);
   const big = step === 'accounts' || step === 'contact';
   const k = countryOf(country);
-  const locked = codeError === 'locked';
+  // Telegram ↔ SMS almashish (ikkinchi bosqich har doim o'z kanalida)
+  const canSwitch = telegramOn && !second && method === 'phone';
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled" bounces={false}>
-        <LinearGradient colors={['#000000', '#0B0904', '#16120A']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={[big ? styles.hero : styles.heroCompact, { paddingTop: insets.top + 12 }]}>
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+        bounces={false}
+        overScrollMode="never"
+        showsVerticalScrollIndicator={false}
+        scrollEnabled={contentH > viewH + 1}
+        onLayout={e => setViewH(e.nativeEvent.layout.height)}
+        onContentSizeChange={(_, h) => setContentH(h)}>
+        <LinearGradient colors={['#000000', '#0B0904', '#16120A']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={[big ? styles.hero : styles.heroCompact, big && styles.heroFill, big && short && { paddingBottom: 42 }, { paddingTop: insets.top + 12 }]}>
           <Image source={GLOW} pointerEvents="none" style={[styles.glow, { top: insets.top - (big ? 70 : 250) }]} contentFit="contain" />
           {canBack && (
             <Pressable onPress={back} style={[styles.back, { top: insets.top + 12 }]} hitSlop={10} accessibilityLabel={tr('Orqaga')}>
@@ -263,10 +301,10 @@ export default function Login() {
           )}
           {big ? (
             <>
-              <BrandLogo width={168} style={{ alignSelf: 'center', marginTop: 20 }} />
-              <Text style={styles.tagTitle}>{tr('Xalqaro raqamli loyihalar platformasi')}</Text>
-              <Text style={styles.tagSub}>{tr('Loyihalar, hamkorlar va investorlar — bir joyda')}</Text>
-              <View style={styles.pills}>
+              <BrandLogo width={logoW} style={{ alignSelf: 'center', marginTop: roomy ? 12 : 4 }} />
+              <Text style={[styles.tagTitle, short && { marginTop: 10 }]}>{tr('Xalqaro raqamli loyihalar platformasi')}</Text>
+              {roomy && <Text style={styles.tagSub}>{tr('Loyihalar, hamkorlar va investorlar — bir joyda')}</Text>}
+              <View style={[styles.pills, short && { marginTop: 14 }]}>
                 {PILLS.map(x => (
                   <View key={x.label} style={styles.pill}>
                     <Ionicons name={x.icon} size={14} color="#F5C542" />
@@ -283,7 +321,7 @@ export default function Login() {
           )}
         </LinearGradient>
 
-        <View style={[styles.card, { backgroundColor: c.surface, paddingBottom: insets.bottom + 24 }]}>
+        <View style={[styles.card, big && styles.cardFit, short && { padding: 22, gap: 14 }, { backgroundColor: c.surface, paddingBottom: insets.bottom + (short ? 18 : 24) }]}>
           {/* ---------- Hisobni tanlash ---------- */}
           {step === 'accounts' && (
             <>
@@ -324,7 +362,7 @@ export default function Login() {
             <>
               <View style={{ gap: 6 }}>
                 <Txt v="h1">{method === 'phone' ? tr('Telefon raqamingiz') : tr('Email manzilingiz')}</Txt>
-                <Txt muted>{method === 'phone' ? tr("Kirish yoki ro'yxatdan o'tish uchun SMS orqali kod yuboramiz") : tr("Kirish yoki ro'yxatdan o'tish uchun emailga kod yuboramiz")}</Txt>
+                <Txt muted>{method === 'email' ? tr("Kirish yoki ro'yxatdan o'tish uchun emailga kod yuboramiz") : telegramOn ? tr("Kirish yoki ro'yxatdan o'tish uchun kodni Telegram yoki SMS orqali yuboramiz") : tr("Kirish yoki ro'yxatdan o'tish uchun SMS orqali kod yuboramiz")}</Txt>
               </View>
               {method === 'phone' ? (
                 <View style={[styles.phone, { backgroundColor: phoneFocus ? c.surface : c.surface2, borderColor: phoneFocus ? c.brand : c.line }]}>
@@ -366,7 +404,14 @@ export default function Login() {
                   inputStyle={{ fontSize: 18, minHeight: 58 }}
                 />
               )}
-              <Button title={tr('Davom etish')} disabled={!contactOk} loading={busy} onPress={() => sendCode()} />
+              {method === 'phone' && telegramOn ? (
+                <View style={{ gap: 10 }}>
+                  <TelegramButton title={tr('Telegram orqali')} disabled={!contactOk || busy} loading={sending === 'TELEGRAM'} onPress={() => sendCode(typedContact(), 'TELEGRAM')} />
+                  <SmsButton title={tr('SMS orqali')} disabled={!contactOk || busy} loading={sending === 'SMS'} onPress={() => sendCode(typedContact(), 'SMS')} />
+                </View>
+              ) : (
+                <Button title={tr('Davom etish')} disabled={!contactOk} loading={busy} onPress={() => sendCode()} />
+              )}
 
               <View style={styles.or}>
                 <View style={[styles.orLine, { backgroundColor: c.line }]} />
@@ -381,7 +426,7 @@ export default function Login() {
               </Pressable>
 
               <Txt v="tiny" faint style={styles.legal}>
-                {tr('«Davom etish»ni bosib, siz')}{' '}
+                {method === 'phone' && telegramOn ? tr('Davom etib, siz') : tr('«Davom etish»ni bosib, siz')}{' '}
                 <Txt v="tiny" color={c.accent} onPress={() => router.push({ pathname: '/legal', params: { doc: 'terms' } })}>{tr('Foydalanish shartlari')}</Txt>{' '}{tr('va')}{' '}
                 <Txt v="tiny" color={c.accent} onPress={() => router.push({ pathname: '/legal', params: { doc: 'privacy' } })}>{tr('Maxfiylik siyosati')}</Txt>{tr('ga rozilik bildirasiz')}
               </Txt>
@@ -389,84 +434,28 @@ export default function Login() {
             </>
           )}
 
-          {/* ---------- SMS kod ---------- */}
+          {/* ---------- Kod ---------- */}
           {step === 'code' && (
-            <>
-              <View style={styles.codeHead}>
-                <View style={[styles.codeIcon, { backgroundColor: c.brandSoft }]}>
-                  <Ionicons name={method === 'phone' ? 'chatbubble-ellipses-outline' : 'mail-outline'} size={28} color={c.brandDeep} />
-                </View>
-                <Txt v="h1" style={{ textAlign: 'center' }}>{second ? tr('Ikkinchi kodni kiriting') : method === 'phone' ? tr('SMS kodni kiriting') : tr('Emaildagi kodni kiriting')}</Txt>
-                <Txt muted style={{ textAlign: 'center' }}>{second ? tr('Ikki bosqichli himoya yoqilgan: kod boshqa manzilingizga yuborildi') : tr('{CODE_LEN} xonali kod yuborildi', { CODE_LEN })}</Txt>
-                <Txt v="h3" style={{ textAlign: 'center', fontVariant: ['tabular-nums'] }}>{second ? second.destination : target}</Txt>
-                <Pressable onPress={() => setStep('contact')} hitSlop={8}>
-                  <Txt v="small" color={c.accent} style={{ fontFamily: F.semi }}>{method === 'phone' ? tr("Raqamni o'zgartirish") : tr("Emailni o'zgartirish")}</Txt>
-                </Pressable>
-              </View>
-
-              <Animated.View style={{ transform: [{ translateX: shake }] }}>
-                <Pressable onPress={() => codeRef.current?.focus()} style={[styles.otpRow, LTR_STYLE]} {...ltrProps} accessibilityLabel={tr('Tasdiqlash kodi')}>
-                  {Array.from({ length: CODE_LEN }, (_, i) => {
-                    const filled = i < code.length;
-                    const active = !locked && codeFocus && i === Math.min(code.length, CODE_LEN - 1) && !(filled && code.length === CODE_LEN);
-                    return (
-                      <View key={i} style={[styles.otp, {
-                        backgroundColor: active ? c.surface : c.surface2,
-                        borderColor: codeError ? c.danger : active ? c.brand : filled ? c.surface3 : 'transparent',
-                        opacity: locked ? 0.5 : 1,
-                      }]}>
-                        {filled
-                          ? <Text style={[styles.otpText, { color: codeError ? c.danger : c.text }]}>{code[i]}</Text>
-                          : active
-                            ? <Animated.View style={[styles.caret, { backgroundColor: c.brand, opacity: blink }]} />
-                            : <View style={[styles.otpDot, { backgroundColor: c.faint }]} />}
-                      </View>
-                    );
-                  })}
-                </Pressable>
-              </Animated.View>
-              <TextInput
-                ref={codeRef}
-                value={code}
-                onChangeText={onCode}
-                onFocus={() => setCodeFocus(true)}
-                onBlur={() => setCodeFocus(false)}
-                editable={!locked}
-                keyboardType="number-pad"
-                textContentType="oneTimeCode"
-                autoComplete="one-time-code"
-                maxLength={CODE_LEN}
-                style={styles.hidden}
-                autoFocus
-              />
-
-              <View style={styles.status}>
-                {codeError ? (
-                  <Row gap={6} style={{ justifyContent: 'center' }}>
-                    <Ionicons name="alert-circle" size={16} color={c.danger} />
-                    <Txt v="small" color={c.danger} style={{ fontFamily: F.semi }}>
-                      {locked ? tr('Urinishlar tugadi — yangi kod oling') : tr("Kod noto'g'ri. Yana {MAX_ATTEMPTS} ta urinish qoldi", { MAX_ATTEMPTS: attemptsLeft })}
-                    </Txt>
-                  </Row>
-                ) : null}
-                {timer > 0 ? (
-                  <Txt v="small" muted style={{ textAlign: 'center' }}>
-                    {tr('Yangi kodni {time} dan keyin olish mumkin', { time: `0:${String(timer).padStart(2, '0')}` })}
-                  </Txt>
-                ) : (
-                  <Pressable onPress={() => sendCode()} hitSlop={8} style={styles.resendBtn}>
-                    <Ionicons name="refresh" size={16} color={c.accent} />
-                    <Txt v="small" color={c.accent} style={{ fontFamily: F.bold }}>{tr('Kodni qayta yuborish')}</Txt>
-                  </Pressable>
-                )}
-              </View>
-
-              <View style={{ flex: 1 }} />
-              <Row gap={8} style={{ justifyContent: 'center' }}>
-                <Ionicons name="shield-checkmark-outline" size={15} color={c.ok} />
-                <Txt v="tiny" faint>{tr("Kodni hech kimga aytmang — YUMS xodimlari uni so'ramaydi")}</Txt>
-              </Row>
-            </>
+            <OtpStep
+              channel={second ? 'SECOND' : via === 'TELEGRAM' ? 'TELEGRAM' : method === 'email' ? 'EMAIL' : 'SMS'}
+              destination={second ? second.destination : target}
+              onEdit={() => setStep('contact')}
+              codeLen={CODE_LEN}
+              code={code}
+              onCode={onCode}
+              inputRef={codeRef}
+              error={codeError}
+              attemptsLeft={attemptsLeft}
+              rejections={rejections}
+              busy={busy}
+              success={success}
+              timer={timer}
+              resendSec={resendSec}
+              onResend={() => sendCode(contactRef.current, via)}
+              switchTo={canSwitch ? { channel: via === 'TELEGRAM' ? 'SMS' : 'TELEGRAM', onPress: () => sendCode(contactRef.current, via === 'TELEGRAM' ? 'SMS' : 'TELEGRAM') } : null}
+              tgLink={tgLink}
+              supportPhone={settings?.supportPhone}
+            />
           )}
 
           {/* ---------- Yangi foydalanuvchi ---------- */}
@@ -613,6 +602,9 @@ function Match({ ok, yes, no }: { ok: boolean; yes: string; no: string }) {
 
 const styles = StyleSheet.create({
   hero: { paddingHorizontal: 24, paddingBottom: 52, overflow: 'hidden' },
+  // kirish ekranida rasm qolgan joyni egallaydi, kartochka esa o'z mazmunicha
+  heroFill: { flexGrow: 1, justifyContent: 'center' },
+  cardFit: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
   glow: { position: 'absolute', alignSelf: 'center', width: 420, height: 420 },
   back: { position: 'absolute', left: 16, width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
   tagTitle: { fontSize: 17, fontFamily: F.semi, color: '#fff', textAlign: 'center', letterSpacing: -0.3, marginTop: 14 },
@@ -623,9 +615,6 @@ const styles = StyleSheet.create({
   heroCompact: { paddingHorizontal: 24, paddingBottom: 40, overflow: 'hidden' },
   compactBrand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 42 },
   compactName: { color: '#fff', fontFamily: F.brand, fontSize: 16, letterSpacing: 1.5 },
-  codeHead: { alignItems: 'center', gap: 6, paddingTop: 4 },
-  codeIcon: { width: 64, height: 64, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  status: { alignItems: 'center', gap: 8, minHeight: 24 },
   card: { flex: 1, marginTop: -28, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 24, gap: 16 },
   accList: { borderWidth: StyleSheet.hairlineWidth, borderRadius: 18, overflow: 'hidden' },
   accRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 12 },
@@ -638,14 +627,6 @@ const styles = StyleSheet.create({
   orLine: { flex: 1, height: StyleSheet.hairlineWidth },
   alt: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, height: 52, borderRadius: 16, borderWidth: 1 },
   legal: { textAlign: 'center', lineHeight: 16, paddingHorizontal: 8 },
-  // kod raqamlari har doim chapdan o'ngga (arab tilida ham)
-  otpRow: { flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 4 },
-  otp: { flex: 1, maxWidth: 64, height: 64, borderRadius: 16, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  caret: { width: 2, height: 26, borderRadius: 1 },
-  otpDot: { width: 6, height: 6, borderRadius: 3, opacity: 0.5 },
-  otpText: { fontSize: 26, fontFamily: F.display },
-  hidden: { position: 'absolute', opacity: 0, width: 1, height: 1 },
-  resendBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   kind: { flex: 1, padding: 14, borderRadius: 18, borderWidth: 1.5, gap: 6 },
   radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   reg: { padding: 12, borderRadius: 14, gap: 4 },

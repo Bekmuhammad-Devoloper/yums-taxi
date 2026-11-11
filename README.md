@@ -56,6 +56,7 @@ Kirish Yandex Go uslubida — yagona oqim:
 - Qayta kirishda «Hisobni tanlang» — shu qurilmada avval kirgan hisoblar.
 - Noto'g'ri kodda xato ko'rsatiladi; 3 ta noto'g'ri urinishdan keyin yangi kod kerak.
 - SMS kodni server yuboradi (Eskiz). Lokal/test serverda `OTP_DEV_CODE` o'rnatilgan bo'lsa, shu kod ishlaydi.
+- Server Telegram kod shlyuziga ulangan bo'lsa (`telegramLogin` — `GET /settings/public`), raqam kiritilgach ikki tugma chiqadi: **Telegram orqali** va **SMS orqali**. Telegram tanlansa kod botga keladi. Raqam botga hali ulanmagan bo'lsa, ilova bot havolasini ochadi: «Start» → «📱 Raqamni yuborish» → kod darhol keladi. Telegram kodida `OTP_DEV_CODE` ishlamaydi — kod haqiqiy. Komponent: `src/components/telegram-otp.tsx`.
 - Profilda 2 bosqichli himoya yoqilgan bo'lsa, SMS koddan keyin emailga ikkinchi kod yuboriladi.
 
 Ro'yxatdan o'tishda (O'zbekiston):

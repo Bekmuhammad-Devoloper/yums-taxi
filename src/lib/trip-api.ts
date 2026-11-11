@@ -197,6 +197,8 @@ export type PublicSettings = {
   otpResendSec: number; recentPlacesMax: number; nearbyMaxCars: number; priceRoundTo: number; supportPhone: string; supportTelegramUrl: string;
   waitPerMin: number; noShowAfterSec: number; activityAcceptBonus: number; activityDeclinePenalty: number; activityMissPenalty: number;
   activityCancelPenalty: number; homeUsesPerDay: number; chainRadiusKm: number;
+  /** Kirish kodini Telegram orqali ham olish mumkin (kod shlyuzi ulangan) */
+  telegramLogin?: boolean;
 };
 export const publicSettings = () => api<PublicSettings>('GET', '/settings/public');
 

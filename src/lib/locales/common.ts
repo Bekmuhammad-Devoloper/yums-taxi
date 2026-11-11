@@ -406,6 +406,28 @@ const common: Record<string, Row> = {
   "Murojaatni yopish": ["Закрыть обращение", "Close request", "Бастани муроҷиат", "إغلاق الطلب"],
   "Murojaatingiz operatorga yetkazildi — javob shu yerda va bildirishnomada keladi": ["Обращение передано оператору — ответ придёт сюда и в уведомлении", "Your request reached an operator — the reply will appear here and as a notification", "Муроҷиати шумо ба оператор расонида шуд — ҷавоб дар ҳамин ҷо ва бо огоҳинома меояд", "وصل طلبك إلى المشغّل — سيظهر الرد هنا وفي إشعار"],
   "Haydovchi marshrutdan chetga chiqdi — xavfsizlik xizmati xabardor qilindi": ["Водитель отклонился от маршрута — служба безопасности уведомлена", "The driver left the route — the safety team has been notified", "Ронанда аз масир дур шуд — хадамоти амният огоҳ карда шуд", "انحرف السائق عن المسار — تم إبلاغ فريق السلامة"],
+  // Telegram orqali kirish kodi
+  "Kirish yoki ro'yxatdan o'tish uchun kodni Telegram yoki SMS orqali yuboramiz": ["Для входа или регистрации пришлём код в Telegram или по SMS", "To sign in or sign up we'll send a code via Telegram or SMS", "Барои ворид шудан ё бақайдгирӣ рамзро тавассути Telegram ё SMS мефиристем", "لتسجيل الدخول أو إنشاء حساب سنرسل رمزًا عبر Telegram أو SMS"],
+  "Telegram orqali": ["Через Telegram", "Via Telegram", "Тавассути Telegram", "عبر Telegram"],
+  "SMS orqali": ["По SMS", "Via SMS", "Тавассути SMS", "عبر SMS"],
+  "Davom etib, siz": ["Продолжая, вы принимаете", "By continuing, you accept the", "Бо идома додан, шумо ба", "بالمتابعة فإنك توافق على"],
+  "Kodni Telegram'dan oling": ["Получите код в Telegram", "Get the code in Telegram", "Рамзро дар Telegram гиред", "احصل على الرمز في Telegram"],
+  "Telegram'dagi kodni kiriting": ["Введите код из Telegram", "Enter the code from Telegram", "Рамзи Telegram-ро ворид кунед", "أدخل الرمز من Telegram"],
+  "Raqamingiz botga hali ulanmagan — bir marta ulang, kod darhol keladi": ["Ваш номер ещё не привязан к боту — привяжите один раз, и код придёт сразу", "Your number isn't linked to the bot yet — link it once and the code arrives right away", "Рақами шумо ҳоло ба бот пайваст нашудааст — як бор пайваст кунед, рамз дарҳол меояд", "رقمك غير مرتبط بالبوت بعد — اربطه مرة واحدة وسيصل الرمز فورًا"],
+  "{CODE_LEN} xonali kod Telegram'ga yuborildi": ["{CODE_LEN}-значный код отправлен в Telegram", "A {CODE_LEN}-digit code was sent to Telegram", "Рамзи {CODE_LEN}-рақама ба Telegram фиристода шуд", "تم إرسال رمز من {CODE_LEN} أرقام إلى Telegram"],
+  "SMS orqali olish": ["Получить по SMS", "Get it by SMS", "Тавассути SMS гирифтан", "الحصول عليه عبر SMS"],
+  "Telegram orqali olish": ["Получить в Telegram", "Get it in Telegram", "Тавассути Telegram гирифтан", "الحصول عليه عبر Telegram"],
+  "«Telegram'ni ochish» ni bosing": ["Нажмите «Открыть Telegram»", "Tap «Open Telegram»", "«Кушодани Telegram»-ро пахш кунед", "اضغط «فتح Telegram»"],
+  "Botda «Start» ni bosing": ["В боте нажмите «Start»", "In the bot, tap «Start»", "Дар бот «Start»-ро пахш кунед", "في البوت اضغط «Start»"],
+  "«📱 Raqamni yuborish» ni bosing — kod shu zahoti keladi": ["Нажмите «📱 Отправить номер» — код придёт сразу", "Tap «📱 Share my number» — the code arrives right away", "«📱 Raqamni yuborish»-ро пахш кунед — рамз дарҳол меояд", "اضغط «📱 Raqamni yuborish» — سيصل الرمز فورًا"],
+  "Telegram'ni ochish": ["Открыть Telegram", "Open Telegram", "Кушодани Telegram", "فتح Telegram"],
+  // Kod sahifasi
+  "Kod tasdiqlandi": ["Код подтверждён", "Code confirmed", "Рамз тасдиқ шуд", "تم تأكيد الرمز"],
+  "Kod kelmadimi?": ["Код не пришёл?", "Didn't get the code?", "Рамз наомад?", "لم يصلك الرمز؟"],
+  "Bepul va bir zumda — kod botga keladi": ["Бесплатно и мгновенно — код придёт в бот", "Free and instant — the code comes to the bot", "Ройгон ва фаврӣ — рамз ба бот меояд", "مجانًا وفورًا — يصل الرمز إلى البوت"],
+  "Oddiy SMS xabar bilan": ["Обычным SMS-сообщением", "As a regular text message", "Бо паёмаки оддии SMS", "برسالة SMS عادية"],
+  "Yordam kerakmi?": ["Нужна помощь?", "Need help?", "Ёрӣ лозим аст?", "هل تحتاج إلى مساعدة؟"],
+  "{time} dan keyin yangi kod": ["Новый код через {time}", "New code in {time}", "Рамзи нав пас аз {time}", "رمز جديد بعد {time}"],
 };
 
 export default common;
