@@ -86,7 +86,7 @@ export function OtpStep({ inputRef, ...p }: OtpStepProps) {
       <View style={styles.head}>
         <Beacon channel={p.channel} tint={look.tint} soft={look.soft} size={compact ? 62 : 76} />
         <Txt v="h1" style={styles.center}>{look.title}</Txt>
-        <Txt muted style={[styles.center, { lineHeight: 20 }]}>{subtitle}</Txt>
+        <Txt muted style={[styles.center, styles.subtitle]}>{subtitle}</Txt>
         <Pressable
           onPress={p.onEdit ? () => { haptic.tap(); p.onEdit?.(); } : undefined}
           disabled={!p.onEdit}
@@ -168,7 +168,7 @@ export function OtpStep({ inputRef, ...p }: OtpStepProps) {
       {!withSteps && (
         <Row gap={8} style={{ justifyContent: 'center' }}>
           <Ionicons name="shield-checkmark-outline" size={15} color={c.ok} />
-          <Txt v="tiny" faint style={{ flexShrink: 1 }}>{tr("Kodni hech kimga aytmang — YUMS xodimlari uni so'ramaydi")}</Txt>
+          <Txt v="tiny" faint style={styles.note}>{tr("Kodni hech kimga aytmang — YUMS xodimlari uni so'ramaydi")}</Txt>
         </Row>
       )}
     </View>
@@ -263,7 +263,7 @@ function Countdown({ timer, total }: { timer: number; total: number }) {
     <View style={[styles.pill, { backgroundColor: c.surface2, borderColor: c.line }]}>
       <Animated.View style={[styles.pillFill, { width, backgroundColor: c.brandSoft }]} />
       <Ionicons name="time-outline" size={15} color={c.brandDeep} />
-      <Txt v="small" muted style={{ fontVariant: ['tabular-nums'] }}>
+      <Txt v="small" muted style={styles.pillText}>
         {tr('{time} dan keyin yangi kod', { time: `${Math.floor(timer / 60)}:${String(timer % 60).padStart(2, '0')}` })}
       </Txt>
     </View>
@@ -292,8 +292,8 @@ function HelpCard({ switchTo, timer, supportPhone }: { switchTo?: OtpStepProps['
           style={({ pressed }) => [styles.helpRow, { opacity: waiting ? 0.6 : 1, backgroundColor: pressed ? c.surface3 : 'transparent' }]}>
           {toTelegram ? <TelegramBadge size={38} /> : <SmsBadge size={38} />}
           <View style={{ flex: 1 }}>
-            <Txt v="h3" style={{ fontSize: 15 }}>{toTelegram ? tr('Telegram orqali olish') : tr('SMS orqali olish')}</Txt>
-            <Txt v="tiny" muted>{toTelegram ? tr('Bepul va bir zumda — kod botga keladi') : tr('Oddiy SMS xabar bilan')}</Txt>
+            <Txt v="h3" style={styles.rowTitle}>{toTelegram ? tr('Telegram orqali olish') : tr('SMS orqali olish')}</Txt>
+            <Txt v="tiny" muted style={styles.rowSub}>{toTelegram ? tr('Bepul va bir zumda — kod botga keladi') : tr('Oddiy SMS xabar bilan')}</Txt>
           </View>
           {waiting ? (
             <Txt v="small" faint style={{ fontVariant: ['tabular-nums'] }}>{`${Math.floor(timer / 60)}:${String(timer % 60).padStart(2, '0')}`}</Txt>
@@ -311,8 +311,8 @@ function HelpCard({ switchTo, timer, supportPhone }: { switchTo?: OtpStepProps['
             <Ionicons name="headset" size={18} color={c.ok} />
           </View>
           <View style={{ flex: 1 }}>
-            <Txt v="h3" style={{ fontSize: 15 }}>{tr('Yordam kerakmi?')}</Txt>
-            <Txt v="tiny" muted style={{ fontVariant: ['tabular-nums'] }}>{prettyPhone(supportPhone)}</Txt>
+            <Txt v="h3" style={styles.rowTitle}>{tr('Yordam kerakmi?')}</Txt>
+            <Txt v="tiny" muted style={[styles.rowSub, styles.tabular]}>{prettyPhone(supportPhone)}</Txt>
           </View>
           <Ionicons name="call-outline" size={18} color={c.faint} />
         </Pressable>
@@ -329,13 +329,14 @@ const styles = StyleSheet.create({
   ring: { position: 'absolute', borderWidth: 1.5 },
   beaconTile: { alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 40, paddingLeft: 14, paddingRight: 8, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, marginTop: 6 },
-  chipText: { fontSize: 15, fontFamily: F.bold, fontVariant: ['tabular-nums'], letterSpacing: 0.2 },
+  chipText: { fontSize: 15.5, fontFamily: F.bold, fontVariant: ['tabular-nums'], letterSpacing: 0.3 },
+  subtitle: { fontSize: 14.5, lineHeight: 20, maxWidth: 310 },
   chipEdit: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   // kod raqamlari har doim chapdan o'ngga (arab tilida ham)
   cells: { flexDirection: 'row', gap: 9, justifyContent: 'center' },
   cell: { flex: 1, maxWidth: 60, height: 62, borderRadius: 17, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   cellActive: { shadowColor: '#FFC800', shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
-  digit: { fontSize: 27, fontFamily: F.display },
+  digit: { fontSize: 28, fontFamily: F.display, fontVariant: ['tabular-nums'] },
   caret: { width: 2, height: 26, borderRadius: 1 },
   dot: { width: 6, height: 6, borderRadius: 3, opacity: 0.5 },
   hidden: { position: 'absolute', opacity: 0, width: 1, height: 1 },
@@ -345,7 +346,12 @@ const styles = StyleSheet.create({
   pill: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 42, paddingHorizontal: 18, borderRadius: 21, borderWidth: 1, overflow: 'hidden' },
   pillFill: { position: 'absolute', left: 0, top: 0, bottom: 0 },
   help: { borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, paddingVertical: 6 },
-  helpTitle: { textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: F.bold, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 2 },
+  helpTitle: { textTransform: 'uppercase', fontSize: 11.5, letterSpacing: 0.9, fontFamily: F.bold, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 2 },
+  rowTitle: { fontSize: 15.5, fontFamily: F.bold, letterSpacing: -0.2, lineHeight: 20 },
+  rowSub: { fontSize: 12.5, fontFamily: F.medium, lineHeight: 16, letterSpacing: 0 },
+  tabular: { fontVariant: ['tabular-nums'] },
+  pillText: { fontFamily: F.semi, fontVariant: ['tabular-nums'] },
+  note: { flexShrink: 1, fontSize: 12, lineHeight: 16, fontFamily: F.medium },
   helpRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 16, marginHorizontal: 4 },
   helpIcon: { width: 38, height: 38, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   helpLine: { height: StyleSheet.hairlineWidth, marginHorizontal: 18 },

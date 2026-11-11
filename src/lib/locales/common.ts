@@ -103,7 +103,7 @@ const common: Record<string, Row> = {
   "Ro'yxatdan o'tish (SMS kod)": ["Регистрация (SMS-код)", "Sign up (SMS code)", "Сабти ном (рамзи SMS)", "التسجيل (رمز SMS)"],
   "Ro'yxatdan o'tish (email kod)": ["Регистрация (код на email)", "Sign up (email code)", "Сабти ном (рамз ба email)", "التسجيل (رمز البريد)"],
   "Xalqaro raqamli loyihalar platformasi": ["Международная платформа цифровых проектов", "International digital projects platform", "Платформаи байналмилалии лоиҳаҳои рақамӣ", "منصة دولية للمشاريع الرقمية"],
-  "Loyihalar, hamkorlar va investorlar — bir joyda": ["Проекты, партнёры и инвесторы — в одном месте", "Projects, partners and investors — in one place", "Лоиҳаҳо, шарикон ва сармоягузорон — дар як ҷо", "المشاريع والشركاء والمستثمرون — في مكان واحد"],
+  "Loyihalar, hamkorlar va investorlar — bir joyda": ["Проекты, партнёры и инвесторы — в одном месте", "Projects, partners and investors — in one place", "Лоиҳаҳо, шарикон ва сармоягузорон — дар як ҷо", "المشاريع والشركاء والمستثمرون — في مكان واحد"],
   "Hisobni tanlang": ["Выберите аккаунт", "Choose an account", "Ҳисобро интихоб кунед", "اختر حسابًا"],
   "Shu qurilmada avval kirgan hisoblaringiz": ["Аккаунты, в которые вы входили на этом устройстве", "Accounts you've used on this device", "Ҳисобҳое, ки дар ин дастгоҳ ворид шуда будед", "الحسابات التي سجّلت الدخول بها على هذا الجهاز"],
   "{title} — ro'yxatdan olib tashlash": ["{title} — убрать из списка", "{title} — remove from list", "{title} — аз рӯйхат хориҷ кардан", "{title} — إزالة من القائمة"],

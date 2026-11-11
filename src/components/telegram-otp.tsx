@@ -123,7 +123,7 @@ export function TelegramSteps({ link, compact }: { link: string; compact?: boole
 
 const styles = StyleSheet.create({
   btn: { height: 56, borderRadius: 18, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
-  btnText: { fontSize: 16, fontFamily: F.heavy },
+  btnText: { fontSize: 16.5, fontFamily: F.bold, letterSpacing: -0.15 },
   badge: { alignItems: 'center', justifyContent: 'center' },
   tgGlow: { shadowColor: TELEGRAM_BLUE, shadowOpacity: 0.45, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
   badgeGlow: { shadowColor: '#26B04A', shadowOpacity: 0.45, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3 },

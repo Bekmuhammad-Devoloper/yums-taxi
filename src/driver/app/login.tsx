@@ -48,6 +48,16 @@ export default function Login() {
   // Aylantirish faqat joy yetmaganda (masalan, telefonda klaviatura ochilganda)
   const [viewH, setViewH] = useState(0);
   const [contentH, setContentH] = useState(0);
+  // Uzun matnli tillarda sahifa sig'masa, logotip oshgan joy miqdorida kichrayadi (faqat oshib boradi —
+  // tebranmaydi; ekran balandligi o'zgarsa qaytadan hisoblanadi; klaviatura ochiq paytda hisoblanmaydi)
+  const [fit, setFit] = useState({ height: 0, px: 0 });
+  const shrink = fit.height === height ? fit.px : 0;
+  const fitContent = (h: number) => {
+    setContentH(h);
+    if (big && viewH > 0 && viewH >= height * 0.8 && h > viewH + 1) {
+      setFit(f => ({ height, px: Math.min(90, (f.height === height ? f.px : 0) + Math.ceil((h - viewH) * 1.4) + 2) }));
+    }
+  };
   const [step, setStep] = useState<Step>('phone');
   const [digits, setDigits] = useState('');
   const [code, setCode] = useState('');
@@ -168,7 +178,7 @@ export default function Login() {
         showsVerticalScrollIndicator={false}
         scrollEnabled={contentH > viewH + 1}
         onLayout={e => setViewH(e.nativeEvent.layout.height)}
-        onContentSizeChange={(_, h) => setContentH(h)}>
+        onContentSizeChange={(_, h) => fitContent(h)}>
         <LinearGradient colors={['#000000', '#0B0904', '#16120A']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={[big ? styles.hero : styles.heroCompact, big && styles.heroFill, { paddingTop: insets.top + 12 }]}>
           <Image source={GLOW} pointerEvents="none" style={[styles.glow, { top: insets.top - (big ? 70 : 250) }]} contentFit="contain" />
           {step === 'code' && (
@@ -178,7 +188,7 @@ export default function Login() {
           )}
           {big ? (
             <>
-              <BrandLogo width={logoW} style={{ alignSelf: 'center', marginTop: short ? 0 : 6 }} />
+              <BrandLogo width={Math.max(84, logoW - shrink)} style={{ alignSelf: 'center', marginTop: short ? 0 : 6 }} />
               <View style={styles.driverTag}><Ionicons name="car-sport" size={13} color="#0E1525" /><Text style={styles.driverTagText}>DRIVER</Text></View>
               <Text style={styles.tagTitle}>{tr('Haydovchilar uchun YUMS')}</Text>
               {!short && <Text style={styles.tagSub}>{tr("Buyurtmalar YUMS ilovasidagi yo'lovchilardan to'g'ridan-to'g'ri keladi")}</Text>}
@@ -205,7 +215,7 @@ export default function Login() {
             <>
               <View style={{ gap: 6 }}>
                 <Txt v="h1">{tr('Telefon raqamingiz')}</Txt>
-                <Txt muted>{telegramOn ? tr("Kirish yoki ro'yxatdan o'tish uchun kodni Telegram yoki SMS orqali yuboramiz") : tr("Kirish yoki ro'yxatdan o'tish uchun SMS orqali kod yuboramiz")}</Txt>
+                <Txt muted style={styles.lead}>{telegramOn ? tr("Kirish yoki ro'yxatdan o'tish uchun kodni Telegram yoki SMS orqali yuboramiz") : tr("Kirish yoki ro'yxatdan o'tish uchun SMS orqali kod yuboramiz")}</Txt>
               </View>
               <View style={[styles.phone, { backgroundColor: phoneFocus ? c.surface : c.surface2, borderColor: phoneFocus ? c.brand : c.line }]}>
                 <View style={styles.cc}>
@@ -289,8 +299,9 @@ const styles = StyleSheet.create({
   back: { position: 'absolute', left: 16, width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
   driverTag: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'center', marginTop: 8, paddingHorizontal: 12, height: 24, borderRadius: 12, backgroundColor: '#FFC800' },
   driverTagText: { color: '#0E1525', fontSize: 11.5, fontFamily: F.heavy, letterSpacing: 2 },
-  tagTitle: { fontSize: 17, fontFamily: F.semi, color: '#fff', textAlign: 'center', letterSpacing: -0.3, marginTop: 10 },
-  tagSub: { fontSize: 13.5, fontFamily: F.medium, color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginTop: 4, lineHeight: 19 },
+  // shior: sarlavha shrifti, ruscha uzun matn ham ikki tekis qatorga bo'linadi
+  tagTitle: { fontSize: 17, lineHeight: 22, fontFamily: F.display, color: '#fff', textAlign: 'center', letterSpacing: -0.3, marginTop: 10, maxWidth: 300, alignSelf: 'center' },
+  tagSub: { fontSize: 13, lineHeight: 18, fontFamily: F.medium, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginTop: 4 },
   pills: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 14 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 30, paddingHorizontal: 8, borderRadius: 15, flexShrink: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,255,255,0.12)' },
   pillText: { color: 'rgba(255,255,255,0.88)', fontSize: 11.5, fontFamily: F.semi, flexShrink: 1 },
@@ -302,5 +313,6 @@ const styles = StyleSheet.create({
   prefix: { fontSize: 19, fontFamily: F.heavy },
   phoneInput: { flex: 1, minWidth: 0, fontSize: 20, fontFamily: F.bold, letterSpacing: 0.5, height: '100%' },
   note: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14 },
-  legal: { textAlign: 'center', lineHeight: 16, paddingHorizontal: 8 },
+  legal: { textAlign: 'center', fontSize: 12, lineHeight: 17, fontFamily: F.medium, paddingHorizontal: 8 },
+  lead: { fontSize: 14.5, lineHeight: 21 },
 });

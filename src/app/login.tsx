@@ -86,6 +86,16 @@ export default function Login() {
   // Aylantirish faqat joy yetmaganda (klaviatura ochilganda yoki uzun profil formasida)
   const [viewH, setViewH] = useState(0);
   const [contentH, setContentH] = useState(0);
+  // Uzun matnli tillarda sahifa sig'masa, logotip oshgan joy miqdorida kichrayadi (faqat oshib boradi —
+  // tebranmaydi; ekran balandligi o'zgarsa qaytadan hisoblanadi; klaviatura ochiq paytda hisoblanmaydi)
+  const [fit, setFit] = useState({ height: 0, px: 0 });
+  const shrink = fit.height === height ? fit.px : 0;
+  const fitContent = (h: number) => {
+    setContentH(h);
+    if (big && viewH > 0 && viewH >= height * 0.8 && h > viewH + 1) {
+      setFit(f => ({ height, px: Math.min(90, (f.height === height ? f.px : 0) + Math.ceil((h - viewH) * 1.4) + 2) }));
+    }
+  };
   const [step, setStep] = useState<Step>(() => (savedAccounts.length ? 'accounts' : 'contact'));
   const [method, setMethod] = useState<'phone' | 'email'>('phone');
   const [cc, setCc] = useState(CODES[0]);
@@ -291,7 +301,7 @@ export default function Login() {
         showsVerticalScrollIndicator={false}
         scrollEnabled={contentH > viewH + 1}
         onLayout={e => setViewH(e.nativeEvent.layout.height)}
-        onContentSizeChange={(_, h) => setContentH(h)}>
+        onContentSizeChange={(_, h) => fitContent(h)}>
         <LinearGradient colors={['#000000', '#0B0904', '#16120A']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={[big ? styles.hero : styles.heroCompact, big && styles.heroFill, big && short && { paddingBottom: 42 }, { paddingTop: insets.top + 12 }]}>
           <Image source={GLOW} pointerEvents="none" style={[styles.glow, { top: insets.top - (big ? 70 : 250) }]} contentFit="contain" />
           {canBack && (
@@ -301,7 +311,7 @@ export default function Login() {
           )}
           {big ? (
             <>
-              <BrandLogo width={logoW} style={{ alignSelf: 'center', marginTop: roomy ? 12 : 4 }} />
+              <BrandLogo width={Math.max(84, logoW - shrink)} style={{ alignSelf: 'center', marginTop: roomy ? 12 : 4 }} />
               <Text style={[styles.tagTitle, short && { marginTop: 10 }]}>{tr('Xalqaro raqamli loyihalar platformasi')}</Text>
               {roomy && <Text style={styles.tagSub}>{tr('Loyihalar, hamkorlar va investorlar — bir joyda')}</Text>}
               <View style={[styles.pills, short && { marginTop: 14 }]}>
@@ -362,7 +372,7 @@ export default function Login() {
             <>
               <View style={{ gap: 6 }}>
                 <Txt v="h1">{method === 'phone' ? tr('Telefon raqamingiz') : tr('Email manzilingiz')}</Txt>
-                <Txt muted>{method === 'email' ? tr("Kirish yoki ro'yxatdan o'tish uchun emailga kod yuboramiz") : telegramOn ? tr("Kirish yoki ro'yxatdan o'tish uchun kodni Telegram yoki SMS orqali yuboramiz") : tr("Kirish yoki ro'yxatdan o'tish uchun SMS orqali kod yuboramiz")}</Txt>
+                <Txt muted style={styles.lead}>{method === 'email' ? tr("Kirish yoki ro'yxatdan o'tish uchun emailga kod yuboramiz") : telegramOn ? tr("Kirish yoki ro'yxatdan o'tish uchun kodni Telegram yoki SMS orqali yuboramiz") : tr("Kirish yoki ro'yxatdan o'tish uchun SMS orqali kod yuboramiz")}</Txt>
               </View>
               {method === 'phone' ? (
                 <View style={[styles.phone, { backgroundColor: phoneFocus ? c.surface : c.surface2, borderColor: phoneFocus ? c.brand : c.line }]}>
@@ -422,7 +432,7 @@ export default function Login() {
                 onPress={() => { haptic.tap(); setMethod(method === 'phone' ? 'email' : 'phone'); }}
                 style={({ pressed }) => [styles.alt, { borderColor: c.line, backgroundColor: pressed ? c.surface2 : 'transparent' }]}>
                 <Ionicons name={method === 'phone' ? 'mail-outline' : 'call-outline'} size={18} color={c.text} />
-                <Txt style={{ fontFamily: F.semi }}>{method === 'phone' ? tr('Email orqali kirish') : tr('Telefon orqali kirish')}</Txt>
+                <Txt style={styles.altText}>{method === 'phone' ? tr('Email orqali kirish') : tr('Telefon orqali kirish')}</Txt>
               </Pressable>
 
               <Txt v="tiny" faint style={styles.legal}>
@@ -607,8 +617,9 @@ const styles = StyleSheet.create({
   cardFit: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
   glow: { position: 'absolute', alignSelf: 'center', width: 420, height: 420 },
   back: { position: 'absolute', left: 16, width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,255,255,0.16)', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
-  tagTitle: { fontSize: 17, fontFamily: F.semi, color: '#fff', textAlign: 'center', letterSpacing: -0.3, marginTop: 14 },
-  tagSub: { fontSize: 13.5, fontFamily: F.medium, color: 'rgba(255,255,255,0.55)', textAlign: 'center', marginTop: 4 },
+  // shior: sarlavha shrifti, ruscha uzun matn ham ikki tekis qatorga bo'linadi
+  tagTitle: { fontSize: 17, lineHeight: 22, fontFamily: F.display, color: '#fff', textAlign: 'center', letterSpacing: -0.3, marginTop: 14, maxWidth: 300, alignSelf: 'center' },
+  tagSub: { fontSize: 13, lineHeight: 18, fontFamily: F.medium, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginTop: 4 },
   pills: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 20 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,255,255,0.12)' },
   pillText: { color: 'rgba(255,255,255,0.88)', fontSize: 12.5, fontFamily: F.semi },
@@ -626,7 +637,9 @@ const styles = StyleSheet.create({
   or: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   orLine: { flex: 1, height: StyleSheet.hairlineWidth },
   alt: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, height: 52, borderRadius: 16, borderWidth: 1 },
-  legal: { textAlign: 'center', lineHeight: 16, paddingHorizontal: 8 },
+  legal: { textAlign: 'center', fontSize: 12, lineHeight: 17, fontFamily: F.medium, paddingHorizontal: 8 },
+  lead: { fontSize: 14.5, lineHeight: 21 },
+  altText: { fontSize: 15, fontFamily: F.bold, letterSpacing: -0.1 },
   kind: { flex: 1, padding: 14, borderRadius: 18, borderWidth: 1.5, gap: 6 },
   radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   reg: { padding: 12, borderRadius: 14, gap: 4 },
