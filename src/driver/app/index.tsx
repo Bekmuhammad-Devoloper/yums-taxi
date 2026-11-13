@@ -28,6 +28,12 @@ import { F } from '@/lib/theme';
 import { fmtTime } from '@/lib/format';
 import { tr, tx, trPlace, route, flipRTL } from '@/lib/i18n';
 
+// panel ikonkalari ranglari
+const AMBER = '#F5A524';
+const RED = '#E5484D';
+const BLUE = '#3B82F6';
+const TEAL = '#14B8A6';
+
 const PAY: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap }> = {
   cash: { label: tx('Naqd'), icon: 'cash-outline' },
   card: { label: tx('Karta'), icon: 'card-outline' },
@@ -375,7 +381,7 @@ function HomePanel() {
   const block = d.blocked
     ? { title: tr('Hisob bloklangan'), sub: d.blocked.reason, icon: 'lock-closed' as const, to: '/support' }
     : !d.docsApproved
-    ? { title: inReview ? tr('Hujjatlar tekshirilmoqda') : tr('Hujjatlarni yuklang'), sub: tr('{approvedDocs} / {length} tasdiqlangan · liniyaga chiqish uchun kerak', { approvedDocs, length: DOC_KINDS.length }), icon: inReview ? 'time' as const : 'document-text' as const, to: '/documents' }
+    ? { title: inReview ? tr('Hujjatlar tekshirilmoqda') : tr('Hujjatlarni yuklang'), sub: tr('{approvedDocs} / {length} tasdiqlangan · liniyaga chiqish uchun kerak', { approvedDocs, length: DOC_KINDS.length }), icon: inReview ? 'time' as const : 'document-text' as const, to: '/documents', docs: DOC_KINDS.map(k => d.docs[k].status) }
     : !d.activeTariffs.length ? { title: tr('Tarifni yoqing'), sub: tr("Shartlari bajarilgan tarif yo'q yoki hammasi o'chiq"), icon: 'car' as const, to: '/profile' } : null;
 
   return (
@@ -405,10 +411,18 @@ function HomePanel() {
         </Pressable>
       ) : block ? (
         <Pressable onPress={() => go(block.to)} style={({ pressed }) => [styles.mainBtn, { backgroundColor: c.surface2, transform: [{ scale: pressed ? 0.98 : 1 }] }]} accessibilityLabel={block.title}>
-          <View style={[styles.powerIcon, { backgroundColor: c.brandSoft }]}><Ionicons name={block.icon} size={22} color={c.brandDeep} /></View>
-          <View style={{ flex: 1 }}>
+          <View style={[styles.blockIcon, { backgroundColor: alpha(c.brand, 0.16) }]}><Ionicons name={block.icon} size={22} color={c.brand} /></View>
+          <View style={{ flex: 1, gap: 2 }}>
             <Text style={[styles.mainTitle, { color: c.text }]}>{block.title}</Text>
             <Txt v="small" muted numberOfLines={2}>{block.sub}</Txt>
+            {'docs' in block && block.docs ? (
+              // har bir hujjat — bitta bo'lak: yashil tasdiqlangan, sariq tekshiruvda, qizil rad etilgan
+              <View style={styles.docBar}>
+                {block.docs.map((st, i) => (
+                  <View key={i} style={[styles.docSeg, { backgroundColor: st === 'approved' ? GREEN : st === 'review' ? AMBER : st === 'rejected' ? RED : c.surface3 }]} />
+                ))}
+              </View>
+            ) : null}
           </View>
           <Ionicons name="chevron-forward" size={20} color={c.faint} style={flipRTL()} />
         </Pressable>
@@ -428,20 +442,20 @@ function HomePanel() {
           <Text style={[styles.tValue, { color: activityColor(d.activity) }]} numberOfLines={1}>{d.activity}</Text>
           <View style={[styles.wBar, { backgroundColor: c.surface3 }]}><View style={{ width: `${d.activity}%`, height: 4, borderRadius: 2, backgroundColor: activityColor(d.activity) }} /></View>
         </Tile>
-        <Tile icon="wallet" tint={c.accent} label={tr('Bugun')} onPress={() => go('/earnings')}>
+        <Tile icon="wallet" tint={BLUE} label={tr('Bugun')} onPress={() => go('/earnings')}>
           <Text style={[styles.tValue, { color: c.text, fontSize: fitSize(groupDigits(d.today.sum)) }]} numberOfLines={1}>{groupDigits(d.today.sum)}</Text>
           <Text style={[styles.tUnit, { color: c.muted }]} numberOfLines={1}>{tr("so'm · {count} ta", { count: d.today.count })}</Text>
         </Tile>
-        <Tile icon="time" tint={GREEN} label={tr('Liniyada')} onPress={() => go('/earnings')}>
+        <Tile icon="time" tint={VIOLET} label={tr('Liniyada')} onPress={() => go('/earnings')}>
           <Text style={[styles.tValue, { color: c.text, fontSize: fitSize(hm) }]} numberOfLines={1}>{hm}</Text>
           <Text style={[styles.tUnit, { color: c.muted }]} numberOfLines={1}>{tr('bugun')}</Text>
         </Tile>
       </View>
       {/* tezkor o'tishlar: reyting, «Uyga» rejimi, tariflar */}
       <View style={styles.tiles}>
-        <Chip icon="star" tint="#F5B400" text={d.rating.toFixed(2)} label={tr('Reyting')} onPress={() => go('/quality')} />
-        <Chip icon="home" tint={d.homeDest ? c.accent : c.muted} text={d.homeDest ? trPlace(d.homeDest.title) : tr('Uyga')} label={tr("Uyga yo'nalish")} active={!!d.homeDest} onPress={() => setHomeSheet(true)} />
-        <Chip icon="car-sport" tint={c.muted} text={tariffNames.length ? (tariffNames.length > 1 ? `${tariffNames[0]} +${tariffNames.length - 1}` : tariffNames[0]) : tr('Tariflar')} label={tr('Tariflar')} onPress={() => go('/profile')} />
+        <Chip icon="star" tint={AMBER} text={d.rating.toFixed(2)} label={tr('Reyting')} onPress={() => go('/quality')} />
+        <Chip icon="home" tint={TEAL} text={d.homeDest ? trPlace(d.homeDest.title) : tr('Uyga')} label={tr("Uyga yo'nalish")} active={!!d.homeDest} onPress={() => setHomeSheet(true)} />
+        <Chip icon="car-sport" tint={ORANGE} text={tariffNames.length ? (tariffNames.length > 1 ? `${tariffNames[0]} +${tariffNames.length - 1}` : tariffNames[0]) : tr('Tariflar')} label={tr('Tariflar')} onPress={() => go('/profile')} />
       </View>
 
       <ActionSheet
@@ -486,8 +500,8 @@ function Tile({ icon, tint, label, children, onPress }: { icon: IconName; tint: 
   const { colors: c } = useStore();
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.tile, { backgroundColor: c.surface2, transform: [{ scale: pressed ? 0.97 : 1 }] }]} accessibilityLabel={label}>
-      <Row gap={5}>
-        <Ionicons name={icon} size={13} color={tint} />
+      <Row gap={7}>
+        <View style={[styles.tIcon, { backgroundColor: alpha(tint, 0.16) }]}><Ionicons name={icon} size={13} color={tint} /></View>
         <Text style={[styles.tLabel, { color: c.muted }]} numberOfLines={1}>{label}</Text>
       </Row>
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>{children}</View>
@@ -498,9 +512,9 @@ function Tile({ icon, tint, label, children, onPress }: { icon: IconName; tint: 
 function Chip({ icon, tint, text, label, onPress, active }: { icon: IconName; tint: string; text: string; label: string; onPress?: () => void; active?: boolean }) {
   const { colors: c } = useStore();
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.chip, { backgroundColor: active ? c.accentSoft : c.surface2, transform: [{ scale: pressed ? 0.97 : 1 }] }]} accessibilityLabel={label}>
-      <Ionicons name={icon} size={16} color={tint} />
-      <Text style={[styles.chipText, { color: active ? c.accent : c.text }]} numberOfLines={1}>{text}</Text>
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.chip, { backgroundColor: active ? alpha(tint, 0.14) : c.surface2, borderColor: active ? alpha(tint, 0.45) : 'transparent', transform: [{ scale: pressed ? 0.97 : 1 }] }]} accessibilityLabel={label}>
+      <View style={[styles.chipIcon, { backgroundColor: alpha(tint, active ? 0.24 : 0.16) }]}><Ionicons name={icon} size={14} color={tint} /></View>
+      <Text style={[styles.chipText, { color: active ? tint : c.text }]} numberOfLines={1}>{text}</Text>
     </Pressable>
   );
 }
@@ -811,12 +825,17 @@ const styles = StyleSheet.create({
   pulseRing: { position: 'absolute', width: 30, height: 30, borderRadius: 15, borderWidth: 3 },
   pulseDot: { width: 14, height: 14, borderRadius: 7 },
   tiles: { flexDirection: 'row', gap: 8 },
-  tile: { flex: 1, minWidth: 0, height: 80, borderRadius: 18, paddingHorizontal: 11, paddingTop: 10, paddingBottom: 10, gap: 4 },
+  tile: { flex: 1, minWidth: 0, height: 86, borderRadius: 18, paddingHorizontal: 11, paddingTop: 10, paddingBottom: 10, gap: 4 },
+  tIcon: { width: 22, height: 22, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
   tLabel: { flexShrink: 1, fontFamily: F.semi, fontSize: 12 },
   tValue: { fontFamily: F.heavy, fontSize: 19, letterSpacing: -0.4 },
   tUnit: { fontFamily: F.semi, fontSize: 11.5, marginTop: -1 },
-  chip: { flex: 1, minWidth: 0, height: 42, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 10 },
+  chip: { flex: 1, minWidth: 0, height: 44, borderRadius: 15, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 8 },
+  chipIcon: { width: 26, height: 26, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   chipText: { flexShrink: 1, fontFamily: F.bold, fontSize: 13.5 },
+  blockIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  docBar: { flexDirection: 'row', gap: 4, marginTop: 6 },
+  docSeg: { flex: 1, height: 4, borderRadius: 2 },
   wBar: { height: 4, borderRadius: 2, marginTop: 6, overflow: 'hidden' },
   placeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14 },
   // taklif
