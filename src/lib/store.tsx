@@ -7,7 +7,7 @@ import { Platform, useColorScheme } from 'react-native';
 
 import { toast } from '@/components/toast';
 
-import { deleteAccount as closeAccount, signOut, updateProfile, type ProfilePatch } from './account-api';
+import { deleteAccount as closeAccount, loadProfile, signOut, updateProfile, type ProfilePatch } from './account-api';
 import { ApiError, errorText, hasSession, setSessionLostHandler } from './api';
 import type { Card, Driver, LatLng, PaymentId, Place, Ride } from './data';
 import { decodePolyline, distanceKm, type RouteInfo } from './geo';
@@ -546,6 +546,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return nu;
     });
   }, []);
+
+  // Sessiya tiklangach (va har kirishda) profil serverdan yangilanadi: boshqa qurilmada yoki
+  // haydovchi ilovasida o'zgargan rasm, ism va boshqalar eski nusxada qolib ketmasin
+  useEffect(() => {
+    if (!ready || !userId) return;
+    loadProfile().then(u => { if (u.id === userId) adoptUser(u); }).catch(() => {});
+  }, [ready, userId, adoptUser]);
 
   const value: Ctx = {
     ready, colors, dark, theme,

@@ -387,7 +387,8 @@ export function SearchBar({ value, onChangeText, placeholder, onPress, right, au
   return <View style={box}>{inner}</View>;
 }
 
-export function Segmented<T extends string>({ items, value, onChange, style }: { items: { id: T; label: string; badge?: number }[]; value: T; onChange: (v: T) => void; style?: StyleProp<ViewStyle> }) {
+/** fit — bo‘laklar matn uzunligiga qarab kengayadi (uzun yorliq «…» bilan kesilmaydi) */
+export function Segmented<T extends string>({ items, value, onChange, style, fit }: { items: { id: T; label: string; badge?: number }[]; value: T; onChange: (v: T) => void; style?: StyleProp<ViewStyle>; fit?: boolean }) {
   const { colors: c, dark } = useStore();
   return (
     <View style={[styles.seg, { backgroundColor: c.surface2 }, style]}>
@@ -395,7 +396,7 @@ export function Segmented<T extends string>({ items, value, onChange, style }: {
         const on = it.id === value;
         return (
           <Pressable key={it.id} onPress={() => { haptic.tap(); onChange(it.id); }} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={it.label}
-            style={[styles.segItem, on && [{ backgroundColor: dark ? c.surface3 : c.surface }, shadow(c, dark ? 0 : 0.4)]]}>
+            style={[styles.segItem, fit ? styles.segFit : styles.segEq, on && [{ backgroundColor: dark ? c.surface3 : c.surface }, shadow(c, dark ? 0 : 0.4)]]}>
             <Text style={{ color: on ? c.text : c.muted, fontFamily: on ? F.bold : F.semi, fontSize: 13.5 }} numberOfLines={1}>{it.label}</Text>
             {it.badge ? <View style={[styles.segBadge, { backgroundColor: c.danger }]}><Text style={styles.segBadgeText}>{it.badge}</Text></View> : null}
           </Pressable>
@@ -588,7 +589,9 @@ const styles = StyleSheet.create({
   field: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: radius.m, borderWidth: 1.5, paddingHorizontal: 14 },
   search: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 52, borderRadius: radius.m, borderWidth: 1, paddingHorizontal: 14 },
   seg: { flexDirection: 'row', padding: 4, borderRadius: 15, gap: 4 },
-  segItem: { flex: 1, height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 6 },
+  segItem: { height: 38, borderRadius: 11, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6, paddingHorizontal: 6 },
+  segEq: { flex: 1 },
+  segFit: { flexGrow: 1, flexShrink: 1, flexBasis: 'auto' },
   segBadge: { minWidth: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
   segBadgeText: { color: '#fff', fontSize: 11, fontFamily: F.heavy },
   emptyIco: { width: 76, height: 76, borderRadius: 26, alignItems: 'center', justifyContent: 'center' },

@@ -428,6 +428,7 @@ const common: Record<string, Row> = {
   "Oddiy SMS xabar bilan": ["Обычным SMS-сообщением", "As a regular text message", "Бо паёмаки оддии SMS", "برسالة SMS عادية"],
   "Yordam kerakmi?": ["Нужна помощь?", "Need help?", "Ёрӣ лозим аст?", "هل تحتاج إلى مساعدة؟"],
   "{time} dan keyin yangi kod": ["Новый код через {time}", "New code in {time}", "Рамзи нав пас аз {time}", "رمز جديد بعد {time}"],
+  "Kecha": ["Вчера", "Yesterday", "Дирӯз", "أمس"],
 };
 
 export default common;
