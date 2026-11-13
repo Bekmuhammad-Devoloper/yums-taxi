@@ -3,7 +3,8 @@ import type { LatLng } from '@/lib/data';
 import type { DemandCell } from '@/lib/driver-api';
 import { distanceKm } from '@/lib/geo';
 
-export type DemandZone = { id: string; center: LatLng; ring: LatLng[]; level: 1 | 2 | 3; surge: number; radiusKm: number; orders: number };
+/** live — hozirgi talab; usual — shu soatda odatda gavjum (jonli ma'lumot kam bo'lganda server qo'shadi) */
+export type DemandZone = { id: string; kind: 'live' | 'usual'; title?: string; center: LatLng; ring: LatLng[]; level: 1 | 2 | 3; surge: number; radiusKm: number; orders: number };
 
 /** Doira chegarasi (xaritada ko'pburchak sifatida chiziladi) */
 export function zoneRing(center: LatLng, radiusKm: number, n = 28): LatLng[] {
@@ -19,20 +20,22 @@ export const toZones = (cells: DemandCell[]): DemandZone[] =>
   cells.map(c => {
     const center = { latitude: c.latitude, longitude: c.longitude };
     const level = (Math.min(3, Math.max(1, c.level)) as 1 | 2 | 3);
-    return { id: c.id, center, ring: zoneRing(center, c.radiusKm), level, surge: c.surge, radiusKm: c.radiusKm, orders: c.orders };
+    // eski server turini bermaydi — u faqat jonli talabni qaytarardi
+    const kind = c.kind === 'USUAL' ? 'usual' as const : 'live' as const;
+    return { id: c.id, kind, title: c.title, center, ring: zoneRing(center, c.radiusKm), level, surge: c.surge, radiusKm: c.radiusKm, orders: c.orders };
   });
 
 /** Nuqta tushgan talab hududi koeffitsienti (hududdan tashqarida — 1) */
 export function surgeAt(zones: DemandZone[], p: LatLng | null | undefined) {
   if (!p) return 1;
-  return zones.reduce((m, z) => (distanceKm(z.center, p) <= z.radiusKm ? Math.max(m, z.surge) : m), 1);
+  return zones.reduce((m, z) => (z.kind === 'live' && distanceKm(z.center, p) <= z.radiusKm ? Math.max(m, z.surge) : m), 1);
 }
 
 /** Eng yaqin gavjum hudud (2-daraja va undan yuqori) */
 export function nearestHot(zones: DemandZone[], p: LatLng) {
   let best: { zone: DemandZone; km: number } | null = null;
   for (const z of zones) {
-    if (z.level < 2) continue;
+    if (z.kind !== 'live' || z.level < 2) continue;
     const km = distanceKm(z.center, p);
     if (!best || km < best.km) best = { zone: z, km };
   }

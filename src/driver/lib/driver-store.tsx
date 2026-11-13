@@ -22,7 +22,7 @@ import { publicSettings, type PublicSettings } from '@/lib/trip-api';
 
 import { toZones, type DemandZone } from './demand';
 import { DOC_KINDS, DOC_META, emptyDoc, fromServerDoc, serverKind, toServerDoc, type DocKind, type DriverDoc } from './docs';
-import { nextManeuver } from './nav';
+import { nextManeuver, OFF_ROUTE_M, planOf, progressOf, type NavPlan } from './nav';
 import { tariffChecks, type Check } from './requirements';
 import { say, setVoiceEnabled, setVoiceLang, type VoiceLang } from './voice';
 
@@ -124,6 +124,8 @@ type Ctx = {
   next: OrderOffer | null;
   /** Yo'ldagi safarda manzilgacha qolgan masofa */
   leftKm: number | null;
+  /** Joriy bosqich (mijozga / manzilga) uchun navigator rejasi: yo'l, burilishlar, ko'chalar */
+  nav: NavPlan | null;
   arrived: () => void;
   startRide: () => void;
   finishRide: () => void;
@@ -180,11 +182,15 @@ export const useDriver = () => {
 
 const K = {
   local: 'yd:profileLocal', autopilot: 'yd:autopilot', online: 'yd:onlineLog', navApp: 'yd:navApp', voice: 'yd:voice', voiceLang: 'yd:voiceLang',
+  /** Baholamay yopilgan safar yakunlari — server ularni «baholanmagan» deb qaytaraveradi */
+  summaryDone: 'yd:summaryDone',
 };
 /** Faqat qurilmada saqlanadigan qismlar: jins, shahar, yetkazish shartlari roziligi */
 type LocalProfile = { gender?: 'm' | 'f'; city?: string; deliveryTerms?: boolean };
 
 const PING_MS = 3000;
+/** Navigator yo'lini qayta so'rash oralig'i (yo'ldan chiqqanda) */
+const REROUTE_GAP_MS = 8000;
 const OFFER_POLL_MS = 5000;
 const TRIP_POLL_MS = 7000;
 const DEMAND_MS = 60000;
@@ -215,7 +221,7 @@ function offerOf(v: OfferView): Offer {
     total: Math.max(1, v.secondsLeft) * 1000,
     order: {
       id: v.order.id, number: v.order.orderNumber, passenger: { name: tr("Yo'lovchi"), rating: 5 },
-      pickup, destination, route: { km: v.order.distanceKm, min: v.order.durationMin, coords: curve(pickup, destination) },
+      pickup, destination, route: { km: v.order.distanceKm, min: v.order.durationMin, coords: v.order.polyline ? decodePolyline(v.order.polyline) : curve(pickup, destination) },
       tariffId: v.order.tariffId, price: v.order.fare, earning: v.order.earning, payment: PAY[v.order.paymentMethod],
       options: v.order.options, comment: v.order.comment ?? '', createdAt: v.expiresAt,
     },
@@ -255,7 +261,7 @@ const earningOf = (t: DriverTrip): Earning => ({
 });
 
 export function DriverProvider({ children }: { children: ReactNode }) {
-  const { lang, user, logout: endSession } = useStore();
+  const { lang, user, adoptUser, logout: endSession } = useStore();
   const [ready, setReady] = useState(false);
   const [rules, setRules] = useState<DriverRules>(DEFAULT_RULES);
   const [account, setAccount] = useState<DriverAccount | null>(null);
@@ -276,6 +282,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   /** Zanjir: joriy safar tugagach boshlanadigan buyurtma */
   const [next, setNext] = useState<OrderOffer | null>(null);
   const [summary, setSummary] = useState<Summary | null>(null);
+  const summaryDone = useRef(new Set<string>());
   const [navApp, setNavAppState] = useState<NavApp>('yandex');
   const [voice, setVoiceState] = useState(true);
   const [voiceLang, setVoiceLangState] = useState<VoiceLang>('uz');
@@ -311,6 +318,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
       try {
         const e = Object.fromEntries((await AsyncStorage.multiGet(Object.values(K))).map(([k, v]) => [k, v ? JSON.parse(v) : undefined]));
         if (e[K.local]) setLocal(e[K.local]);
+        if (Array.isArray(e[K.summaryDone])) summaryDone.current = new Set(e[K.summaryDone]);
         if (typeof e[K.autopilot] === 'boolean') setAutopilotState(DEV && e[K.autopilot]);
         if (e[K.online]?.date === dayKey()) setOnlineLog(e[K.online]);
         if (e[K.navApp]) setNavAppState(e[K.navApp]);
@@ -384,8 +392,8 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     if (!o) { setTrip(t => (t ? null : t)); return; }
     if (o.status === 'COMPLETED') {
       setTrip(null);
-      // Yo'lovchi hali baholanmagan — hisob-kitob oynasi
-      if (o.passengerRating === undefined) {
+      // Yo'lovchi hali baholanmagan — hisob-kitob oynasi (haydovchi baholamay yopgan bo'lsa, qayta chiqmaydi)
+      if (o.passengerRating === undefined && !summaryDone.current.has(o.id)) {
         setSummary(s => s ?? {
           orderId: o.id, passenger: o.passenger.firstName,
           earning: { id: o.id, at: o.completedAt ?? new Date().toISOString(), price: o.fare - o.waitFee, waitFee: o.waitFee, fee: o.fare - o.earning, tip: 0, km: o.route.distanceKm, min: o.route.durationMin, from: o.pickup.title, to: o.destination.title, payment: PAY[o.paymentMethod], tariffId: o.tariffId },
@@ -499,10 +507,56 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   }, [autopilotOn, hasProfile, gpsTry]);
   const gpsState: GpsState = autopilotOn ? 'demo' : gps;
 
-  // Avtopilot (faqat ishlab chiqishda): faol safar yo'li bo'ylab harakat
+  /* ---------- Navigator: joriy bosqich uchun yo'l va burilishlar ---------- */
+  // reja bosqich kaliti bilan saqlanadi — bosqich almashganda eskisi o'z-o'zidan amal qilmaydi
+  const legTarget = trip ? (trip.stage === 'toPickup' ? trip.order.pickup : trip.stage === 'inride' ? trip.order.destination : null) : null;
+  const legKey = trip && legTarget ? `${trip.order.id}:${trip.stage}` : '';
+  const [navState, setNavState] = useState<{ key: string; plan: NavPlan } | null>(null);
+  const nav = navState && navState.key === legKey ? navState.plan : null;
+  const legRef = useRef({ key: legKey, target: legTarget });
+  useEffect(() => { legRef.current = { key: legKey, target: legTarget }; }, [legKey, legTarget]);
+  const navReq = useRef({ busy: false, at: 0, off: 0 });
+  const fetchNav = useCallback((reroute: boolean) => {
+    const { key, target } = legRef.current;
+    const r = navReq.current;
+    if (!key || !target || r.busy) return;
+    r.busy = true;
+    r.at = Date.now();
+    r.off = 0;
+    dapi.navigationRoute(posRef.current, target)
+      .then(res => {
+        if (legRef.current.key !== key || res.polyline === '') return;
+        const plan = planOf(res, target);
+        if (plan.coords.length < 2) return;
+        setNavState({ key, plan });
+        if (reroute && plan.steps.length) say('rerouted');
+      })
+      // eski server yoki aloqa yo'q — buyurtmadagi yo'l chizig'i bilan davom etamiz
+      .catch(() => {})
+      .finally(() => { r.busy = false; });
+  }, []);
+  useEffect(() => {
+    if (legKey) fetchNav(false);
+  }, [legKey, fetchNav]);
+  // yo'ldan chiqish: 3 ketma-ket nuqta 45 m dan uzoqda yoki bir marta 120 m dan uzoqda — yangi yo'l.
+  // So'rovlar orasida kamida 8 s; mashina to'xtab qolsa ham (yangi nuqta kelmasa) shu vaqt o'tgach so'raladi
+  useEffect(() => {
+    if (!nav) return;
+    const r = navReq.current;
+    const { offM } = progressOf(nav, pos);
+    r.off = offM > OFF_ROUTE_M ? r.off + 1 : 0;
+    if (r.off < 3 && offM <= 120) return;
+    const wait = REROUTE_GAP_MS - (Date.now() - r.at);
+    if (wait <= 0) { fetchNav(true); return; }
+    const t = setTimeout(() => fetchNav(true), wait);
+    return () => clearTimeout(t);
+  }, [pos, nav, fetchNav]);
+
+  // Avtopilot (faqat ishlab chiqishda): navigator yo'li (bo'lmasa buyurtmadagi yo'l) bo'ylab harakat
+  const navCoords = nav?.coords;
   useEffect(() => {
     if (!autopilotOn || !trip || trip.stage === 'waiting') return;
-    const path = trip.stage === 'toPickup' ? trip.approach : trip.order.route.coords;
+    const path = navCoords ?? (trip.stage === 'toPickup' ? trip.approach : trip.order.route.coords);
     if (path.length < 2) return;
     const kmh = (trip.stage === 'toPickup' ? APPROACH_KMH : RIDE_KMH) * DEMO_SPEEDUP;
     const total = pathLength(path);
@@ -517,9 +571,12 @@ export function DriverProvider({ children }: { children: ReactNode }) {
       if (t >= 1) clearInterval(iv);
     }, 500);
     return () => clearInterval(iv);
-  }, [autopilotOn, trip]);
+  }, [autopilotOn, trip, navCoords]);
 
-  const leftKm = useMemo(() => (trip?.stage === 'inride' ? nextManeuver(trip.order.route.coords, pos).leftKm : null), [trip, pos]);
+  const leftKm = useMemo(() => {
+    if (trip?.stage !== 'inride') return null;
+    return nav ? Math.max(0, nav.km - progressOf(nav, pos).along) : nextManeuver(trip.order.route.coords, pos).leftKm;
+  }, [trip, pos, nav]);
 
   // Liniyada yoki safarda joylashuv serverga yuboriladi (u yo'lovchining xaritasida mashinani yurgizadi)
   const sending = online || !!trip;
@@ -736,6 +793,10 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   const closeSummary = useCallback((passengerStars?: number) => {
     setSummary(s => {
       if (s && passengerStars) dapi.ratePassenger(s.orderId, passengerStars).then(() => refreshEarnings()).catch(() => {});
+      if (s) {
+        summaryDone.current.add(s.orderId);
+        persist(K.summaryDone, [...summaryDone.current].slice(-20));
+      }
       return null;
     });
   }, [refreshEarnings]);
@@ -867,7 +928,17 @@ export function DriverProvider({ children }: { children: ReactNode }) {
       if (p.gender || p.city) {
         dapi.updateDriverPersonal({ gender: p.gender ? (p.gender === 'f' ? 'F' : 'M') : undefined, city: p.city }).then(setAccount).catch(fail);
       }
-      if ('photo' in p) saveUserProfile({ avatar: p.photo ?? null }).catch(fail);
+      if ('photo' in p && user) {
+        // rasm darhol almashadi; server javobi kelgach undagi qiymat olinadi, xato bo'lsa eski rasm qaytadi
+        const prev = user.avatar;
+        adoptUser({ ...user, avatar: p.photo });
+        saveUserProfile({ avatar: p.photo ?? null })
+          .then(adoptUser)
+          .catch(error => {
+            adoptUser({ ...user, avatar: prev });
+            fail(error);
+          });
+      }
       if (p.name && p.name !== profile?.name) saveUserProfile({ fullName: p.name }).then(() => loadAccount()).catch(fail);
       if (p.color && p.color !== profile?.color) dapi.updateVehicle({ color: p.color }).then(setAccount).catch(fail);
       if (p.plate && p.plate !== profile?.plate) dapi.updateVehicle({ plate: p.plate }).then(acc => { setAccount(acc); refreshDocs().catch(() => {}); }).catch(fail);
@@ -889,7 +960,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     voice, setVoice: v => { setVoiceState(v); setVoiceEnabled(v); persist(K.voice, v); },
     voiceLang, setVoiceLang: l => { setVoiceLangState(l); setVoiceLang(l); persist(K.voiceLang, l); },
     autopilot: autopilotOn, setAutopilot: v => { setAutopilotState(DEV && v); persist(K.autopilot, DEV && v); },
-    live, lastRating, clearRating: () => setLastRating(null),
+    live, lastRating, clearRating: () => setLastRating(null), nav,
     blocked: account?.status === 'BLOCKED' ? { reason: tr('Hisobingiz operator tomonidan bloklangan') } : null,
     notice, dismissNotice: () => setNotice(null), commission, sos,
   };

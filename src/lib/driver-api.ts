@@ -101,6 +101,8 @@ export type OfferView = {
   order: {
     id: string; orderNumber: string; tariffId: string; pickup: PlaceDto; destination: PlaceDto;
     distanceKm: number; durationMin: number; fare: number; earning: number; paymentMethod: Method; options: string[]; comment?: string;
+    /** Olish nuqtasidan manzilgacha yo'l chizig'i (eski server bermasligi mumkin) */
+    polyline?: string;
   };
 };
 
@@ -176,6 +178,20 @@ export const setHome = (p: Place) =>
   api<DriverAccount>('PUT', '/driver/home', { title: p.title, latitude: p.latitude, longitude: p.longitude });
 export const clearHome = () => api<DriverAccount>('DELETE', '/driver/home');
 
-export type DemandCell = { id: string; latitude: number; longitude: number; radiusKm: number; level: number; orders: number; surge: number };
+/** LIVE — so'nggi daqiqalardagi buyurtmalar; USUAL — shu soatda odatda gavjum joylar (jonli talab kam bo'lganda) */
+export type DemandCell = { id: string; kind?: 'LIVE' | 'USUAL'; title?: string; latitude: number; longitude: number; radiusKm: number; level: number; orders: number; surge: number };
 export const demandAround = (p: LatLng) =>
   api<DemandCell[]>('GET', `/driver/demand?latitude=${p.latitude.toFixed(5)}&longitude=${p.longitude.toFixed(5)}`);
+
+/* ---------- Navigator ---------- */
+
+/** OSRM burilish ko'rsatmasi: manevr nuqtasi, ko'cha va keyingi manevrgacha masofa */
+export type NavStepDto = {
+  type: string; modifier: string | null; exit: number | null; name: string; ref: string | null;
+  latitude: number; longitude: number; distanceM: number; durationSec: number;
+};
+export type NavigationDto = { distanceKm: number; durationMin: number; polyline: string; source: string; steps: NavStepDto[] };
+
+/** Mashinadan nuqtagacha yo'l, burilishma-burilish (server OSRM orqali, tirbandlik koeffitsienti bilan) */
+export const navigationRoute = (from: LatLng, to: LatLng) =>
+  api<NavigationDto>('GET', `/driver/navigation?fromLat=${from.latitude.toFixed(6)}&fromLng=${from.longitude.toFixed(6)}&toLat=${to.latitude.toFixed(6)}&toLng=${to.longitude.toFixed(6)}`);

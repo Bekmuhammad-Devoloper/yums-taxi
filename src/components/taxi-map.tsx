@@ -44,16 +44,22 @@ export type TaxiMapProps = {
   driverHeading?: number;
   /** Haydovchi atrofida qidiruv to'lqini (liniyada buyurtma kutilmoqda) */
   radar?: boolean;
-  /** Talab xaritasi kataklari (haydovchi ilovasi) */
-  zones?: { id: string; center: LatLng; ring: LatLng[]; level: 1 | 2 | 3; surge: number }[];
+  /** Talab xaritasi kataklari (haydovchi ilovasi): live — hozirgi talab, usual — odatda gavjum joylar */
+  zones?: { id: string; kind?: 'live' | 'usual'; title?: string; center: LatLng; ring: LatLng[]; level: 1 | 2 | 3; surge: number }[];
+  /** Jonli tirbandlik qatlami */
+  traffic?: boolean;
 };
 
+/** Telefonda tirbandlikni xaritaning o'zi beradi (Android — Google, iOS — Apple) */
+export const TRAFFIC_AVAILABLE = true;
+
 const ZONE_FILL: Record<1 | 2 | 3, string> = { 1: '#FFD23F', 2: '#FF9A1F', 3: '#FF4D2E' };
+const USUAL_COLOR = '#8B7CF6';
 
 const DELTA = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
 
 export default function TaxiMap(props: TaxiMapProps) {
-  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching, bottomPad, topPad, onCenterChange, onDragStart, locationGranted, fleet, driverHeading, zones, radar } = props;
+  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching, bottomPad, topPad, onCenterChange, onDragStart, locationGranted, fleet, driverHeading, zones, radar, traffic } = props;
   const { colors: c, dark } = useStore();
   const map = useRef<MapView>(null);
 
@@ -100,16 +106,25 @@ export default function TaxiMap(props: TaxiMapProps) {
       showsMyLocationButton={false}
       showsCompass={false}
       showsPointsOfInterests={false}
+      showsTraffic={!!traffic}
       toolbarEnabled={false}
       mapPadding={{ top: topPad, right: 0, bottom: bottomPad, left: 0 }}
       onPanDrag={onDragStart}
       onRegionChangeComplete={(r: Region) => onCenterChange?.({ latitude: r.latitude, longitude: r.longitude })}>
-      {zones?.map(z => (
+      {zones?.map(z => (z.kind === 'usual' ? (
+        // odatda gavjum joy: shtrixli chegara, och to'ldirish — jonli talabdan ajralib tursin
+        <Polygon key={z.id} coordinates={z.ring} fillColor={USUAL_COLOR + '22'} strokeColor={USUAL_COLOR + 'CC'} strokeWidth={1.5} lineDashPattern={[6, 6]} tappable={false} />
+      ) : (
         <Polygon key={z.id} coordinates={z.ring} fillColor={ZONE_FILL[z.level] + (z.level === 3 ? '55' : z.level === 2 ? '44' : '33')} strokeColor={ZONE_FILL[z.level] + '99'} strokeWidth={1} tappable={false} />
-      ))}
-      {zones?.filter(z => z.level >= 2).map(z => (
+      )))}
+      {zones?.filter(z => z.kind !== 'usual' && z.level >= 2).map(z => (
         <Marker key={'l' + z.id} coordinate={z.center} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-          <View style={[styles.surge, { backgroundColor: ZONE_FILL[z.level] }]}><Text style={styles.surgeText}>×{z.surge.toFixed(1)}</Text></View>
+          <View style={[styles.surge, { backgroundColor: ZONE_FILL[z.level] }]}><Text style={styles.surgeText}>{z.surge > 1 ? `×${z.surge.toFixed(1)}` : '🔥'}</Text></View>
+        </Marker>
+      ))}
+      {zones?.filter(z => z.kind === 'usual' && z.title).map(z => (
+        <Marker key={'u' + z.id} coordinate={z.center} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
+          <View style={styles.usual}><Text style={styles.usualText} numberOfLines={1}>{z.title}</Text></View>
         </Marker>
       ))}
       {showNearby && fleet?.map(f => (
@@ -145,8 +160,13 @@ export default function TaxiMap(props: TaxiMapProps) {
       )}
       {radar && driverPos && <Circle center={driverPos} radius={420} strokeColor="rgba(18,166,106,0.55)" strokeWidth={2} fillColor="rgba(18,166,106,0.10)" />}
       {driverPos && (
-        <Marker coordinate={driverPos} anchor={{ x: 0.5, y: 0.5 }} flat rotation={heading}>
-          <Image source={CAR_TOP.taxi} style={styles.driver} contentFit="contain" />
+        <Marker coordinate={driverPos} anchor={{ x: 0.5, y: 0.5 }} flat rotation={heading} zIndex={1000}>
+          {/* o'z mashinasi: sariq nur ustida, soya bilan — kichik masshtabda ham darhol topiladi */}
+          <View style={styles.meWrap}>
+            <View style={styles.meGlow} />
+            <View style={styles.meGlowCore} />
+            <Image source={CAR_TOP.taxi} style={styles.driver} contentFit="contain" />
+          </View>
         </Marker>
       )}
     </MapView>
@@ -159,7 +179,12 @@ const styles = StyleSheet.create({
   dotInner: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#fff' },
   flag: { width: 30, height: 30, borderRadius: 10, borderWidth: 3, alignItems: 'center', justifyContent: 'center' },
   stick: { width: 3, height: 10, borderRadius: 2 },
-  driver: { width: 28, height: 50 },
+  driver: { width: 32, height: 57 },
+  meWrap: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center' },
+  meGlow: { position: 'absolute', width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,200,0,0.16)' },
+  meGlowCore: { position: 'absolute', width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,200,0,0.28)' },
   surge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
   surgeText: { color: '#1A1205', fontSize: 11, fontWeight: '800' },
+  usual: { maxWidth: 140, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, backgroundColor: 'rgba(139,124,246,0.92)' },
+  usualText: { color: '#fff', fontSize: 10.5, fontWeight: '700' },
 });

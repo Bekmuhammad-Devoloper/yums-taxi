@@ -3,17 +3,17 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import TaxiMap, { type MapHandle } from '@/components/taxi-map';
+import TaxiMap, { TRAFFIC_AVAILABLE, type MapHandle } from '@/components/taxi-map';
 import { toast } from '@/components/toast';
 import { ActionSheet, PersonAvatar, Row, Sheet, Txt, alpha } from '@/components/ui';
 import { SlideButton } from '@/driver/components/slide-button';
 import { nearestHot, surgeAt, ZONE_COLOR } from '@/driver/lib/demand';
 import { DOC_KINDS } from '@/driver/lib/docs';
 import { useDriver, waitFeeOf, type Offer, type Trip } from '@/driver/lib/driver-store';
-import { fmtDist, MANEUVER_TEXT, nextManeuver, type ManeuverKind } from '@/driver/lib/nav';
+import { fmtDist, guide, maneuverText, nextManeuver, remainingPath, type ManeuverKind } from '@/driver/lib/nav';
 import { callNumber } from '@/driver/lib/support';
 import { activityColor, GREEN, ORANGE, VIOLET } from '@/driver/lib/theme';
 import { say, type PhraseKey } from '@/driver/lib/voice';
@@ -22,7 +22,7 @@ import { TARIFFS, type LatLng, type Place } from '@/lib/data';
 import { errorText } from '@/lib/api';
 import { messagePassenger } from '@/lib/driver-api';
 import { popularPlaces } from '@/lib/trip-api';
-import { distanceKm, som } from '@/lib/geo';
+import { distanceKm, groupDigits, som } from '@/lib/geo';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
 import { fmtTime } from '@/lib/format';
@@ -56,6 +56,8 @@ export default function DriverHome() {
   const map = useRef<MapHandle>(null);
   const [sheetH, setSheetH] = useState(300);
   const [demand, setDemand] = useState(true);
+  // tirbandlik manbai bo'lsa — yoqilgan holda boshlanadi
+  const [traffic, setTraffic] = useState(TRAFFIC_AVAILABLE);
   const { trip, offer, pos, summary } = d;
 
   // Xaritani mashinaga ergashtirish
@@ -86,7 +88,26 @@ export default function DriverHome() {
   const shown = offer?.order ?? trip?.order;
   const stage = trip?.stage;
   const path = stage === 'toPickup' ? trip?.approach : stage === 'inride' ? trip?.order.route.coords : undefined;
+  // navigator yo'li (server burilishlari bilan) kelgan bo'lsa — o'sha; chizishda bosib o'tilgan qismi ko'rsatilmaydi
+  const navPath = d.nav?.coords ?? path;
+  const ahead = navPath ? remainingPath(navPath, pos) : undefined;
   const showZones = demand && !trip && !offer && !summary;
+  const liveZones = d.zones.filter(z => z.kind === 'live').length;
+  const usualZones = d.zones.length - liveZones;
+  // talab xaritasi yoqilganda hududlar ko'rinadigan masshtabga keladi
+  const showDemand = () => {
+    const next = !demand;
+    setDemand(next);
+    if (next && d.zones.length) {
+      setFollow(false);
+      map.current?.fit([pos, ...d.zones.map(z => z.center)]);
+    }
+  };
+  const toggleTraffic = () => {
+    // manba yo'q (vebda kalit sozlanmagan) — tugma yoqilgandek ko'rinib, bo'sh xaritani ko'rsatmasin
+    if (!TRAFFIC_AVAILABLE) { toast(tr("Tirbandlik telefondagi ilovada ko'rinadi (vebda xarita kaliti sozlanmagan)"), 'information-circle'); return; }
+    setTraffic(v => !v);
+  };
   const hot = d.online && showZones ? nearestHot(d.zones, pos) : null;
   const hereSurge = surgeAt(d.zones, pos);
 
@@ -97,8 +118,8 @@ export default function DriverHome() {
         initial={pos}
         pickup={shown?.pickup}
         destination={shown?.destination}
-        route={offer ? offer.order.route.coords : path}
-        driverPath={path}
+        route={offer ? offer.order.route.coords : ahead}
+        driverPath={ahead}
         driverPos={pos}
         driverHeading={d.heading}
         showPickup={!!shown && stage !== 'inride'}
@@ -110,11 +131,12 @@ export default function DriverHome() {
         topPad={insets.top + (trip ? 150 : 70)}
         onDragStart={() => setFollow(false)}
         locationGranted={!d.autopilot}
+        traffic={traffic}
       />
 
       {/* Yuqori panel */}
       {trip ? (
-        <NavBanner trip={trip} path={path} pos={pos} top={insets.top + 8} />
+        <NavBanner trip={trip} path={navPath} pos={pos} top={insets.top + 8} />
       ) : (
         <View style={[styles.top, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
           <Pressable onPress={() => go('/menu')} style={[styles.round, { backgroundColor: c.surface }]} accessibilityLabel={tr('Menyu')}>
@@ -125,7 +147,7 @@ export default function DriverHome() {
             <Ionicons name="wallet" size={18} color={c.brandDeep} />
             <Text style={[styles.balanceText, { color: c.text }]} numberOfLines={1}>{som(d.balance)}</Text>
           </Pressable>
-          <Pressable onPress={() => setDemand(v => !v)} style={[styles.round, { backgroundColor: demand ? ORANGE : c.surface }]} accessibilityLabel={tr('Talab xaritasi')}>
+          <Pressable onPress={showDemand} style={[styles.round, { backgroundColor: demand ? ORANGE : c.surface }]} accessibilityLabel={tr('Talab xaritasi')}>
             <Ionicons name="flame" size={22} color={demand ? '#fff' : c.text} />
           </Pressable>
         </View>
@@ -142,8 +164,37 @@ export default function DriverHome() {
             <Ionicons name="flame" size={13} color="#fff" />
           </View>
           <Txt v="small" style={{ fontFamily: F.bold }}>
-            {hereSurge > 1 ? tr('Siz yuqori talab hududidasiz · ×{surge}', { surge: hereSurge.toFixed(1) }) : tr('Talab ×{surge} · {km} km', { surge: hot.zone.surge.toFixed(1), km: hot.km.toFixed(1) })}
+            {hereSurge > 1
+              ? tr('Siz yuqori talab hududidasiz · ×{surge}', { surge: hereSurge.toFixed(1) })
+              : hot.zone.surge > 1
+              ? tr('Talab ×{surge} · {km} km', { surge: hot.zone.surge.toFixed(1), km: hot.km.toFixed(1) })
+              : tr('Gavjum hudud · {km} km', { km: hot.km.toFixed(1) })}
           </Txt>
+        </Pressable>
+      )}
+
+      {showZones && !hot && (
+        <Pressable
+          onPress={() => { if (d.zones.length) { setFollow(false); map.current?.fit([pos, ...d.zones.map(z => z.center)]); } }}
+          style={[styles.hint, { bottom: sheetH + 30, backgroundColor: c.surface }]}
+          accessibilityLabel={tr('Talab xaritasi')}>
+          <View style={[styles.hintDot, { backgroundColor: liveZones ? ZONE_COLOR[2] : c.surface3 }]}>
+            <Ionicons name={liveZones ? 'flame' : 'time-outline'} size={14} color={liveZones ? '#fff' : c.text} />
+          </View>
+          <Txt v="small" numberOfLines={1} style={{ flex: 1, fontFamily: F.bold }}>
+            {liveZones
+              ? tr('Jonli talab · {n} ta hudud', { n: liveZones })
+              : usualZones
+              ? tr('Hozir talab past · odatda gavjum joylar')
+              : tr("Hozircha gavjum hudud yo'q")}
+          </Txt>
+        </Pressable>
+      )}
+
+      {/* Tirbandlik */}
+      {!offer && (
+        <Pressable onPress={toggleTraffic} style={[styles.locate, { bottom: sheetH + 84, backgroundColor: traffic ? GREEN : c.surface }]} accessibilityLabel={tr('Tirbandlik')}>
+          <MaterialCommunityIcons name="traffic-light" size={22} color={traffic ? '#fff' : c.text} />
         </Pressable>
       )}
 
@@ -189,18 +240,30 @@ function StatusBanner({ top }: { top: number }) {
 /* ---------- Navigator banneri ---------- */
 const MANEUVER_ICON: Record<ManeuverKind, keyof typeof MaterialCommunityIcons.glyphMap> = {
   left: 'arrow-left-top-bold', right: 'arrow-right-top-bold', sharpLeft: 'arrow-left-top-bold', sharpRight: 'arrow-right-top-bold',
+  slightLeft: 'arrow-top-left-thick', slightRight: 'arrow-top-right-thick', roundabout: 'rotate-left',
   uturn: 'arrow-u-left-top-bold', straight: 'arrow-up-bold', arrive: 'flag-checkered',
 };
+// ovozli kliplari bor burilishlar (to'g'riga va manzil alohida aytiladi)
+const SPOKEN: Partial<Record<ManeuverKind, true>> = { left: true, right: true, sharpLeft: true, sharpRight: true, uturn: true, slightLeft: true, slightRight: true };
+const nowPhrase = (kind: ManeuverKind, exit?: number): PhraseKey | null => {
+  if (kind === 'roundabout') return exit && exit >= 1 && exit <= 5 ? (`roundabout_${exit}` as PhraseKey) : null;
+  return SPOKEN[kind] ? (`turn_${kind}` as PhraseKey) : null;
+};
+const prePhrase = (kind: ManeuverKind, distM: number): PhraseKey | null =>
+  SPOKEN[kind] || kind === 'roundabout' ? (`pre${distM >= 350 ? 400 : distM >= 250 ? 300 : 200}_${kind}` as PhraseKey) : null;
 
 function NavBanner({ trip, path, pos, top }: { trip: Trip; path?: LatLng[]; pos: LatLng; top: number }) {
   const d = useDriver();
-  const m = nextManeuver(path ?? [], pos);
+  const plan = d.nav;
+  const m = plan ? guide(plan, pos) : nextManeuver(path ?? [], pos);
   const target = trip.stage === 'inride' ? trip.order.destination : trip.order.pickup;
-  const min = etaMin(m.leftKm);
+  // server vaqti (tirbandlik koeffitsienti bilan) qolgan yo'lga mutanosib; reja bo'lmasa — shahar tezligi
+  const min = plan ? Math.max(1, Math.round((plan.min * m.leftKm) / Math.max(0.05, plan.km))) : etaMin(m.leftKm);
 
   // Ovozli yo'riqnoma: burilishdan ~400 m oldin va burilish oldidan; manzilga yetganda
   const spoken = useRef(new Set<string>());
-  const key = `${trip.order.id}:${trip.stage}`;
+  // yo'l qayta tuzilsa burilishlar raqami o'zgaradi — kalitga reja vaqti qo'shiladi
+  const key = `${trip.order.id}:${trip.stage}:${plan?.at ?? 0}`;
   const hasPath = !!path && trip.stage !== 'waiting';
   useEffect(() => {
     if (!hasPath) return;
@@ -209,10 +272,16 @@ function NavBanner({ trip, path, pos, top }: { trip: Trip; path?: LatLng[]; pos:
     if (m.kind === 'arrive') { once(`${key}:arrive`, trip.stage === 'inride' ? 'arriveDest' : 'arrivePickup'); return; }
     if (m.at < 0 || m.kind === 'straight') return;
     const id = `${key}:${m.at}`;
-    if (m.distM <= 90) { s.add(`${id}:pre`); once(`${id}:now`, `turn_${m.kind}`); }
-    // oldindan ogohlantirish 200 / 300 / 400 m ga yaxlitlanadi
-    else if (m.distM <= 450 && m.distM >= 150) once(`${id}:pre`, `pre${m.distM >= 350 ? 400 : m.distM >= 250 ? 300 : 200}_${m.kind}`);
-  }, [hasPath, key, m.kind, m.at, m.distM, trip.stage]);
+    if (m.distM <= 90) {
+      s.add(`${id}:pre`);
+      const now = nowPhrase(m.kind, m.exit);
+      if (now) once(`${id}:now`, now);
+    } else if (m.distM <= 450 && m.distM >= 150) {
+      // oldindan ogohlantirish 200 / 300 / 400 m ga yaxlitlanadi
+      const pre = prePhrase(m.kind, m.distM);
+      if (pre) once(`${id}:pre`, pre);
+    }
+  }, [hasPath, key, m.kind, m.at, m.distM, m.exit, trip.stage]);
   const external = () => {
     const { latitude: la, longitude: lo } = target;
     const app = d.navApp === 'yandex' ? `yandexnavi://build_route_on_map?lat_to=${la}&lon_to=${lo}` : `google.navigation:q=${la},${lo}`;
@@ -235,16 +304,33 @@ function NavBanner({ trip, path, pos, top }: { trip: Trip; path?: LatLng[]; pos:
   return (
     <View style={[styles.navWrap, { top }]} pointerEvents="box-none">
       <View style={styles.nav}>
-        <View style={styles.navIcon}><MaterialCommunityIcons name={MANEUVER_ICON[m.kind]} size={40} color="#fff" /></View>
+        <View style={styles.navIcon}><MaterialCommunityIcons name={m.offRoute ? 'map-marker-path' : MANEUVER_ICON[m.kind]} size={40} color="#fff" /></View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.navDist}>{m.kind === 'arrive' ? tr('Yetib keldingiz') : fmtDist(m.distM)}</Text>
-          <Text style={styles.navText} numberOfLines={1}>{m.kind === 'arrive' ? trPlace(target.title) : tr('dan keyin {turn}', { turn: tr(MANEUVER_TEXT[m.kind]) })}</Text>
+          <Text style={[styles.navDist, m.offRoute && { fontSize: 21 }]}>{m.offRoute ? tr("Yo'ldan chiqdingiz") : m.kind === 'arrive' ? tr('Yetib keldingiz') : fmtDist(m.distM)}</Text>
+          {m.offRoute ? (
+            <Text style={styles.navText} numberOfLines={1}>{tr("Yangi yo'nalish hisoblanmoqda…")}</Text>
+          ) : m.kind === 'arrive' ? (
+            <Text style={styles.navText} numberOfLines={1}>{trPlace(target.title)}</Text>
+          ) : m.street ? (
+            <>
+              <Text style={styles.navStreet} numberOfLines={1}>{m.street}</Text>
+              <Text style={styles.navText} numberOfLines={1}>{maneuverText(m)}</Text>
+            </>
+          ) : (
+            <Text style={styles.navText} numberOfLines={1}>{tr('dan keyin {turn}', { turn: maneuverText(m) })}</Text>
+          )}
         </View>
         <Pressable onPress={external} style={styles.navExt} accessibilityLabel={tr('Tashqi navigator')}>
           <Ionicons name="navigate-circle" size={26} color="#fff" />
           <Text style={styles.navExtText}>{d.navApp === 'yandex' ? 'Yandex' : 'Google'}</Text>
         </Pressable>
       </View>
+      {m.then && !m.offRoute ? (
+        <View style={styles.navThen}>
+          <Text style={styles.navThenText}>{tr('keyin')}</Text>
+          <MaterialCommunityIcons name={MANEUVER_ICON[m.then]} size={20} color="#fff" />
+        </View>
+      ) : null}
       <View style={styles.navEta}>
         <Text style={styles.navEtaBig}>{tr('{min} daq', { min })}</Text>
         <Text style={styles.navEtaText}>{tr('{km} km · {time} da', { km: m.leftKm.toFixed(1), time: clock(min) })}</Text>
@@ -322,7 +408,7 @@ function HomePanel() {
           <View style={[styles.powerIcon, { backgroundColor: c.brandSoft }]}><Ionicons name={block.icon} size={22} color={c.brandDeep} /></View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.mainTitle, { color: c.text }]}>{block.title}</Text>
-            <Txt v="small" muted numberOfLines={1}>{block.sub}</Txt>
+            <Txt v="small" muted numberOfLines={2}>{block.sub}</Txt>
           </View>
           <Ionicons name="chevron-forward" size={20} color={c.faint} style={flipRTL()} />
         </Pressable>
@@ -336,27 +422,27 @@ function HomePanel() {
         </Pressable>
       )}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 4 }} style={{ marginHorizontal: -2 }}>
-        <Widget label={tr('Faollik')} onPress={() => go('/quality')}>
-          <Text style={[styles.wValue, { color: activityColor(d.activity) }]}>{d.activity}</Text>
+      {/* asosiy ko'rsatkichlar: uchtasi teng kartada, hech biri ekran chetida kesilmaydi */}
+      <View style={styles.tiles}>
+        <Tile icon="flash" tint={activityColor(d.activity)} label={tr('Faollik')} onPress={() => go('/quality')}>
+          <Text style={[styles.tValue, { color: activityColor(d.activity) }]} numberOfLines={1}>{d.activity}</Text>
           <View style={[styles.wBar, { backgroundColor: c.surface3 }]}><View style={{ width: `${d.activity}%`, height: 4, borderRadius: 2, backgroundColor: activityColor(d.activity) }} /></View>
-        </Widget>
-        <Widget label={tr('Bugun · {count} ta', { count: d.today.count })} onPress={() => go('/earnings')}>
-          <Text style={[styles.wValue, { color: c.text }]} numberOfLines={1} adjustsFontSizeToFit>{som(d.today.sum)}</Text>
-        </Widget>
-        <Widget label={tr('Liniyada')} onPress={() => go('/earnings')}>
-          <Text style={[styles.wValue, { color: c.text }]}>{hm}</Text>
-        </Widget>
-        <Widget label={tr('Reyting')} onPress={() => go('/quality')}>
-          <Text style={[styles.wValue, { color: c.text }]}>★ {d.rating.toFixed(2)}</Text>
-        </Widget>
-        <Widget label={d.homeDest ? tr('Uyga · {homeUsesLeft} ta qoldi', { homeUsesLeft: d.homeUsesLeft }) : tr('Uyga · kuniga {homeUsesLeft} marta', { homeUsesLeft: d.homeUsesLeft })} onPress={() => setHomeSheet(true)} active={!!d.homeDest}>
-          <Row gap={6}><Ionicons name="home" size={16} color={d.homeDest ? c.accent : c.muted} /><Text style={[styles.wSmall, { color: d.homeDest ? c.accent : c.text }]} numberOfLines={1}>{d.homeDest?.title ?? tr("O'chiq")}</Text></Row>
-        </Widget>
-        <Widget label={tr('Tariflar')} onPress={() => go('/profile')}>
-          <Text style={[styles.wSmall, { color: c.text }]} numberOfLines={2}>{tariffNames.join(', ')}</Text>
-        </Widget>
-      </ScrollView>
+        </Tile>
+        <Tile icon="wallet" tint={c.accent} label={tr('Bugun')} onPress={() => go('/earnings')}>
+          <Text style={[styles.tValue, { color: c.text, fontSize: fitSize(groupDigits(d.today.sum)) }]} numberOfLines={1}>{groupDigits(d.today.sum)}</Text>
+          <Text style={[styles.tUnit, { color: c.muted }]} numberOfLines={1}>{tr("so'm · {count} ta", { count: d.today.count })}</Text>
+        </Tile>
+        <Tile icon="time" tint={GREEN} label={tr('Liniyada')} onPress={() => go('/earnings')}>
+          <Text style={[styles.tValue, { color: c.text, fontSize: fitSize(hm) }]} numberOfLines={1}>{hm}</Text>
+          <Text style={[styles.tUnit, { color: c.muted }]} numberOfLines={1}>{tr('bugun')}</Text>
+        </Tile>
+      </View>
+      {/* tezkor o'tishlar: reyting, «Uyga» rejimi, tariflar */}
+      <View style={styles.tiles}>
+        <Chip icon="star" tint="#F5B400" text={d.rating.toFixed(2)} label={tr('Reyting')} onPress={() => go('/quality')} />
+        <Chip icon="home" tint={d.homeDest ? c.accent : c.muted} text={d.homeDest ? trPlace(d.homeDest.title) : tr('Uyga')} label={tr("Uyga yo'nalish")} active={!!d.homeDest} onPress={() => setHomeSheet(true)} />
+        <Chip icon="car-sport" tint={c.muted} text={tariffNames.length ? (tariffNames.length > 1 ? `${tariffNames[0]} +${tariffNames.length - 1}` : tariffNames[0]) : tr('Tariflar')} label={tr('Tariflar')} onPress={() => go('/profile')} />
+      </View>
 
       <ActionSheet
         visible={sure}
@@ -391,12 +477,30 @@ function HomePanel() {
   );
 }
 
-function Widget({ label, children, onPress, active }: { label: string; children: React.ReactNode; onPress?: () => void; active?: boolean }) {
+type IconName = keyof typeof Ionicons.glyphMap;
+
+/** Uzun qiymat (katta summa, «12 s 45 d») kartaga sig'ishi uchun shrift kichrayadi */
+const fitSize = (text: string) => (text.length > 10 ? 14 : text.length > 8 ? 16 : 19);
+
+function Tile({ icon, tint, label, children, onPress }: { icon: IconName; tint: string; label: string; children: React.ReactNode; onPress?: () => void }) {
   const { colors: c } = useStore();
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.widget, { backgroundColor: active ? c.accentSoft : c.surface2, opacity: pressed ? 0.8 : 1 }]} accessibilityLabel={label}>
-      <Txt v="tiny" muted numberOfLines={1}>{label}</Txt>
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.tile, { backgroundColor: c.surface2, transform: [{ scale: pressed ? 0.97 : 1 }] }]} accessibilityLabel={label}>
+      <Row gap={5}>
+        <Ionicons name={icon} size={13} color={tint} />
+        <Text style={[styles.tLabel, { color: c.muted }]} numberOfLines={1}>{label}</Text>
+      </Row>
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>{children}</View>
+    </Pressable>
+  );
+}
+
+function Chip({ icon, tint, text, label, onPress, active }: { icon: IconName; tint: string; text: string; label: string; onPress?: () => void; active?: boolean }) {
+  const { colors: c } = useStore();
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.chip, { backgroundColor: active ? c.accentSoft : c.surface2, transform: [{ scale: pressed ? 0.97 : 1 }] }]} accessibilityLabel={label}>
+      <Ionicons name={icon} size={16} color={tint} />
+      <Text style={[styles.chipText, { color: active ? c.accent : c.text }]} numberOfLines={1}>{text}</Text>
     </Pressable>
   );
 }
@@ -687,6 +791,9 @@ const styles = StyleSheet.create({
   nav: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#1B5E3A', borderRadius: 22, padding: 12, ...shadow },
   navIcon: { width: 58, height: 58, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
   navDist: { color: '#fff', fontFamily: F.heavy, fontSize: 28, letterSpacing: -0.8 },
+  navStreet: { color: '#fff', fontFamily: F.bold, fontSize: 16.5, letterSpacing: -0.2 },
+  navThen: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: '#1B5E3A', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6, ...shadow },
+  navThenText: { color: 'rgba(255,255,255,0.85)', fontFamily: F.bold, fontSize: 13 },
   navText: { color: 'rgba(255,255,255,0.85)', fontFamily: F.semi, fontSize: 14 },
   navExt: { alignItems: 'center', gap: 1, paddingHorizontal: 6 },
   navExtText: { color: 'rgba(255,255,255,0.8)', fontFamily: F.bold, fontSize: 10 },
@@ -694,7 +801,7 @@ const styles = StyleSheet.create({
   navEtaBig: { color: '#7CE0A8', fontFamily: F.heavy, fontSize: 16 },
   navEtaText: { color: 'rgba(255,255,255,0.75)', fontFamily: F.semi, fontSize: 13 },
   // bosh panel
-  mainBtn: { height: 72, borderRadius: 22, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16 },
+  mainBtn: { minHeight: 72, borderRadius: 22, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 12 },
   notice: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 18 },
   noticeIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   mainTitle: { fontFamily: F.heavy, fontSize: 19, letterSpacing: -0.4 },
@@ -703,9 +810,13 @@ const styles = StyleSheet.create({
   pulseWrap: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   pulseRing: { position: 'absolute', width: 30, height: 30, borderRadius: 15, borderWidth: 3 },
   pulseDot: { width: 14, height: 14, borderRadius: 7 },
-  widget: { width: 124, height: 84, borderRadius: 18, padding: 12, gap: 4 },
-  wValue: { fontFamily: F.heavy, fontSize: 19, letterSpacing: -0.4 },
-  wSmall: { fontFamily: F.bold, fontSize: 13.5, flexShrink: 1 },
+  tiles: { flexDirection: 'row', gap: 8 },
+  tile: { flex: 1, minWidth: 0, height: 80, borderRadius: 18, paddingHorizontal: 11, paddingTop: 10, paddingBottom: 10, gap: 4 },
+  tLabel: { flexShrink: 1, fontFamily: F.semi, fontSize: 12 },
+  tValue: { fontFamily: F.heavy, fontSize: 19, letterSpacing: -0.4 },
+  tUnit: { fontFamily: F.semi, fontSize: 11.5, marginTop: -1 },
+  chip: { flex: 1, minWidth: 0, height: 42, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 10 },
+  chipText: { flexShrink: 1, fontFamily: F.bold, fontSize: 13.5 },
   wBar: { height: 4, borderRadius: 2, marginTop: 6, overflow: 'hidden' },
   placeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14 },
   // taklif
