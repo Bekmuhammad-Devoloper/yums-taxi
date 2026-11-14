@@ -1,8 +1,8 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRef, useState, type ComponentRef } from 'react';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PEER_LABEL, PeerAvatar } from '@/components/platform-ui';
@@ -15,6 +15,7 @@ import { F } from '@/lib/theme';
 import { tr, tx } from '@/lib/i18n';
 
 type Tab = 'chats' | 'requests' | 'meetings';
+const TABS: Tab[] = ['chats', 'requests', 'meetings'];
 type SearchType = 'specialists' | 'companies' | 'investors' | 'projects';
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -41,6 +42,27 @@ export default function Connect() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ tab?: Tab }>();
   const [tab, setTab] = useState<Tab>(params.tab === 'requests' || params.tab === 'meetings' ? params.tab : 'chats');
+  // Bo'limlar yonma-yon: barmoq bilan surib yoki yorliqni bosib almashtiriladi
+  const { width: screenW } = useWindowDimensions();
+  const [pageW, setPageW] = useState(screenW);
+  const pager = useRef<ComponentRef<typeof ScrollView>>(null);
+  // yorliq bosilganda sahifa o'zi suriladi — oraliq sahifalar yorliqni almashtirib yubormasin
+  const heading = useRef<number | null>(null);
+  const showTab = (next: Tab) => {
+    if (next === tab) return;
+    heading.current = TABS.indexOf(next);
+    setTab(next);
+    pager.current?.scrollTo({ x: TABS.indexOf(next) * pageW, animated: true });
+  };
+  const onPagerScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const index = Math.round(e.nativeEvent.contentOffset.x / Math.max(1, pageW));
+    if (heading.current !== null) {
+      if (index === heading.current) heading.current = null;
+      return;
+    }
+    const next = TABS[index];
+    if (next && next !== tab) { haptic.tap(); setTab(next); }
+  };
 
   const [searching, setSearching] = useState(false);
   const [q, setQ] = useState('');
@@ -91,7 +113,7 @@ export default function Connect() {
         <Segmented<Tab>
           fit
           value={tab}
-          onChange={setTab}
+          onChange={showTab}
           items={[
             { id: 'chats', label: t('connect.chats') },
             { id: 'requests', label: t('connect.requests'), badge: pendingIn },
@@ -100,8 +122,22 @@ export default function Connect() {
         />
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 4, gap: 10, paddingBottom: 30 }}>
-        {tab === 'chats' && (chats.length ? chats.map(cv => (
+      <ScrollView
+        ref={pager}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={onPagerScroll}
+        onLayout={e => {
+          const w = e.nativeEvent.layout.width;
+          setPageW(w);
+          // havola orqali (masalan, ?tab=meetings) ochilganda — kerakli bo'limda turadi
+          pager.current?.scrollTo({ x: TABS.indexOf(tab) * w, animated: false });
+        }}
+        style={{ flex: 1 }}>
+      <ScrollView style={{ width: pageW }} contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+        {chats.length ? chats.map(cv => (
           <Pressable key={cv.id} onPress={() => open(cv.id)} style={({ pressed }) => [styles.row, { backgroundColor: pressed ? c.surface2 : c.surface }]}>
             <PeerAvatar conv={cv} />
             <View style={{ flex: 1, gap: 2 }}>
@@ -125,9 +161,11 @@ export default function Connect() {
               {cv.unread ? <View style={[styles.unread, { backgroundColor: c.brand }]}><Text style={[styles.unreadText, { color: c.brandText }]}>{cv.unread}</Text></View> : null}
             </View>
           </Pressable>
-        )) : notFound ?? <EmptyState icon="chatbubbles-outline" title={tr("Hali suhbatlar yo'q")} sub={tr('Loyiha, kompaniya yoki mutaxassis sahifasidan «Yozish» tugmasini bosing')} action={tr("Qidiruvga o'tish")} onAction={() => router.push('/world')} />)}
+        )) : notFound ?? <EmptyState icon="chatbubbles-outline" title={tr("Hali suhbatlar yo'q")} sub={tr('Loyiha, kompaniya yoki mutaxassis sahifasidan «Yozish» tugmasini bosing')} action={tr("Qidiruvga o'tish")} onAction={() => router.push('/world')} />}
+      </ScrollView>
 
-        {tab === 'requests' && (requests.length ? requests.map(cv => {
+      <ScrollView style={{ width: pageW }} contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+        {requests.length ? requests.map(cv => {
           const status = cv.requestStatus === 'declined' ? { l: tr('Rad etilgan'), tone: 'danger' as const } : cv.incoming ? { l: tr("Yangi so'rov"), tone: 'warn' as const } : { l: tr('Javob kutilmoqda'), tone: 'muted' as const };
           return (
             <Card key={cv.id} onPress={() => open(cv.id)} style={{ gap: 12 }}>
@@ -148,9 +186,11 @@ export default function Connect() {
               )}
             </Card>
           );
-        }) : notFound ?? <EmptyState icon="people-outline" title={tr("So'rovlar yo'q")} sub={tr("Investor, hamkor yoki mijozlardan hamkorlik so'rovlari shu yerda ko'rinadi")} />)}
+        }) : notFound ?? <EmptyState icon="people-outline" title={tr("So'rovlar yo'q")} sub={tr("Investor, hamkor yoki mijozlardan hamkorlik so'rovlari shu yerda ko'rinadi")} />}
+      </ScrollView>
 
-        {tab === 'meetings' && (upcoming.length ? upcoming.map(m => {
+      <ScrollView style={{ width: pageW }} contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+        {upcoming.length ? upcoming.map(m => {
           const d = new Date(m.at);
           return (
             <Card key={m.id} style={{ gap: 12 }}>
@@ -171,7 +211,8 @@ export default function Connect() {
               </Row>
             </Card>
           );
-        }) : notFound ?? <EmptyState icon="calendar-outline" title={tr('Uchrashuvlar rejalashtirilmagan')} sub={tr('Suhbat ichidagi kalendar tugmasi orqali onlayn uchrashuv belgilang')} />)}
+        }) : notFound ?? <EmptyState icon="calendar-outline" title={tr('Uchrashuvlar rejalashtirilmagan')} sub={tr('Suhbat ichidagi kalendar tugmasi orqali onlayn uchrashuv belgilang')} />}
+      </ScrollView>
       </ScrollView>
 
       <Sheet visible={compose} onClose={() => setCompose(false)} title={tr('Yangi suhbat')}>
@@ -220,6 +261,7 @@ function HeaderAction({ children, label, onPress, primary, active }: { children:
 }
 
 const styles = StyleSheet.create({
+  page: { padding: 16, paddingTop: 4, gap: 10, paddingBottom: 30 },
   action: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20 },
   unread: { minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },

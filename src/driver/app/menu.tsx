@@ -42,7 +42,7 @@ export default function Menu() {
         <CardBg art={CARD_ART.profile} />
         <PersonAvatar driver name={p.name} photo={p.photo} gender={p.gender} size={60} />
         <View style={{ flex: 1, gap: 2 }}>
-          <Txt v="h2" color={ink.text} numberOfLines={1}>{p.name}</Txt>
+          <Txt v="h2" color={ink.text} numberOfLines={2}>{p.name}</Txt>
           <Txt v="small" color={ink.sub} numberOfLines={1}>{p.color ? `${p.car} · ${tr(p.color)}` : p.car}</Txt>
           <View style={[styles.plate, { borderColor: ink.text, backgroundColor: ink.plateBg }]}><Text style={[styles.plateText, { color: ink.text }]}>{p.plate}</Text></View>
         </View>

@@ -45,7 +45,8 @@ export default function Profile() {
         <Row>
           <AvatarEditor size={64} />
           <View style={{ flex: 1, gap: 2 }}>
-            <Txt v="h2" numberOfLines={1}>{displayName}</Txt>
+            {/* uzun ism-familiya «…» bilan kesilmaydi — ikki qatorgacha to'liq ko'rinadi */}
+            <Txt v="h2" numberOfLines={2}>{displayName}</Txt>
             <Place code={k.code} before={company ? tr('Kompaniya · {name} ·', { name: user.name }) : tr('Jismoniy shaxs ·')} />
             <Txt v="small" muted numberOfLines={1}>{user.email || user.phone}</Txt>
           </View>
