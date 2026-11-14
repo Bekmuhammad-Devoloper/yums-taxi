@@ -1,10 +1,26 @@
 // YUMS backend (Nest) bilan aloqa: javob konverti, tokenlar va ularni yangilash.
 // Qoidalar: docs/MOBILE-INTEGRATION.md (backend repo). Xatolar `code` bo'yicha ajratiladi, matn odam uchun.
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'https://api.yums.uz/api/v1').replace(/\/$/, '');
+/**
+ * Server manzili. Ishlab chiqishda EXPO_PUBLIC_API_URL xosti `auto` bo'lsa (masalan `http://auto:3000/api/v1`),
+ * ilova o'zi yuklangan kompyuterni oladi: vebda — sahifa xosti, telefonda (Expo Go) — Metro serveri xosti.
+ * Shunda Wi-Fi almashib kompyuter IP si o'zgarsa ham ilova serverni topadi. Prod build'da manzil aniq yoziladi.
+ */
+function resolveApiUrl(): string {
+  const raw = (process.env.EXPO_PUBLIC_API_URL ?? 'https://api.yums.uz/api/v1').replace(/\/$/, '');
+  const m = /^(https?:\/\/)auto(:\d+)?(\/.*)?$/.exec(raw);
+  if (!m) return raw;
+  const host = Platform.OS === 'web'
+    ? (typeof window !== 'undefined' ? window.location.hostname : '')
+    : (Constants.expoConfig?.hostUri ?? '').split(':')[0];
+  return `${m[1]}${host || 'localhost'}${m[2] ?? ''}${m[3] ?? ''}`;
+}
+
+export const API_URL = resolveApiUrl();
 
 const TOKENS_KEY = 'yums.tokens';
 const REQUEST_TIMEOUT_MS = 20_000;

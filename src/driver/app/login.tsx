@@ -196,7 +196,7 @@ export default function Login() {
                 {PILLS.map(x => (
                   <View key={x.label} style={styles.pill}>
                     <Ionicons name={x.icon} size={13} color="#F5C542" />
-                    <Text style={styles.pillText} numberOfLines={1}>{tr(x.label)}</Text>
+                    <Text style={styles.pillText}>{tr(x.label)}</Text>
                   </View>
                 ))}
               </View>
@@ -302,9 +302,10 @@ const styles = StyleSheet.create({
   // shior: sarlavha shrifti, ruscha uzun matn ham ikki tekis qatorga bo'linadi
   tagTitle: { fontSize: 17, lineHeight: 22, fontFamily: F.display, color: '#fff', textAlign: 'center', letterSpacing: -0.3, marginTop: 10, maxWidth: 300, alignSelf: 'center' },
   tagSub: { fontSize: 13, lineHeight: 18, fontFamily: F.medium, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginTop: 4 },
-  pills: { flexDirection: 'row', justifyContent: 'center', gap: 6, marginTop: 14 },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 30, paddingHorizontal: 8, borderRadius: 15, flexShrink: 1, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,255,255,0.12)' },
-  pillText: { color: 'rgba(255,255,255,0.88)', fontSize: 11.5, fontFamily: F.semi, flexShrink: 1 },
+  // yorliqlar hech qachon «…» bilan kesilmaydi: joy yetmasa keyingi qatorga o'tadi
+  pills: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 14 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 30, paddingHorizontal: 7, borderRadius: 15, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,255,255,0.12)' },
+  pillText: { color: 'rgba(255,255,255,0.88)', fontSize: 11, fontFamily: F.semi },
   compactBrand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 42 },
   compactName: { color: '#fff', fontFamily: F.brand, fontSize: 16, letterSpacing: 1.5 },
   card: { flex: 1, marginTop: -28, borderTopLeftRadius: 30, borderTopRightRadius: 30, padding: 22, gap: 14 },

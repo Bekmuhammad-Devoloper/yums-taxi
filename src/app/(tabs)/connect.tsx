@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -6,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PEER_LABEL, PeerAvatar } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { Badge, Button, Card, EmptyState, IconButton, Row, SearchBar, Segmented, Sheet, Txt, Verified } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, Row, SearchBar, Segmented, Sheet, Txt, Verified } from '@/components/ui';
 import type { Conversation } from '@/lib/platform-data';
 import { ago, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
@@ -78,8 +79,12 @@ export default function Connect() {
             <Txt v="small" muted numberOfLines={1}>{t('sec.connect')}</Txt>
           </View>
           <Row gap={8}>
-            <IconButton name={searching ? 'close' : 'search'} size={44} onPress={toggleSearch} />
-            <IconButton name="create-outline" size={44} color={c.brandText} style={{ backgroundColor: c.brand, borderColor: c.brand }} onPress={() => setCompose(true)} />
+            <HeaderAction label={searching ? tr('Yopish') : tr('Qidirish')} active={searching} onPress={toggleSearch}>
+              {searching ? <Ionicons name="close" size={22} color={c.bg} /> : <MaterialCommunityIcons name="magnify" size={25} color={c.text} />}
+            </HeaderAction>
+            <HeaderAction label={tr('Yangi suhbat')} primary onPress={() => setCompose(true)}>
+              <MaterialCommunityIcons name="message-plus" size={24} color={c.brandText} />
+            </HeaderAction>
           </Row>
         </Row>
         {searching && <SearchBar value={q} onChangeText={setQ} placeholder={tr('Ism, loyiha yoki xabar')} autoFocus />}
@@ -193,7 +198,29 @@ export default function Connect() {
   );
 }
 
+/** Sarlavhadagi tugma: oddiy — sirt rangida, faol (qidiruv ochiq) — teskari rangda, asosiy — brend rangida nur bilan */
+function HeaderAction({ children, label, onPress, primary, active }: { children: React.ReactNode; label: string; onPress: () => void; primary?: boolean; active?: boolean }) {
+  const { colors: c, dark } = useStore();
+  return (
+    <Pressable
+      onPress={() => { haptic.tap(); onPress(); }}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={4}
+      style={({ pressed }) => [
+        styles.action,
+        primary
+          ? { backgroundColor: c.brand, shadowColor: c.brand, shadowOpacity: dark ? 0.4 : 0.5, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 4 }
+          : { backgroundColor: active ? c.text : c.surface, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: active ? c.text : c.line },
+        { transform: [{ scale: pressed ? 0.92 : 1 }] },
+      ]}>
+      {children}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
+  action: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20 },
   unread: { minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   unreadText: { fontFamily: F.heavy, fontSize: 12 },

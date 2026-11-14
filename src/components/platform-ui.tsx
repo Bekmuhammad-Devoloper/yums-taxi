@@ -98,12 +98,15 @@ export function FavButton({ k, style, size = 22, round }: { k: string; style?: S
 /** Bayroq + joy nomi: «[🇺🇿] Toshkent, O'zbekiston». before/after — qo'shimcha matn */
 export function Place({ code, city, before, after, faint }: { code: string; city?: string; before?: string; after?: string; faint?: boolean }) {
   const k = countryOf(code);
+  // joy yetmasa «…» bilan kesilmaydi: bayroq va mamlakat birga keyingi qatorga o'tadi
   return (
-    <Row gap={6} style={{ flexShrink: 1 }}>
-      {before ? <Txt v="small" muted={!faint} faint={faint} numberOfLines={1}>{before}</Txt> : null}
-      <Flag code={k.code} size={18} />
-      <Txt v="small" muted={!faint} faint={faint} numberOfLines={1} style={{ flexShrink: 1 }}>{city ? `${city}, ` : ''}{k.name}{after ?? ''}</Txt>
-    </Row>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 6, rowGap: 2, flexShrink: 1 }}>
+      {before ? <Txt v="small" muted={!faint} faint={faint}>{before}</Txt> : null}
+      <Row gap={6} style={{ flexShrink: 1 }}>
+        <Flag code={k.code} size={18} />
+        <Txt v="small" muted={!faint} faint={faint} style={{ flexShrink: 1 }}>{city ? `${city}, ` : ''}{k.name}{after ?? ''}</Txt>
+      </Row>
+    </View>
   );
 }
 
@@ -275,7 +278,7 @@ export function InvestorCard({ inv, onContact }: { inv: Investor; onContact: () 
       <Row>
         <Logo name={inv.name} color={c.violet} size={46} />
         <View style={{ flex: 1 }}>
-          <Row gap={4}><Txt v="h3" numberOfLines={1} style={{ flexShrink: 1 }}>{inv.name}</Txt>{inv.verified && <Verified />}</Row>
+          <Row gap={4}><Txt v="h3" numberOfLines={2} style={{ flexShrink: 1 }}>{inv.name}</Txt>{inv.verified && <Verified />}</Row>
           <Place code={inv.country} before={`${INVESTOR_KINDS[inv.kind]} ·`} />
         </View>
         <FavButton k={'investor:' + inv.id} round />

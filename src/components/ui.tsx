@@ -114,8 +114,9 @@ export function ListItem({ icon, art, title, sub, onPress, right, iconBg, iconCo
         </View>
       )}
       <View style={{ flex: 1 }}>
-        <Txt v="h3" color={danger ? c.danger : undefined} numberOfLines={1}>{title}</Txt>
-        {sub ? <Txt v="small" muted numberOfLines={1}>{sub}</Txt> : null}
+        {/* uzun yozuv «…» bilan kesilmaydi — ikki qatorgacha to'liq ko'rinadi */}
+        <Txt v="h3" color={danger ? c.danger : undefined} numberOfLines={2}>{title}</Txt>
+        {sub ? <Txt v="small" muted numberOfLines={3}>{sub}</Txt> : null}
       </View>
       {right ?? (onPress ? <Ionicons name="chevron-forward" size={18} color={c.faint} style={flipRTL()} /> : null)}
     </Pressable>

@@ -231,6 +231,7 @@ const CSS = `
 .ym-dest b{width:30px;height:30px;border-radius:10px;background:#FFC800;border:3px solid #fff;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
 .ym-dest i{width:3px;height:10px;border-radius:2px;background:#0E1525}
 .ym-car{width:100%;height:100%;display:block;transition:transform .6s ease}
+svg.ym-car{overflow:visible}
 .ym-me-car{position:relative;width:100%;height:100%}
 .ym-me-car:before{content:"";position:absolute;left:50%;top:50%;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;background:radial-gradient(circle,rgba(255,200,0,.62) 0,rgba(255,200,0,.28) 45%,rgba(255,200,0,0) 70%);animation:ym-me-glow 2.4s ease-in-out infinite;pointer-events:none}
 .ym-me-car img{position:relative;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.9)) drop-shadow(0 3px 6px rgba(0,0,0,.55))}
@@ -299,8 +300,33 @@ const seedNearby = (c: LatLng): Nearby[] =>
   }));
 
 function setRot(m: L.Marker, rot: number) {
-  const img = m.getElement()?.querySelector('img');
-  if (img) img.style.transform = `rotate(${rot}deg)`;
+  const car = m.getElement()?.querySelector<HTMLElement | SVGElement>('.ym-car');
+  if (car) car.style.transform = `rotate(${rot}deg)`;
+}
+
+// Rasm yuklanmasa (server almashgan, tarmoq uzilgan) — kodda chizilgan sariq taksi: mashina hech qachon yo'qolmaydi
+const FALLBACK_CAR = `<svg class="ym-car" viewBox="0 0 34 61" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<rect x="0.5" y="19" width="4" height="6" rx="2" fill="#E8B400"/><rect x="29.5" y="19" width="4" height="6" rx="2" fill="#E8B400"/>
+<rect x="3" y="2" width="28" height="57" rx="11" fill="#FFC800" stroke="#5A4500" stroke-opacity=".45"/>
+<path d="M7 18 Q17 12.5 27 18 L25 26 Q17 23 9 26 Z" fill="#1C2533"/>
+<path d="M9 45 Q17 47.5 25 45 L27 52 Q17 56.5 7 52 Z" fill="#1C2533"/>
+<rect x="9" y="26" width="16" height="19" rx="3.5" fill="#FFD84D"/>
+<rect x="11.5" y="32" width="11" height="6" rx="1.5" fill="#1C2533"/>
+<rect x="6.5" y="3.5" width="6" height="2.6" rx="1.3" fill="#FFF6CC"/><rect x="21.5" y="3.5" width="6" height="2.6" rx="1.3" fill="#FFF6CC"/>
+</svg>`;
+function withCarFallback(marker: L.Marker, rot: number) {
+  const img = marker.getElement()?.querySelector('img.ym-car');
+  if (!img) return;
+  const swap = () => {
+    const box = document.createElement('span');
+    box.innerHTML = FALLBACK_CAR;
+    const svg = box.firstElementChild as SVGElement | null;
+    if (!svg) return;
+    svg.style.transform = `rotate(${rot}deg)`;
+    img.replaceWith(svg);
+  };
+  if ((img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth === 0) swap();
+  else img.addEventListener('error', swap, { once: true });
 }
 
 /** Marshrut chizig'ini "chizilayotgandek" ko'rsatish */
@@ -533,7 +559,10 @@ export default function TaxiMap(props: TaxiMapProps) {
       const i = Math.min(best, driverPath.length - 2);
       heading = bearing(driverPath[i], driverPath[i + 1]);
     }
-    if (!l.driver) l.driver = L.marker(ll(driverPos), { icon: myCarIcon(heading), interactive: false, keyboard: false, zIndexOffset: 1000 }).addTo(m);
+    if (!l.driver) {
+      l.driver = L.marker(ll(driverPos), { icon: myCarIcon(heading), interactive: false, keyboard: false, zIndexOffset: 1000 }).addTo(m);
+      withCarFallback(l.driver, heading);
+    }
     else { l.driver.setLatLng(ll(driverPos)); setRot(l.driver, heading); }
   }, [driverPos, driverPath, driverHeading]);
 

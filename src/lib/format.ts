@@ -1,5 +1,5 @@
 // Sana va vaqt: oy va hafta kunlari nomlari joriy ilova tilida.
-import { getLang, type Lang } from './i18n';
+import { getLang, tr, type Lang } from './i18n';
 
 const MONTHS: Record<Lang, string[]> = {
   uz: ['yan', 'fev', 'mar', 'apr', 'may', 'iyun', 'iyul', 'avg', 'sen', 'okt', 'noy', 'dek'],
@@ -39,3 +39,16 @@ export const fmtDay = (iso: string | number | Date) => {
 
 /** Hafta kunining qisqa nomi */
 export const weekdayShort = (d: Date) => WEEKDAYS[getLang()][d.getDay()];
+
+/** Kun sarlavhasi: «Bugun», «Kecha», hafta ichida «Du, 12 noy», keyin sana (boshqa yil — yil bilan) */
+export function dayLabel(iso: string): string {
+  const d = new Date(iso);
+  const today = new Date();
+  const y = new Date(today);
+  y.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return tr('Bugun');
+  if (d.toDateString() === y.toDateString()) return tr('Kecha');
+  const days = (today.getTime() - d.getTime()) / 86_400_000;
+  if (days < 7) return `${weekdayShort(d)}, ${fmtDay(d)}`;
+  return d.getFullYear() === today.getFullYear() ? fmtDay(d) : `${fmtDay(d)} ${d.getFullYear()}`;
+}

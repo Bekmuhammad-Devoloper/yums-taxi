@@ -199,6 +199,10 @@ export type PublicSettings = {
   activityCancelPenalty: number; homeUsesPerDay: number; chainRadiusKm: number;
   /** Kirish kodini Telegram orqali ham olish mumkin (kod shlyuzi ulangan) */
   telegramLogin?: boolean;
+  /** Click ilovasi orqali to'ldirish ulangan (eski server bermaydi — unda bor deb hisoblanadi) */
+  clickTopup?: boolean;
+  /** Kartani saqlash va undan to'lash mumkin */
+  cardPayments?: boolean;
 };
 export const publicSettings = () => api<PublicSettings>('GET', '/settings/public');
 

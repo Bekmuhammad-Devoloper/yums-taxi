@@ -15,7 +15,7 @@ import { FILE_LIMIT } from '@/lib/platform-api';
 import { openFile } from '@/lib/open-file';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
-import { fmtDay, weekdayShort } from '@/lib/format';
+import { dayLabel, fmtDay, weekdayShort } from '@/lib/format';
 import { tr } from '@/lib/i18n';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -49,18 +49,6 @@ function buildRows(list: Message[]): ListRow[] {
 }
 
 /** «Bugun», «Kecha», hafta ichida — kun nomi, undan oldin — sana */
-function dayLabel(iso: string): string {
-  const d = new Date(iso);
-  const today = new Date();
-  const y = new Date(today);
-  y.setDate(today.getDate() - 1);
-  if (d.toDateString() === today.toDateString()) return tr('Bugun');
-  if (d.toDateString() === y.toDateString()) return tr('Kecha');
-  const days = (today.getTime() - d.getTime()) / 86_400_000;
-  if (days < 7) return `${weekdayShort(d)}, ${fmtDay(d)}`;
-  return d.getFullYear() === today.getFullYear() ? fmtDay(d) : `${fmtDay(d)} ${d.getFullYear()}`;
-}
-
 export default function ChatScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors: c, dark } = useStore();

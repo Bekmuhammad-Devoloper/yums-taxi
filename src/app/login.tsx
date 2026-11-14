@@ -620,8 +620,8 @@ const styles = StyleSheet.create({
   // shior: sarlavha shrifti, ruscha uzun matn ham ikki tekis qatorga bo'linadi
   tagTitle: { fontSize: 17, lineHeight: 22, fontFamily: F.display, color: '#fff', textAlign: 'center', letterSpacing: -0.3, marginTop: 14, maxWidth: 300, alignSelf: 'center' },
   tagSub: { fontSize: 13, lineHeight: 18, fontFamily: F.medium, color: 'rgba(255,255,255,0.6)', textAlign: 'center', marginTop: 4 },
-  pills: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginTop: 20 },
-  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,255,255,0.12)' },
+  pills: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginTop: 20 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, height: 32, paddingHorizontal: 10, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: 'rgba(255,255,255,0.12)' },
   pillText: { color: 'rgba(255,255,255,0.88)', fontSize: 12.5, fontFamily: F.semi },
   heroCompact: { paddingHorizontal: 24, paddingBottom: 40, overflow: 'hidden' },
   compactBrand: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 42 },

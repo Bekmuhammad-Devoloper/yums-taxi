@@ -188,6 +188,8 @@ const K = {
 /** Faqat qurilmada saqlanadigan qismlar: jins, shahar, yetkazish shartlari roziligi */
 type LocalProfile = { gender?: 'm' | 'f'; city?: string; deliveryTerms?: boolean };
 
+/** Yangi haydovchining boshlang'ich reytingi — birinchi baho uni almashtiradi */
+const START_RATING = 4.94;
 const PING_MS = 3000;
 /** Navigator yo'lini qayta so'rash oralig'i (yo'ldan chiqqanda) */
 const REROUTE_GAP_MS = 8000;
@@ -458,7 +460,8 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   }, [account, local, loadAccount]);
 
   /* ---------- Tariflar: shartlar bajarilganda yoqiladi ---------- */
-  const rating = account?.rating ?? 5;
+  // hisob hali yuklanmagan — yangi haydovchining boshlang'ich reytingi (server ham 4.94 dan boshlaydi)
+  const rating = account?.rating ?? START_RATING;
   const activity = account?.activity ?? 100;
   const serverTariffs = account?.tariffs;
   const tariffState = useMemo<TariffState[]>(() => TARIFFS.map(t => {
