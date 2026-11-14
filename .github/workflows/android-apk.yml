@@ -57,6 +57,18 @@ jobs:
       - name: Kutubxonalar
         run: npm ci
 
+      # Push bildirishnomalar (FCM): Firebase'dagi google-services.json — secret bo'lmasa APK push'siz yig'iladi
+      - name: Firebase (push)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$GOOGLE_SERVICES_JSON" > google-services.json
+            node -e 'const j=require("./google-services.json");const p=j.client.map(c=>c.client_info.android_client_info.package_name);for(const n of ["uz.yums.taxi","uz.yums.driver"])if(!p.includes(n)){console.error("google-services.json da "+n+" yo\x27q");process.exit(1)}console.log("Firebase:",p.join(", "))'
+          else
+            echo "::warning::GOOGLE_SERVICES_JSON secret yo'q — push bildirishnomalar ishlamaydi"
+          fi
+
       - name: Native Android loyiha (expo prebuild)
         run: npx expo prebuild -p android --clean --no-install
 

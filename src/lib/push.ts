@@ -1,8 +1,11 @@
-// Qurilmani backendda ro'yxatdan o'tkazish (PUT /devices) va Expo push tokeni.
+// Qurilmani backendda ro'yxatdan o'tkazish (PUT /devices) va push tokeni.
 //
-// Token faqat haqiqiy qurilmada, EAS projectId bor build'da (Expo Go emas) olinadi: app.json →
-// extra.eas.projectId. Token bo'lmasa ham qurilma ro'yxatga olinadi — bildirishnomalar ilova ichidagi
-// «Bildirishnomalar» bo'limiga baribir tushadi, push esa token paydo bo'lgach ishlaydi.
+// Token faqat haqiqiy qurilmada (Expo Go emas) olinadi:
+//  - EAS projectId bor build'da (app.json → extra.eas.projectId) — Expo push tokeni;
+//  - aks holda Android'da — qurilmaning o'z FCM tokeni. Buning uchun APK google-services.json bilan yig'iladi
+//    (app.config.js; GitHub'da GOOGLE_SERVICES_JSON secret'idan), backend esa FCM orqali yuboradi.
+// Token bo'lmasa ham qurilma ro'yxatga olinadi — bildirishnomalar ilova ichidagi «Bildirishnomalar» bo'limiga
+// baribir tushadi, push esa token paydo bo'lgach ishlaydi.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import * as Device from 'expo-device';
@@ -25,7 +28,9 @@ const projectId = (): string | undefined =>
 
 async function pushToken(): Promise<string | undefined> {
   const pid = projectId();
-  if (Platform.OS === 'web' || !Device.isDevice || !pid) return undefined;
+  if (Platform.OS === 'web' || !Device.isDevice) return undefined;
+  // EAS loyihasi bo'lmasa — Android'da qurilmaning o'z FCM tokeni (google-services.json bilan yig'ilgan APK)
+  if (!pid && Platform.OS !== 'android') return undefined;
   if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient) return undefined; // Expo Go
   const N = await import('expo-notifications');
   N.setNotificationHandler({
@@ -37,7 +42,10 @@ async function pushToken(): Promise<string | undefined> {
   let { status } = await N.getPermissionsAsync();
   if (status !== 'granted') status = (await N.requestPermissionsAsync()).status;
   if (status !== 'granted') return undefined;
-  return (await N.getExpoPushTokenAsync({ projectId: pid })).data;
+  if (pid) return (await N.getExpoPushTokenAsync({ projectId: pid })).data;
+  // Firebase sozlanmagan APK'da bu xato beradi — token bo'lmaydi, ilova ishlayveradi
+  const device = await N.getDevicePushTokenAsync();
+  return typeof device.data === 'string' ? device.data : undefined;
 }
 
 /** Kirgandan keyin chaqiriladi; xatolar jim o'tadi (ilova ishlashiga ta'sir qilmaydi) */
