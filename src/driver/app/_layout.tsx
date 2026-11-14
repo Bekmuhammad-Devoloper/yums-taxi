@@ -16,6 +16,9 @@ import { DriverProvider, useDriver } from '@/driver/lib/driver-store';
 import { dirProps } from '@/lib/i18n';
 import { StoreProvider, useStore } from '@/lib/store';
 
+// Ekranda kutilmagan xato — ilova yopilib qolmaydi, xato matni ko'rsatiladi
+export { CrashScreen as ErrorBoundary } from '@/components/crash-screen';
+
 SplashScreen.preventAutoHideAsync();
 
 if (Platform.OS === 'web' && typeof document !== 'undefined') {
@@ -73,6 +76,8 @@ function Root() {
           <Stack.Protected guard={!user}>
             <Stack.Screen name="login" options={{ animation: 'fade', gestureEnabled: false }} />
           </Stack.Protected>
+          {/* shartnoma ro'yxatdan o'tishdan oldin ham, keyin ham ochiladi */}
+          <Stack.Screen name="contract" options={{ animation: 'slide_from_bottom' }} />
         </Stack>
         <ToastHost />
       </View>

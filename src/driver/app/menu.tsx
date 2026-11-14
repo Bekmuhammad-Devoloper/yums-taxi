@@ -2,8 +2,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { Card, Divider, ListItem, PersonAvatar, Row, Screen, Txt } from '@/components/ui';
+import { alpha, Card, Divider, ListItem, PersonAvatar, Row, Screen, Txt } from '@/components/ui';
 import { CARD_ART, CardBg, useCardInk } from '@/driver/components/card-bg';
+import { useContractAcceptance } from '@/driver/lib/contract';
 import { DOC_KINDS } from '@/driver/lib/docs';
 import { useDriver } from '@/driver/lib/driver-store';
 import { callNumber } from '@/driver/lib/support';
@@ -27,9 +28,11 @@ const ART = {
 };
 
 export default function Menu() {
-  const { colors: c } = useStore();
+  const { colors: c, user } = useStore();
   const d = useDriver();
   const ink = useCardInk();
+  // null — amaldagi tahrirga hali rozilik bildirilmagan (menyuda belgi bilan ko'rsatiladi)
+  const contract = useContractAcceptance(user?.id ?? user?.phone);
   const p = d.profile;
   if (!p) return null;
 
@@ -79,6 +82,14 @@ export default function Menu() {
         <ListItem icon="car-sport" art={ART.car} title={tr('Avtomobil va tariflar')} sub={tr('{car} · {length} ta faol tarif', { car: p.car, length: d.activeTariffs.length })} onPress={() => go('/profile')} />
         <Divider style={{ marginLeft: 62 }} />
         <ListItem icon="document-text" art={ART.documents} title={tr('Hujjatlar')} sub={tr('{length} / {length2} tasdiqlangan · guvohnoma, tex. pasport', { length: DOC_KINDS.filter(k => d.docs[k].status === 'approved').length, length2: DOC_KINDS.length })} onPress={() => go('/documents')} />
+        <Divider style={{ marginLeft: 62 }} />
+        <ListItem
+          icon="reader" iconBg={alpha('#FFC800', 0.2)} iconColor={c.brandDeep}
+          title={tr('Hamkorlik shartnomasi')}
+          sub={contract === null ? tr('Yangi tahrir · tanishib chiqing') : tr('Komissiya, bonuslar, rekvizitlar')}
+          onPress={() => go('/contract')}
+          right={contract === null ? <View style={[styles.newDot, { backgroundColor: c.danger }]} /> : undefined}
+        />
       </Card>
 
       <Card style={{ paddingVertical: 6, paddingHorizontal: 4 }}>
@@ -104,4 +115,5 @@ const styles = StyleSheet.create({
   balance: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 18, borderRadius: 22, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth },
   balanceValue: { fontFamily: F.heavy, fontSize: 28, letterSpacing: -0.8, marginVertical: 2 },
   withdraw: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14 },
+  newDot: { width: 10, height: 10, borderRadius: 5, marginRight: 4 },
 });

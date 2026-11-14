@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -9,6 +10,7 @@ import { LangButton } from '@/components/lang-picker';
 import { toast } from '@/components/toast';
 import { BrandMark, Button, Chip, DEFAULT_DRIVER, Field, Row, Screen, Txt } from '@/components/ui';
 import { CarPicker } from '@/driver/components/car-picker';
+import { useContractAcceptance } from '@/driver/lib/contract';
 import { useDriver } from '@/driver/lib/driver-store';
 import { CLASS_NAME, findCar } from '@/driver/lib/requirements';
 import { TARIFF_ART } from '@/lib/cars';
@@ -44,6 +46,9 @@ export default function Register() {
   const [city, setCity] = useState('Toshkent');
   const [gender, setGender] = useState<Gender | null>(null);
   const [tried, setTried] = useState(false);
+  // hamkorlik shartnomasiga rozilik — shartnoma sahifasida «Tanishdim va roziman» bilan beriladi
+  const accepted = useContractAcceptance(user?.id ?? user?.phone);
+  const openContract = () => router.push({ pathname: '/contract', params: { from: 'register' } } as never);
 
   const err = {
     name: name.trim().length < 3 ? tr('Ism va familiyani kiriting') : '',
@@ -51,6 +56,7 @@ export default function Register() {
     car: !findCar(car) ? tr("Avtomobil modelini ro'yxatdan tanlang") : '',
     year: !(+year >= 1995 && +year <= new Date().getFullYear() + 1) ? tr('Masalan: {example}', { example: 2021 }) : '',
     plate: !/^\d{2} [A-Z] \d{3} [A-Z]{2}$/.test(plate) ? tr('Masalan: {example}', { example: '01 A 123 BC' }) : '',
+    contract: !accepted ? tr('Shartnoma bilan tanishib, rozilik bildiring') : '',
   };
   const ok = !Object.values(err).some(Boolean);
   const model = findCar(car);
@@ -162,6 +168,18 @@ export default function Register() {
             </Row>
           ) : null}
         </View>
+        <Pressable onPress={openContract} accessibilityRole="checkbox" accessibilityState={{ checked: !!accepted }}
+          style={[styles.consent, { backgroundColor: accepted ? c.okSoft : c.surface2, borderColor: accepted ? 'transparent' : tried && err.contract ? c.danger : c.line }]}>
+          <View style={[styles.box, { backgroundColor: accepted ? c.ok : 'transparent', borderColor: accepted ? c.ok : tried && err.contract ? c.danger : c.faint }]}>
+            {accepted ? <Ionicons name="checkmark" size={16} color="#fff" /> : null}
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Txt v="h3" style={{ fontSize: 15 }}>{tr('Hamkorlik shartnomasi bilan tanishdim va roziman')}</Txt>
+            <Txt v="small" muted style={{ lineHeight: 18 }}>{accepted ? tr("Rozilik bildirilgan · matnni qayta ko'rish") : tr("Komissiya, balans, bonuslar va majburiyatlar — o'qish uchun bosing")}</Txt>
+          </View>
+          <Ionicons name="document-text-outline" size={20} color={accepted ? c.ok : c.muted} />
+        </Pressable>
+        {tried && err.contract ? <Txt v="tiny" color={c.danger} style={{ marginTop: -8, marginLeft: 2 }}>{err.contract}</Txt> : null}
         <CarPicker visible={carSheet} onClose={() => setCarSheet(false)} value={car} onPick={m => setCar(`${m.brand} ${m.model}`)} />
       </Screen>
     </KeyboardAvoidingView>
@@ -187,5 +205,7 @@ const styles = StyleSheet.create({
   genderPic: { width: 40, height: 40, borderRadius: 14 },
   pick: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 50, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1 },
   note: { gap: 6, padding: 14, borderRadius: 18 },
+  consent: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, borderWidth: 1 },
+  box: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   fit: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12 },
 });
