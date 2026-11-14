@@ -118,7 +118,10 @@ function refreshOnce(): Promise<boolean> {
       const next = await read<Tokens>(await send('POST', '/auth/refresh', { refreshToken }));
       await saveTokens(next);
       return true;
-    } catch {
+    } catch (error) {
+      // Internet yo'q yoki server vaqtincha javob bermadi — sessiya saqlanadi, keyingi so'rovda yana uriniladi.
+      // (Yo'lda aloqa uzilib qolgan haydovchi tizimdan chiqib ketmasin.) Faqat server tokenni rad etsa — chiqiladi.
+      if (error instanceof ApiError && (error.status === 0 || error.status >= 500)) return false;
       await clearTokens();
       onSessionLost();
       return false;
