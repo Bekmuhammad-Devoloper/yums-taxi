@@ -1,0 +1,89 @@
+# YUMS va YUMS Driver APK'larini GitHub'da yig'ish. Har push'dan keyin ikkala APK «Releases» sahifasidagi
+# «apk» relizga qo'yiladi — telefondan to'g'ridan-to'g'ri yuklab olinadi:
+#   https://github.com/<egasi>/<repo>/releases/tag/apk
+#
+# Google xaritasi uchun repo sozlamalarida Actions secret kerak: GOOGLE_MAPS_ANDROID_KEY
+# (Settings → Secrets and variables → Actions). Bo'lmasa APK yig'iladi, lekin xarita kulrang chiqadi.
+# Imzo — Expo shablonidagi debug.keystore (SHA-1 5E:8F:16:...): Google Cloud'dagi kalit cheklovi shunga mos.
+name: Android APK
+
+on:
+  push:
+    branches: [feat/backend-integration, main]
+    paths-ignore: ['**/*.md', 'server/**']
+  workflow_dispatch:
+
+concurrency:
+  group: android-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    name: ${{ matrix.title }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: passenger
+            title: YUMS
+            file: YUMS.apk
+          - variant: driver
+            title: YUMS Driver
+            file: YUMS-Driver.apk
+    env:
+      APP_VARIANT: ${{ matrix.variant == 'driver' && 'driver' || '' }}
+      EXPO_PUBLIC_API_URL: https://api.yums.uz/api/v1
+      GOOGLE_MAPS_ANDROID_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Kutubxonalar
+        run: npm ci
+
+      - name: Native Android loyiha (expo prebuild)
+        run: npx expo prebuild -p android --clean --no-install
+
+      - name: Release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --console=plain -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
+
+      - name: Tekshiruv
+        run: |
+          apk=android/app/build/outputs/apk/release/app-release.apk
+          aapt=$(ls "$ANDROID_HOME"/build-tools/*/aapt | sort -V | tail -1)
+          "$aapt" dump badging "$apk" | grep -E "^(package|application-label:|native-code)"
+          if [ -z "$GOOGLE_MAPS_ANDROID_KEY" ]; then echo "::warning::GOOGLE_MAPS_ANDROID_KEY secret yo'q — xarita kulrang chiqadi"; fi
+          mv "$apk" "${{ matrix.file }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.file }}
+          path: ${{ matrix.file }}
+          retention-days: 14
+
+      - name: Releases sahifasiga
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes="Eng so'nggi yig'ilgan APK'lar. Telefonda faylni bosib yuklab oling va o'rnating.
+          Commit: ${GITHUB_SHA::7} · $(date -u '+%Y-%m-%d %H:%M') UTC"
+          gh release view apk >/dev/null 2>&1 || gh release create apk --prerelease --target "$GITHUB_SHA" --title "YUMS APK" --notes "$notes" || true
+          gh release upload apk "${{ matrix.file }}" --clobber
+          gh release edit apk --notes "$notes" || true

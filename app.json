@@ -68,7 +68,8 @@
         }
       ],
       "expo-sharing",
-      "expo-notifications"
+      "expo-notifications",
+      "./plugins/with-android-release"
     ],
     "experiments": {
       "typedRoutes": true,

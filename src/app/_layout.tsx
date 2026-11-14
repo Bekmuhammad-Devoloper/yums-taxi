@@ -17,6 +17,9 @@ import { dirProps } from '@/lib/i18n';
 import { PlatformProvider } from '@/lib/platform';
 import { StoreProvider, useStore } from '@/lib/store';
 
+// Ekranda kutilmagan xato — ilova yopilib qolmaydi, xato matni ko'rsatiladi
+export { CrashScreen as ErrorBoundary } from '@/components/crash-screen';
+
 SplashScreen.preventAutoHideAsync();
 
 // Vebda brauzerning to'rtburchak fokus ramkasi va aylantirish chiziqlari (scrollbar) yashiriladi — ilova mobil ko'rinishda qoladi

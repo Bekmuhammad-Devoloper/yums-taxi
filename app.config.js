@@ -12,6 +12,11 @@ const withRouterRoot = (plugins, root, extra) => (plugins ?? []).map(p => {
   return extra?.(name, opts) ?? p;
 });
 
+// Android xaritasi (react-native-maps → Google Maps) uchun kalit: Expo Go o'zinikini ishlatadi, APK esa kalitsiz
+// kulrang bo'sh xarita ko'rsatadi. Kalit kodga yozilmaydi — EAS muhit o'zgaruvchisi GOOGLE_MAPS_ANDROID_KEY dan olinadi.
+const MAPS_KEY = process.env.GOOGLE_MAPS_ANDROID_KEY;
+const withMaps = android => (MAPS_KEY ? { ...android, config: { ...android?.config, googleMaps: { apiKey: MAPS_KEY } } } : android);
+
 module.exports = ({ config }) => {
   if (VARIANT === 'driver') {
     return {
@@ -24,11 +29,11 @@ module.exports = ({ config }) => {
         bundleIdentifier: 'uz.yums.driver',
         infoPlist: { ...config.ios?.infoPlist, NSLocationWhenInUseUsageDescription: LOCATION_DRIVER },
       },
-      android: { ...config.android, package: 'uz.yums.driver' },
+      android: withMaps({ ...config.android, package: 'uz.yums.driver' }),
       plugins: withRouterRoot(config.plugins, './src/driver/app', (name, opts) =>
         (name === 'expo-location' ? ['expo-location', { ...opts, locationWhenInUsePermission: LOCATION_DRIVER }] : undefined)),
       extra: { ...config.extra, appVariant: 'driver' },
     };
   }
-  return config;
+  return { ...config, android: withMaps(config.android) };
 };
