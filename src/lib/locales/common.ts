@@ -446,6 +446,7 @@ const common: Record<string, Row> = {
   "Hozircha bildirishnoma yo'q": ["Пока нет уведомлений", "No notifications yet", "Ҳоло огоҳинома нест", "لا توجد إشعارات بعد"],
   "Yangi narsa bo'lishi bilan shu yerda xabar beramiz": ["Как только что-то произойдёт, сообщим здесь", "We will let you know here as soon as something happens", "Ҳамин ки чизи нав шавад, дар ин ҷо хабар медиҳем", "سنخبرك هنا فور حدوث أي جديد"],
   "Kecha": ["Вчера", "Yesterday", "Дирӯз", "أمس"],
+  "Hisobingizga boshqa telefondan kirildi. YUMS Driver bir vaqtda faqat bitta qurilmada ishlaydi": ["В ваш аккаунт вошли с другого телефона. YUMS Driver работает одновременно только на одном устройстве", "Your account was signed in on another phone. YUMS Driver works on one device at a time", "Ба ҳисоби шумо аз телефони дигар ворид шуданд. YUMS Driver дар як вақт танҳо дар як дастгоҳ кор мекунад", "تم تسجيل الدخول إلى حسابك من هاتف آخر. يعمل YUMS Driver على جهاز واحد فقط في كل مرة"],
 };
 
 export default common;

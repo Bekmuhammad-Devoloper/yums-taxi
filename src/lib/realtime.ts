@@ -2,7 +2,8 @@
 // shunda token yangilanib, qayta ulanamiz. Socket — faqat signal: holatning o'zi REST'dan o'qiladi.
 import { io, type Socket } from 'socket.io-client';
 
-import { API_URL, accessToken, refreshSession } from './api';
+import { API_URL, accessToken, endSession, refreshSession } from './api';
+import { tr } from './i18n';
 
 type Handler = (payload: unknown) => void;
 
@@ -31,6 +32,11 @@ async function open() {
   s.on('ready', () => { ready = true; connectListeners.forEach(fn => fn()); });
   // Token eskirgan yoki yaroqsiz — bir marta yangilab, qayta ulanamiz
   s.on('error', () => { refreshSession().catch(() => false); });
+  // Haydovchi boshqa telefondan kirdi: bu qurilmadagi sessiya serverda yopildi
+  s.on('session.replaced', () => {
+    wanted = false;
+    endSession(tr('Hisobingizga boshqa telefondan kirildi. YUMS Driver bir vaqtda faqat bitta qurilmada ishlaydi')).catch(() => {});
+  });
   s.on('disconnect', () => {
     ready = false;
     socket = null;

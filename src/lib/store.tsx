@@ -242,7 +242,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setOrder(o => emptyOrder(o.pickup));
     AsyncStorage.removeItem(K.user).catch(() => {});
   }, []);
-  useEffect(() => { setSessionLostHandler(dropSession); }, [dropSession]);
+  // Sessiya serverda yopilgan bo'lsa (masalan, haydovchi boshqa telefondan kirdi) — sababi ko'rsatiladi
+  useEffect(() => {
+    setSessionLostHandler(reason => {
+      dropSession();
+      if (reason) toast(reason, 'phone-portrait-outline');
+    });
+  }, [dropSession]);
 
   /* ---------- Hamyon: balans va kartalar faqat serverda ---------- */
   const refreshWallet = useCallback(async () => {
