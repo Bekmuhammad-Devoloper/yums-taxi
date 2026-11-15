@@ -4,10 +4,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { ActionBar } from '@/components/action-bar';
 import { ImageSlot } from '@/components/image-slot';
 import { PickerSheet, SectorGlyph, SectorIcon, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { Button, Card, Chip, Field, Flag, Row, Screen, SectionTitle, Txt } from '@/components/ui';
+import { Card, Chip, Field, Flag, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { COUNTRIES, LANGUAGES, SECTORS, SEEKS, STAGES, type Attachment, type ContactMethod, type Seek, type Stage } from '@/lib/platform-data';
 import { FILE_LIMIT } from '@/lib/platform-api';
 import { countryOf, fileSize, flagged, sectorOf, usePlatform, type ProjectInput } from '@/lib/platform';
@@ -105,10 +106,10 @@ export default function EditProject() {
       title={existing ? tr('Loyihani tahrirlash') : tr('Yangi loyiha')}
       subtitle={tr('YUMS PROJECT')}
       footer={
-        <Row gap={10}>
-          <Button title={tr('Qoralama')} kind="ghost" icon="save-outline" style={{ flex: 1 }} onPress={() => save(false)} />
-          <Button title={tr('Yuborish')} icon="send" style={{ flex: 1.4 }} onPress={() => save(true)} />
-        </Row>
+        <ActionBar
+          secondary={{ title: tr('Qoralama'), icon: 'save-outline', onPress: () => save(false) }}
+          primary={{ title: tr('Yuborish'), icon: 'send', onPress: () => save(true) }}
+        />
       }>
       {overLimit && (
         <Pressable onPress={() => router.push('/plans')} style={[styles.note, { backgroundColor: c.violetSoft }]}>
@@ -174,11 +175,11 @@ export default function EditProject() {
 
       <SectionTitle>{tr('Aloqa usuli')}</SectionTitle>
       <Card style={{ gap: 12 }}>
-        <Row gap={8}>
+        <View style={styles.wrap}>
           {([['chat', tx('YUMS chat'), 'chatbubbles-outline'], ['email', tx('Email'), 'mail-outline'], ['phone', tx('Telefon'), 'call-outline']] as const).map(([v, l, i]) => (
             <Chip key={v} label={tr(l)} icon={i} active={contact === v} onPress={() => setContact(v)} />
           ))}
-        </Row>
+        </View>
         {contact !== 'chat' && (
           <Field value={contactValue} onChangeText={setContactValue} placeholder={contact === 'email' ? tr('name@company.com') : '+998 90 123 45 67'} keyboardType={contact === 'email' ? 'email-address' : 'phone-pad'} autoCapitalize="none" error={err('contact')} />
         )}

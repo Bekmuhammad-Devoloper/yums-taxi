@@ -158,7 +158,7 @@ function WithdrawSheet({ visible, onClose }: { visible: boolean; onClose: () => 
     <Sheet visible={visible} onClose={onClose} title={tr('Pul yechish')}
       footer={<Button title={tr('{sum} yechish', { sum: som(amount) })} icon="arrow-up-circle" loading={busy} disabled={amount <= 0} style={{ marginTop: 12 }} onPress={submit} />}>
       <Txt v="small" muted>{tr('Mavjud: {balance}', { balance: som(d.balance) })}</Txt>
-      <Row gap={8}>
+      <Row gap={8} style={{ flexWrap: 'wrap' }}>
         <Chip label={tr('Hammasi')} active={part === 1} onPress={() => setPart(1)} />
         <Chip label={tr('Yarmi')} active={part === 0.5} onPress={() => setPart(0.5)} />
       </Row>

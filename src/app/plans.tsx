@@ -183,7 +183,7 @@ export default function Plans() {
         <ImageSlot kind="banner" label={tr('Reklama banneri')} value={adImage} onChange={setAdImage} />
         <Field label={tr('Reklama sarlavhasi')} value={adTitle} onChangeText={setAdTitle} placeholder={tr('Masalan: Xalqaro yuk tashish — 12 kunda')} maxLength={60} />
         <Txt v="small" muted style={{ fontFamily: F.bold }}>{tr('Byudjet')}</Txt>
-        <Row gap={8}>{[50, 150, 500, 1000].map(b => <Chip key={b} label={`$${b}`} active={adBudget === b} onPress={() => setAdBudget(b)} />)}</Row>
+        <Row gap={8} style={{ flexWrap: 'wrap' }}>{[50, 150, 500, 1000].map(b => <Chip key={b} label={`$${b}`} active={adBudget === b} onPress={() => setAdBudget(b)} />)}</Row>
         <Txt v="tiny" faint>{tr("Taxminan {adBudget} ko'rsatish. Banner bosh sahifada 2:1 o'lchamda, «Reklama» belgisi bilan ko'rsatiladi.", { adBudget: adBudget * 120 })}</Txt>
         <Txt v="tiny" faint>{tr("Byudjet YUMS balansidan yechiladi; reklama rad etilsa to'liq qaytariladi. Balans: {sum}", { sum: som(balance) })}</Txt>
         <Txt v="tiny" faint>{tr("Byudjet YUMS balansidan yechiladi; reklama rad etilsa to'liq qaytariladi. Balans: {sum}", { sum: som(balance) })}</Txt>
