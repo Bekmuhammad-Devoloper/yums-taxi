@@ -944,6 +944,20 @@ const platform: Record<string, Row> = {
   "Sharhni o'chirish": ["Удалить отзыв", "Delete review", "Нест кардани шарҳ", "حذف المراجعة"],
   "Katalogdagi profilim": ["Мой профиль в каталоге", "My directory profile", "Профили ман дар феҳрист", "ملفي في الدليل"],
   "Kompaniya, mutaxassis yoki investor sifatida": ["Как компания, специалист или инвестор", "As a company, specialist or investor", "Ҳамчун ширкат, мутахассис ё сармоягузор", "كشركة أو مختص أو مستثمر"],
+  "Tur va sohani tanlang": ["Выберите тип и отрасль", "Choose a type and sector", "Намуд ва соҳаро интихоб кунед", "اختر النوع والقطاع"],
+  "Nom, narx va rasm qo'shing": ["Добавьте название, цену и фото", "Add a name, price and photo", "Ном, нарх ва расм илова кунед", "أضف الاسم والسعر والصورة"],
+  "Moderatsiyadan so'ng xaridorlar ko'radi": ["После модерации его увидят покупатели", "Buyers see it after moderation", "Пас аз модератсия харидорон мебинанд", "يراه المشترون بعد المراجعة"],
+  "E'lon berish": ["Разместить", "Post a listing", "Эълон додан", "نشر إعلان"],
+  "Birinchi e'loningizni joylashtiring": ["Разместите первое объявление", "Post your first listing", "Аввалин эълони худро гузоред", "انشر إعلانك الأول"],
+  "Hududni tanlang": ["Выберите регион", "Choose a region", "Минтақаро интихоб кунед", "اختر المنطقة"],
+  "Birinchi loyihangizni joylashtiring": ["Разместите свой первый проект", "Post your first project", "Аввалин лоиҳаи худро гузоред", "انشر مشروعك الأول"],
+  "Loyiha haqida qisqacha yozing: muammo, yechim, natija": ["Кратко опишите проект: проблема, решение, результат", "Describe the project briefly: problem, solution, results", "Дар бораи лоиҳа мухтасар нависед: мушкилот, ҳал, натиҷа", "صف المشروع باختصار: المشكلة، الحل، النتيجة"],
+  "Nimani izlayotganingizni belgilang: investitsiya, hamkor, mutaxassis": ["Отметьте, что вы ищете: инвестиции, партнёра, специалиста", "Mark what you are looking for: investment, a partner, a specialist", "Қайд кунед, ки чӣ меҷӯед: сармоя, шарик, мутахассис", "حدد ما تبحث عنه: استثمار، شريك، متخصص"],
+  "Moderatsiyadan so'ng loyihangizni butun dunyo ko'radi": ["После модерации ваш проект увидит весь мир", "After moderation the whole world sees your project", "Пас аз модератсия лоиҳаи шуморо тамоми ҷаҳон мебинад", "بعد المراجعة يرى العالم كله مشروعك"],
+  "Jismoniy mahsulot": ["Физический товар", "Physical product", "Маҳсулоти моддӣ", "منتج مادي"],
+  "Fayl, kurs, dastur": ["Файл, курс, программа", "File, course, software", "Файл, курс, барнома", "ملف، دورة، برنامج"],
+  "Ish va konsalting": ["Работа и консалтинг", "Work and consulting", "Кор ва машварат", "عمل واستشارات"],
+  "Qanday ishlaydi": ["Как это работает", "How it works", "Чӣ тавр кор мекунад", "كيف يعمل"],
 };
 
 export default platform;

@@ -1,22 +1,23 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ImageSlot } from '@/components/image-slot';
-import { PickerSheet, SectorGlyph, SelectField } from '@/components/platform-ui';
+import { KindTiles, SectorStrip } from '@/components/listing-ui';
+import { PickerSheet, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { Button, Card, Chip, Field, Flag, Row, Screen, SectionTitle, Txt } from '@/components/ui';
-import { COUNTRIES, MARKET_KINDS, SECTORS, type MarketKind } from '@/lib/platform-data';
-import { countryOf, flagged, sectorOf, usePlatform } from '@/lib/platform';
-import { SECTOR_ART } from '@/lib/sector-art';
+import { Button, Card, Field, Flag, Row, Screen, SectionTitle, Txt } from '@/components/ui';
+import { COUNTRIES, MARKET_KINDS, type MarketKind } from '@/lib/platform-data';
+import { countryOf, flagged, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { tr } from '@/lib/i18n';
 
 export default function NewMarketItem() {
   const { colors: c, user } = useStore();
   const p = usePlatform();
-  const [kind, setKind] = useState<MarketKind>('goods');
+  const params = useLocalSearchParams<{ kind?: string }>();
+  const [kind, setKind] = useState<MarketKind>(() => MARKET_KINDS.find(m => m.id === params.kind)?.id ?? 'goods');
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
   const [unit, setUnit] = useState('');
@@ -26,7 +27,7 @@ export default function NewMarketItem() {
   const [sector, setSector] = useState('ecommerce');
   const [country, setCountry] = useState(user?.country ?? 'UZ');
   const [image, setImage] = useState<string>();
-  const [picker, setPicker] = useState<'sector' | 'country' | null>(null);
+  const [picker, setPicker] = useState<'country' | null>(null);
   const [tried, setTried] = useState(false);
 
   const priceNum = Number(price.replace(',', '.'));
@@ -53,14 +54,14 @@ export default function NewMarketItem() {
   };
 
   const k = countryOf(country);
-  const sec = sectorOf(sector);
 
   return (
     <Screen title={tr("Yangi e'lon")} subtitle="YUMS Market" footer={<Button title={tr('Moderatsiyaga yuborish')} icon="send" onPress={submit} />}>
       <SectionTitle>{tr('Turi')}</SectionTitle>
-      <Row gap={8} style={{ flexWrap: 'wrap' }}>
-        {MARKET_KINDS.map(m => <Chip key={m.id} label={m.name} icon={m.icon} active={kind === m.id} onPress={() => setKind(m.id)} />)}
-      </Row>
+      <KindTiles value={kind} onChange={setKind} />
+
+      <SectionTitle>{tr('Soha')}</SectionTitle>
+      <SectorStrip value={sector} onChange={setSector} />
 
       <Card style={{ gap: 14 }}>
         <Field label={tr('Nomi')} value={title} onChangeText={setTitle} maxLength={80} placeholder={tr("Masalan: Quritilgan o'rik")} error={tried ? errors.title : undefined} />
@@ -69,7 +70,6 @@ export default function NewMarketItem() {
           <Field label={tr('Birlik')} value={unit} onChangeText={setUnit} placeholder={kind === 'service' ? tr('soat') : tr('dona')} style={{ flex: 1 }} />
         </Row>
         <Field label={tr('Tavsif')} value={desc} onChangeText={setDesc} multiline placeholder={tr('Sifat, sertifikatlar, shartlar…')} error={tried ? errors.desc : undefined} inputStyle={{ minHeight: 100 }} />
-        <SelectField label={tr('Soha')} value={sec.name} placeholder={tr('Soha')} left={<SectorGlyph id={sec.id} size={24} />} onPress={() => setPicker('sector')} />
         <SelectField label={tr('Mamlakat')} value={k.name} left={<Flag code={k.code} size={22} />} placeholder={tr('Mamlakat')} onPress={() => setPicker('country')} />
         {kind === 'goods' && (
           <>
@@ -93,8 +93,6 @@ export default function NewMarketItem() {
         </Txt>
       </View>
 
-      <PickerSheet visible={picker === 'sector'} onClose={() => setPicker(null)} title={tr('Soha')} selected={[sector]} onChange={ids => setSector(ids[0])}
-        options={SECTORS.map(s => ({ id: s.id, label: s.name, icon: s.icon, art: SECTOR_ART[s.id] }))} />
       <PickerSheet visible={picker === 'country'} onClose={() => setPicker(null)} title={tr('Mamlakat')} selected={[country]} onChange={ids => setCountry(ids[0])}
         options={COUNTRIES.map(x => ({ id: x.code, label: x.name, flag: x.code }))} />
     </Screen>

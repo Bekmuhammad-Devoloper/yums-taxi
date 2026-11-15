@@ -7,6 +7,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { ActionBar } from '@/components/action-bar';
 import { ImageSlot } from '@/components/image-slot';
 import { PickerSheet, SectorGlyph, SectorIcon, SelectField } from '@/components/platform-ui';
+import { RegionField } from '@/components/region-field';
 import { toast } from '@/components/toast';
 import { Card, Chip, Field, Flag, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { COUNTRIES, LANGUAGES, SECTORS, SEEKS, STAGES, type Attachment, type ContactMethod, type Seek, type Stage } from '@/lib/platform-data';
@@ -54,7 +55,7 @@ export default function EditProject() {
     description: description.trim().length < 40 ? tr('Batafsilroq yozing (kamida 40 belgi)') : undefined,
     goal: goal.trim().length < 10 ? tr('Maqsadni yozing') : undefined,
     sector: !sector ? tr('Sohani tanlang') : undefined,
-    city: !city.trim() ? tr('Shaharni kiriting') : undefined,
+    city: !city.trim() ? tr('Hududni tanlang') : undefined,
     budget: num(bMax) < num(bMin) || !num(bMax) ? tr("Byudjet oralig'ini to'g'ri kiriting") : undefined,
     seeking: !seeking.length ? tr('Kamida bittasini tanlang') : undefined,
     contact: contact !== 'chat' && contactValue.trim().length < 5 ? tr("Aloqa ma'lumotini kiriting") : undefined,
@@ -144,7 +145,7 @@ export default function EditProject() {
       <SectionTitle>{tr('Hudud va til')}</SectionTitle>
       <Card style={{ gap: 14 }}>
         <SelectField label={tr('Mamlakat')} value={k.name} left={<Flag code={k.code} size={22} />} placeholder={tr('Mamlakat')} onPress={() => setPicker('country')} />
-        <Field label={tr('Shahar / hudud')} value={city} onChangeText={setCity} placeholder={tr('Masalan: Toshkent')} error={err('city')} />
+        <RegionField country={country} value={city} onChange={setCity} error={err('city')} />
         <SelectField label={tr('Loyiha tillari')} value={languages.map(l => LANGUAGES.find(x => x.id === l)?.name).join(', ')} placeholder={tr('Tillarni tanlang')} icon="language-outline" onPress={() => setPicker('lang')} />
       </Card>
 
@@ -219,7 +220,7 @@ export default function EditProject() {
 
       <PickerSheet visible={picker === 'sector'} onClose={() => setPicker(null)} title={tr('Soha')} selected={sector ? [sector] : []} onChange={ids => setSector(ids[0])}
         options={SECTORS.map(s => ({ id: s.id, label: s.name, icon: s.icon, art: SECTOR_ART[s.id], sub: s.examples }))} />
-      <PickerSheet visible={picker === 'country'} onClose={() => setPicker(null)} title={tr('Mamlakat')} selected={[country]} onChange={ids => setCountry(ids[0])}
+      <PickerSheet visible={picker === 'country'} onClose={() => setPicker(null)} title={tr('Mamlakat')} selected={[country]} onChange={ids => { if (ids[0] !== country) setCity(''); setCountry(ids[0]); }}
         options={COUNTRIES.map(x => ({ id: x.code, label: x.name, flag: x.code, sub: x.region }))} />
       <PickerSheet visible={picker === 'lang'} onClose={() => setPicker(null)} title={tr('Loyiha tillari')} multi selected={languages} onChange={ids => setLanguages(ids.length ? ids : languages)}
         options={LANGUAGES.map(l => ({ id: l.id, label: l.name, flag: l.flag }))} />

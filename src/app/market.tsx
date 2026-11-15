@@ -8,8 +8,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MarketCard, MarketVisual } from '@/components/market-ui';
 import { StatusBadge } from '@/components/platform-ui';
+import { HowItWorks, KindTiles, StartHero } from '@/components/listing-ui';
 import { ActionSheet, Card, EmptyState, NavButton, Row, Screen, Txt, type IconName } from '@/components/ui';
-import { MARKET_KINDS, type MarketItem, type MarketKind } from '@/lib/platform-data';
+import { MARKET_KINDS, STATUS_META, type MarketItem, type MarketKind } from '@/lib/platform-data';
 import { sectorOf, usd, usePlatform } from '@/lib/platform';
 import { SECTION_ART } from '@/lib/section-art';
 import { SECTOR_ART } from '@/lib/sector-art';
@@ -226,32 +227,79 @@ function Pill({ icon, label, active, chevron, onPress }: { icon: IconName; label
 
 /* ---------- Mening e'lonlarim ---------- */
 
+const STEPS = [
+  () => tr('Tur va sohani tanlang'),
+  () => tr("Nom, narx va rasm qo'shing"),
+  () => tr("Moderatsiyadan so'ng xaridorlar ko'radi"),
+];
+
 function MyListings() {
   const p = usePlatform();
+  const { colors: c } = useStore();
+  const mine = p.myMarket;
+  const create = (kind?: MarketKind) => router.push(kind ? { pathname: '/market/new', params: { kind } } : '/market/new');
+  const stats = [
+    { label: tr('Jami'), value: mine.length, color: c.text },
+    { label: STATUS_META.published.name, value: mine.filter(m => m.status === 'published').length, color: c.ok },
+    { label: STATUS_META.review.name, value: mine.filter(m => m.status === 'review').length, color: c.warn },
+  ];
+
   return (
     <Screen title={tr("Mening e'lonlarim")} subtitle={tr('YUMS Market · sotuvchi kabineti')}>
-      <Pressable onPress={() => router.push('/market/new')}>
-        <LinearGradient colors={['#FFD84D', '#FFC800']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.newAd}>
-          <Ionicons name="add-circle" size={26} color="#0E1525" />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.newAdTitle}>{tr("Yangi e'lon joylashtirish")}</Text>
-            <Text style={styles.newAdSub}>{tr("Bepul · moderatsiyadan so'ng 86 mamlakatda ko'rinadi")}</Text>
+      <StartHero
+        kicker={tr('SOTUVCHILAR UCHUN')}
+        title={tr("Yangi e'lon joylashtirish")}
+        sub={tr("Bepul · moderatsiyadan so'ng 86 mamlakatda ko'rinadi")}
+        cta={tr("E'lon berish")}
+        art={SECTION_ART.market}
+        onPress={() => create()}
+      />
+
+      {mine.length ? (
+        <>
+          <View style={[styles.stats, { backgroundColor: c.surface, borderColor: c.line }]}>
+            {stats.map((s, i) => (
+              <View key={s.label} style={[styles.stat, i > 0 && { borderStartWidth: StyleSheet.hairlineWidth, borderColor: c.line }]}>
+                <Text style={[styles.statValue, { color: s.color }]}>{s.value}</Text>
+                <Text style={[styles.statLabel, { color: c.muted }]} numberOfLines={2}>{s.label}</Text>
+              </View>
+            ))}
           </View>
-        </LinearGradient>
-      </Pressable>
-      {p.myMarket.length ? p.myMarket.map(m => (
-        <Card key={m.id} onPress={() => router.push({ pathname: '/market/[id]', params: { id: m.id } })}>
-          <Row>
-            <View style={styles.thumb}><MarketVisual m={m} icon={22} /></View>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Txt v="h3" numberOfLines={1}>{m.title}</Txt>
-              <Txt v="small" muted>{usd(m.price)}{m.unit ? ` / ${tr(m.unit)}` : ''}</Txt>
+          {mine.map(m => {
+            const kind = MARKET_KINDS.find(k => k.id === m.kind);
+            return (
+              <Card key={m.id} onPress={() => router.push({ pathname: '/market/[id]', params: { id: m.id } })}>
+                <Row gap={12} style={{ alignItems: 'flex-start' }}>
+                  <View style={styles.thumb}><MarketVisual m={m} icon={26} /></View>
+                  <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+                    <Txt v="h3" numberOfLines={2}>{m.title}</Txt>
+                    <Text style={[styles.mineMeta, { color: c.muted }]} numberOfLines={1}>
+                      {kind ? `${kind.name} · ` : ''}{sectorOf(m.sector).name}
+                    </Text>
+                    <Row gap={8} style={{ justifyContent: 'space-between', flexWrap: 'wrap', marginTop: 2 }}>
+                      <Text style={[styles.minePrice, { color: c.text }]}>
+                        {usd(m.price)}
+                        {m.unit ? <Text style={[styles.mineUnit, { color: c.muted }]}>{` / ${tr(m.unit)}`}</Text> : null}
+                      </Text>
+                      <StatusBadge status={m.status} />
+                    </Row>
+                  </View>
+                </Row>
+              </Card>
+            );
+          })}
+        </>
+      ) : (
+        <>
+          <Card style={{ gap: 14 }}>
+            <View style={{ gap: 4 }}>
+              <Txt v="h2">{tr("Birinchi e'loningizni joylashtiring")}</Txt>
+              <Txt v="small" muted style={{ lineHeight: 19 }}>{tr('Tovar, raqamli mahsulot yoki xizmatingizni butun dunyoga taklif qiling')}</Txt>
             </View>
-            <StatusBadge status={m.status} />
-          </Row>
-        </Card>
-      )) : (
-        <EmptyState icon="pricetags-outline" title={tr("E'lonlaringiz yo'q")} sub={tr('Tovar, raqamli mahsulot yoki xizmatingizni butun dunyoga taklif qiling')} />
+            <KindTiles nav onChange={create} />
+          </Card>
+          <HowItWorks steps={STEPS.map(s => s())} />
+        </>
       )}
     </Screen>
   );
@@ -278,8 +326,12 @@ const styles = StyleSheet.create({
   pillText: { fontFamily: F.semi, fontSize: 13 },
   seller: { marginHorizontal: 16, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: radius.l, borderWidth: StyleSheet.hairlineWidth },
   sellerIco: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  thumb: { width: 64, height: 48, borderRadius: 12, overflow: 'hidden' },
-  newAd: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: radius.l },
-  newAdTitle: { color: '#0E1525', fontFamily: F.bold, fontSize: 15.5 },
-  newAdSub: { color: 'rgba(14,21,37,0.7)', fontFamily: F.semi, fontSize: 12.5 },
+  thumb: { width: 76, height: 76, borderRadius: 16, overflow: 'hidden' },
+  stats: { flexDirection: 'row', borderRadius: radius.l, borderWidth: StyleSheet.hairlineWidth, paddingVertical: 14 },
+  stat: { flex: 1, alignItems: 'center', gap: 2, paddingHorizontal: 6 },
+  statValue: { fontFamily: F.display, fontSize: 22 },
+  statLabel: { fontFamily: F.semi, fontSize: 11.5, textAlign: 'center' },
+  mineMeta: { fontFamily: F.medium, fontSize: 12.5 },
+  minePrice: { fontFamily: F.heavy, fontSize: 16 },
+  mineUnit: { fontFamily: F.semi, fontSize: 13 },
 });

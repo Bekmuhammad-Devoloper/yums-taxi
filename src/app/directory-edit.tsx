@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { PickerSheet, SelectField } from '@/components/platform-ui';
+import { RegionField } from '@/components/region-field';
 import { toast } from '@/components/toast';
 import { Button, Card, Chip, Field, Flag, IOSSwitch, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { errorText } from '@/lib/api';
@@ -161,7 +162,7 @@ export default function DirectoryEdit() {
         <Field label={kind === 'company' ? tr('Kompaniya nomi') : tr('Ism familiya')} value={name} onChangeText={setName} maxLength={120} />
         {kind === 'specialist' && <Field label={tr('Mutaxassislik')} value={title} onChangeText={setTitle} placeholder={tr('Masalan: Mobil dasturchi')} maxLength={80} />}
         <SelectField label={tr('Mamlakat')} value={k.name} left={<Flag code={k.code} size={22} />} placeholder={tr('Mamlakat')} onPress={() => setPicker('country')} />
-        {kind !== 'investor' && <Field label={tr('Shahar')} value={city} onChangeText={setCity} maxLength={80} />}
+        {kind !== 'investor' && <RegionField country={country} value={city} onChange={setCity} />}
         {kind !== 'investor' && <SelectField label={tr('Soha')} value={sector ? sectorOf(sector).name : undefined} placeholder={tr('Sohani tanlang')} icon="grid-outline" onPress={() => setPicker('sector')} />}
         <Field label={kind === 'company' ? tr('Kompaniya haqida') : kind === 'investor' ? tr('Investitsiya yondashuvi') : tr("O'zingiz haqingizda")} value={about} onChangeText={setAbout} multiline maxLength={2000} hint={`${about.length}/2000`} />
       </Card>
@@ -218,7 +219,7 @@ export default function DirectoryEdit() {
       </Txt>
       {exists && <Button title={tr('Katalogdan olib tashlash')} kind="ghost" icon="trash-outline" onPress={remove} />}
 
-      <PickerSheet visible={picker === 'country'} onClose={() => setPicker(null)} title={tr('Mamlakat')} selected={[country]} onChange={ids => setCountry(ids[0])}
+      <PickerSheet visible={picker === 'country'} onClose={() => setPicker(null)} title={tr('Mamlakat')} selected={[country]} onChange={ids => { if (ids[0] !== country) setCity(''); setCountry(ids[0]); }}
         options={COUNTRIES.map(x => ({ id: x.code, label: x.name, flag: x.code, sub: x.region }))} />
       <PickerSheet visible={picker === 'sector'} onClose={() => setPicker(null)} title={tr('Soha')} selected={sector ? [sector] : []} onChange={ids => setSector(ids[0])}
         options={SECTORS.map(s => ({ id: s.id, label: s.name, icon: s.icon, sub: s.examples }))} />
