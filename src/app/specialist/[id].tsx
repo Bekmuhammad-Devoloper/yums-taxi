@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { ActionBar } from '@/components/action-bar';
 import { SpecialistIdCard } from '@/components/id-card';
 import { FavButton, KeyValue, ReportSheet } from '@/components/platform-ui';
 import { ProfileReviews } from '@/components/profile-reviews';
@@ -29,10 +30,10 @@ export default function SpecialistScreen() {
       subtitle="YUMS Technology"
       right={<Row gap={8}><View style={[styles.fav, { backgroundColor: c.surface }]}><FavButton k={'specialist:' + sp.id} /></View><IconButton name="flag-outline" size={42} onPress={() => setReporting(true)} /></Row>}
       footer={
-        <Row gap={10}>
-          <Button title={tr('Yozish')} kind="ghost" icon="chatbubble-ellipses-outline" style={{ flex: 1 }} onPress={() => start(peer)} />
-          <Button title={tr('Ishga taklif qilish')} icon="briefcase" disabled={!sp.available} style={{ flex: 1.4 }} onPress={() => start(peer, { request: true, subject: tr('Loyihaga taklif') })} />
-        </Row>
+        <ActionBar
+          secondary={{ title: tr('Yozish'), icon: 'chatbubble-ellipses', tint: c.accent, onPress: () => start(peer) }}
+          primary={{ title: tr('Ishga taklif qilish'), icon: 'briefcase', disabled: !sp.available, onPress: () => start(peer, { request: true, subject: tr('Loyihaga taklif') }) }}
+        />
       }>
       <SpecialistIdCard sp={sp} />
       <Row gap={6} style={{ flexWrap: 'wrap', marginTop: -4 }}>

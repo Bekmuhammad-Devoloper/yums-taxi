@@ -78,7 +78,7 @@ export default function ProfileEdit() {
         <Txt v="small" muted>{tr("Rasmni o'zgartirish uchun bosing")}</Txt>
       </View>
       <SectionTitle>{tr('Profil turi')}</SectionTitle>
-      <Row gap={8}>
+      <Row gap={8} style={{ flexWrap: 'wrap' }}>
         <Chip label={tr('Jismoniy shaxs')} icon="person-outline" active={kind === 'person'} onPress={() => setKind('person')} />
         <Chip label={tr('Kompaniya')} icon="business-outline" active={kind === 'company'} onPress={() => setKind('company')} />
       </Row>

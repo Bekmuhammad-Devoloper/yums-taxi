@@ -29,6 +29,13 @@ const CARD_TINT: Record<PayCard['brand'], string> = { Uzcard: '#2563EB', Humo: '
 const CARD_GRADIENT: Record<PayCard['brand'] | 'none', [string, string]> = {
   Uzcard: ['#3B82F6', '#1D4ED8'], Humo: ['#14B8A6', '#0F766E'], Visa: ['#2A3190', '#141A5C'], none: ['#3A4357', '#1E2533'],
 };
+// Karta foni rasmlari (ipakdek to'lqinlar): Humo — zumrad, Uzcard — ko'k, Visa — to'q ko'k va oltin, turi noma'lum — grafit
+const BANK_ART: Record<PayCard['brand'] | 'none', number> = {
+  Humo: require('@/assets/cards/bank-humo.webp'),
+  Uzcard: require('@/assets/cards/bank-uzcard.webp'),
+  Visa: require('@/assets/cards/bank-visa.webp'),
+  none: require('@/assets/cards/bank-neutral.webp'),
+};
 
 export default function Payment() {
   const s = useStore();
@@ -178,15 +185,18 @@ export default function Payment() {
       {adding && (
         <Card style={{ gap: 12 }}>
           <Txt v="h3">{tr('Yangi karta')}</Txt>
-          <LinearGradient colors={CARD_GRADIENT[brandHint(num) ?? 'none']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.preview}>
-            <View style={[styles.blob, { width: 150, height: 150, right: -50, top: -70, backgroundColor: 'rgba(255,255,255,0.10)' }]} />
+          <View style={[styles.preview, { backgroundColor: CARD_GRADIENT[brandHint(num) ?? 'none'][1] }]}>
+            {/* fon karta turiga qarab (raqam yozilgan sari silliq almashadi); pastdan yengil soya — raqam doim o'qiladi */}
+            <Image source={BANK_ART[brandHint(num) ?? 'none']} style={StyleSheet.absoluteFill} contentFit="cover" transition={300} />
+            <LinearGradient colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.32)']} start={{ x: 0.5, y: 0.35 }} end={{ x: 0.5, y: 1 }} style={StyleSheet.absoluteFill} />
             <Row style={{ justifyContent: 'space-between' }}>
               <View style={styles.chip} />
               <Text style={styles.previewBrand}>{brandHint(num) ?? tr('Uzcard · Humo')}</Text>
             </Row>
-            <Text style={styles.previewNum} numberOfLines={1}>{fmtCard(num.padEnd(16, '•'))}</Text>
+            {/* 16 raqam doim to'liq: katta tizim shriftida ham sig'adigan qilib kichrayadi (oxirgisi «…» bo'lmaydi) */}
+            <Text style={styles.previewNum} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{fmtCard(num.padEnd(16, '•'))}</Text>
             <Text style={styles.previewExp}>{exp || tr('OO/YY')}</Text>
-          </LinearGradient>
+          </View>
           <TextInput value={fmtCard(num)} onChangeText={v => setNum(v.replace(/\D/g, '').slice(0, 16))} placeholder="8600 0000 0000 0000" placeholderTextColor={c.faint} keyboardType="number-pad" style={[styles.input, { backgroundColor: c.surface2, color: c.text }]} />
           <TextInput
             value={exp}
@@ -260,17 +270,18 @@ const styles = StyleSheet.create({
   cashbackText: { flexShrink: 1, color: '#FFD84D', fontFamily: F.bold, fontSize: 11.5 },
   topup: { flexDirection: 'row', alignItems: 'center', gap: 5, height: 38, paddingHorizontal: 14, borderRadius: 13, backgroundColor: '#FFC800', flexShrink: 0, shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
   topupText: { color: '#1A1205', fontFamily: F.bold, fontSize: 14.5 },
-  blob: { position: 'absolute', borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.18)' },
   opt: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 12, borderRadius: 16, borderWidth: 1.5 },
   optIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   trash: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   addCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 12, marginTop: 4, borderRadius: 16, borderWidth: 1.5, borderStyle: 'dashed' },
   plus: { position: 'absolute', right: 4, bottom: 4, width: 16, height: 16, borderRadius: 8, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
-  preview: { height: 170, borderRadius: 20, padding: 18, justifyContent: 'space-between', overflow: 'hidden' },
+  // haqiqiy bank kartasi nisbati (85,6 × 54 mm)
+  preview: { aspectRatio: 1.586, borderRadius: 20, padding: 18, justifyContent: 'space-between', overflow: 'hidden' },
   chip: { width: 38, height: 28, borderRadius: 6, backgroundColor: 'rgba(255,214,102,0.85)' },
-  previewBrand: { color: '#FFFFFF', fontFamily: F.heavy, fontSize: 15, letterSpacing: 0.5 },
-  previewNum: { color: '#FFFFFF', fontFamily: F.bold, fontSize: 20, letterSpacing: 2, fontVariant: ['tabular-nums'] },
+  // fon rasmidagi yorug' to'lqinlar ustida ham o'qilsin — yengil soya
+  previewBrand: { color: '#FFFFFF', fontFamily: F.heavy, fontSize: 15, letterSpacing: 0.5, textShadowColor: 'rgba(0,0,0,0.45)', textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 } },
+  previewNum: { color: '#FFFFFF', fontFamily: F.bold, fontSize: 19, letterSpacing: 1.2, fontVariant: ['tabular-nums'], textShadowColor: 'rgba(0,0,0,0.35)', textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 } },
   previewExp: { color: 'rgba(255,255,255,0.8)', fontFamily: F.semi, fontSize: 13, fontVariant: ['tabular-nums'] },
   promo: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 54, borderRadius: 16, paddingLeft: 14, paddingRight: 6 },
   promoInput: { flex: 1, minWidth: 0, height: '100%', fontSize: 16, fontFamily: F.semi },

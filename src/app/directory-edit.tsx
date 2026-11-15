@@ -175,7 +175,7 @@ export default function DirectoryEdit() {
           </Row>
           <Row style={{ justifyContent: 'space-between' }}><Txt>{tr('Buyurtma qabul qilaman')}</Txt><IOSSwitch value={available} onChange={setAvailable} /></Row>
           <Row style={{ justifyContent: 'space-between' }}><Txt>{tr('Masofaviy ishlayman')}</Txt><IOSSwitch value={remote} onChange={setRemote} /></Row>
-          <Row gap={8}>
+          <Row gap={8} style={{ flexWrap: 'wrap' }}>
             <Chip label={tr('Erkak')} active={gender === 'm'} onPress={() => setGender('m')} />
             <Chip label={tr('Ayol')} active={gender === 'f'} onPress={() => setGender('f')} />
           </Row>

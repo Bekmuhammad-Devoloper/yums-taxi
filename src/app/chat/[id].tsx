@@ -413,7 +413,7 @@ function MeetingSheet({ visible, onClose, onCreate }: { visible: boolean; onClos
         {['09:00', '11:00', '13:00', '15:00', '17:00', '19:00'].map(t => <Chip key={t} label={t} active={time === t} onPress={() => setTime(t)} />)}
       </Row>
       <Txt v="small" muted style={{ fontFamily: F.bold }}>{tr('Davomiyligi')}</Txt>
-      <Row gap={8}>{[15, 30, 60].map(m => <Chip key={m} label={tr('{m} daq', { m })} active={dur === m} onPress={() => setDur(m)} />)}</Row>
+      <Row gap={8} style={{ flexWrap: 'wrap' }}>{[15, 30, 60].map(m => <Chip key={m} label={tr('{m} daq', { m })} active={dur === m} onPress={() => setDur(m)} />)}</Row>
       <Txt v="tiny" faint>{tr('Video havola avtomatik yaratiladi va suhbatga yuboriladi.')}</Txt>
     </Sheet>
   );

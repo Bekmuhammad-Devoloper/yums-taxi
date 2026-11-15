@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 
+import { ActionBar } from '@/components/action-bar';
 import { FavButton, KeyValue, Logo, Place, ProjectCard, ReportSheet } from '@/components/platform-ui';
 import { ProfileReviews } from '@/components/profile-reviews';
 import { toast } from '@/components/toast';
@@ -36,10 +37,10 @@ export default function CompanyScreen() {
       subtitle="YUMS Business"
       right={<Row gap={8}><View style={[styles.fav, { backgroundColor: c.surface }]}><FavButton k={'company:' + co.id} /></View><IconButton name="flag-outline" size={42} onPress={() => setReporting(true)} /></Row>}
       footer={
-        <Row gap={10}>
-          <Button title={tr("Hamkorlik so'rovi")} kind="ghost" icon="people-outline" style={{ flex: 1 }} onPress={() => start(peer, { request: true, subject: tr('B2B hamkorlik') })} />
-          <Button title={tr('Yozish')} icon="chatbubble-ellipses" style={{ flex: 1 }} onPress={() => start(peer)} />
-        </Row>
+        <ActionBar
+          secondary={{ title: tr("Hamkorlik so'rovi"), icon: 'people', onPress: () => start(peer, { request: true, subject: tr('B2B hamkorlik') }) }}
+          primary={{ title: tr('Yozish'), icon: 'chatbubble-ellipses', onPress: () => start(peer) }}
+        />
       }>
       <Card style={{ gap: 14 }}>
         <Row>
