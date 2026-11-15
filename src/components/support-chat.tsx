@@ -1,11 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { toast } from '@/components/toast';
 import { Chip, PersonAvatar, Row, Screen, Txt } from '@/components/ui';
 import { errorText } from '@/lib/api';
+import { KEYBOARD_BEHAVIOR, useKeyboardOpen } from '@/lib/keyboard';
 import { useStore } from '@/lib/store';
 import { closeTicket, myTickets, openTicket, replyTicket, ticket, type TicketDetail } from '@/lib/support-api';
 import { F } from '@/lib/theme';
@@ -24,6 +25,7 @@ const hhmm = (iso: string) => { const d = new Date(iso); return `${String(d.getH
 export function SupportChat({ topics, orderId, greeting, draft }: { topics: string[]; orderId?: string; greeting: string; draft?: string }) {
   const { colors: c } = useStore();
   const insets = useSafeAreaInsets();
+  const keyboard = useKeyboardOpen();
   const [current, setCurrent] = useState<TicketDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -78,7 +80,7 @@ export function SupportChat({ topics, orderId, greeting, draft }: { topics: stri
 
   const messages = current?.messages ?? [];
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={KEYBOARD_BEHAVIOR}>
       <Screen
         title={tr("YUMS qo'llab-quvvatlash")}
         subtitle={current ? tr('Murojaat · {subject}', { subject: current.subject }) : tr('Operator 24/7 javob beradi')}
@@ -113,7 +115,7 @@ export function SupportChat({ topics, orderId, greeting, draft }: { topics: stri
             {topics.map(t => <Chip key={t} label={tr(t)} onPress={() => setText(tr(t))} />)}
           </ScrollView>
         )}
-        <Row gap={8} style={[styles.inputRow, { paddingBottom: insets.bottom + 10, borderTopColor: c.line, backgroundColor: c.bg }]}>
+        <Row gap={8} style={[styles.inputRow, { paddingBottom: (keyboard ? 0 : insets.bottom) + 10, borderTopColor: c.line, backgroundColor: c.bg }]}>
           <TextInput value={text} onChangeText={setText} placeholder={tr('Xabar yozing…')} placeholderTextColor={c.faint} multiline
             style={[styles.input, { backgroundColor: c.surface2, color: c.text }]} accessibilityLabel={tr('Xabar')} />
           <Pressable onPress={() => send(text)} disabled={!text.trim() || sending} accessibilityLabel={tr('Yuborish')}

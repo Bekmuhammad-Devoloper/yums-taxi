@@ -14,6 +14,7 @@ import { fileSize, usePlatform } from '@/lib/platform';
 import { FILE_LIMIT } from '@/lib/platform-api';
 import { openFile } from '@/lib/open-file';
 import { haptic, useStore } from '@/lib/store';
+import { KEYBOARD_BEHAVIOR, useKeyboardOpen } from '@/lib/keyboard';
 import { F } from '@/lib/theme';
 import { dayLabel, fmtDay, weekdayShort } from '@/lib/format';
 import { flipRTL, tr } from '@/lib/i18n';
@@ -96,6 +97,7 @@ export default function ChatScreen() {
   const messages = cv?.messages;
   const count = messages?.length ?? 0;
   const { markRead, loadMessages } = p;
+  const keyboard = useKeyboardOpen();
 
   useEffect(() => { if (id) loadMessages(id).catch(() => {}); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (id) markRead(id); }, [id, count]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -165,12 +167,14 @@ export default function ChatScreen() {
         </Pressable>
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={KEYBOARD_BEHAVIOR}>
         <View style={{ flex: 1 }}>
           <Wallpaper tg={tg} />
           <ScrollView
             ref={scroll}
             contentContainerStyle={styles.list}
+            // klaviatura ochilib ro'yxat qisqarganda oxirgi xabar ko'rinib turadi
+            onLayout={() => scroll.current?.scrollToEnd({ animated: false })}
             onContentSizeChange={() => {
               scroll.current?.scrollToEnd({ animated: opened.current });
               if (count) opened.current = true;
@@ -216,7 +220,7 @@ export default function ChatScreen() {
 
         {canWrite ? (
           // yozish paneli: qisqich, matn maydoni, yuborish (bo'sh bo'lsa — uchrashuv)
-          <View style={[styles.composer, { paddingBottom: insets.bottom + 6, backgroundColor: c.surface, borderTopColor: c.line }]}>
+          <View style={[styles.composer, { paddingBottom: (keyboard ? 0 : insets.bottom) + 6, backgroundColor: c.surface, borderTopColor: c.line }]}>
             <TextInput
               ref={inputRef}
               value={text}
@@ -257,7 +261,7 @@ export default function ChatScreen() {
             )}
           </View>
         ) : (
-          <View style={[styles.locked, { paddingBottom: insets.bottom + 14, backgroundColor: c.surface, borderTopColor: c.line }]}>
+          <View style={[styles.locked, { paddingBottom: (keyboard ? 0 : insets.bottom) + 14, backgroundColor: c.surface, borderTopColor: c.line }]}>
             <Ionicons name={cv.blocked ? 'ban' : declined ? 'close-circle-outline' : 'hourglass-outline'} size={18} color={c.muted} />
             <Txt v="small" muted style={{ flexShrink: 1, textAlign: 'center' }}>
               {cv.blocked ? tr('Siz bu suhbatni blokladingiz') : declined ? tr("So'rov rad etilgan") : pendingIn ? tr("Yozish uchun so'rovni qabul qiling") : tr("So'rov yuborildi — javob kutilmoqda")}

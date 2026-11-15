@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -17,6 +17,7 @@ import { TARIFF_ART } from '@/lib/cars';
 import { errorText } from '@/lib/api';
 import { TARIFFS, type Gender } from '@/lib/data';
 import { useStore } from '@/lib/store';
+import { KEYBOARD_BEHAVIOR } from '@/lib/keyboard';
 import { F } from '@/lib/theme';
 import { tr, tx } from '@/lib/i18n';
 
@@ -78,7 +79,7 @@ export default function Register() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={KEYBOARD_BEHAVIOR}>
       <Screen title={tr("Haydovchi bo'lish")} subtitle={tr("YUMS Driver · ro'yxatdan o'tish")} back={false} right={<LangButton />} footer={<Button title={tr("Ro'yxatdan o'tish")} icon="arrow-forward-circle" loading={busy} onPress={submit} />}>
         <LinearGradient colors={['#13254A', '#0B1530']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
           {/* Fon: tungi shahar va o'ngda taksi. Ustidan chapdan va pastdan qorong'ilatish — matn har doim o'qiladi */}

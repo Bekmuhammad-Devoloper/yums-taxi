@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FLAGS } from '@/lib/flags';
 import { nameGender } from '@/lib/registry';
+import { KEYBOARD_BEHAVIOR } from '@/lib/keyboard';
 import { haptic, useColors, useStore } from '@/lib/store';
 import { F, radius, shadow } from '@/lib/theme';
 import { tr, flipRTL, isDirectional } from '@/lib/i18n';
@@ -434,7 +435,7 @@ export function Sheet({ visible, onClose, title, children, footer }: { visible: 
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior={KEYBOARD_BEHAVIOR} style={{ flex: 1 }}>
         <Pressable style={[styles.sheetBg, { backgroundColor: c.overlay }]} onPress={onClose}>
           <Pressable style={[styles.sheet, { backgroundColor: c.surface, paddingBottom: insets.bottom + 16 }]} onPress={() => {}}>
             <View style={[styles.grab, { backgroundColor: c.surface3 }]} />

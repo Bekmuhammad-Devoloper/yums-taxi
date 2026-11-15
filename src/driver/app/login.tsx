@@ -17,6 +17,7 @@ import { requestOtp, verifyOtp, verifySecondFactor, type SecondStep } from '@/li
 import { ApiError, errorText } from '@/lib/api';
 import { flipRTL, tr, tx } from '@/lib/i18n';
 import { haptic, useStore } from '@/lib/store';
+import { KEYBOARD_BEHAVIOR } from '@/lib/keyboard';
 import { F } from '@/lib/theme';
 
 const GLOW = require('@/assets/images/glow.png');
@@ -169,7 +170,7 @@ export default function Login() {
   const big = step === 'phone';
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={KEYBOARD_BEHAVIOR}>
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"

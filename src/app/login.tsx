@@ -18,6 +18,7 @@ import { COUNTRIES } from '@/lib/platform-data';
 import { countryOf } from '@/lib/platform';
 import { checkPinfl, checkStir, companyMatches, directorMatches, lookupCompany, type LookupResult } from '@/lib/registry';
 import { haptic, useStore, type AccountKind, type User } from '@/lib/store';
+import { KEYBOARD_BEHAVIOR } from '@/lib/keyboard';
 import { F } from '@/lib/theme';
 import { tr, tx, flipRTL } from '@/lib/i18n';
 
@@ -292,7 +293,7 @@ export default function Login() {
   const canSwitch = telegramOn && !second && method === 'phone';
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={KEYBOARD_BEHAVIOR}>
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
