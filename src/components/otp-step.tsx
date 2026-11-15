@@ -87,17 +87,28 @@ export function OtpStep({ inputRef, ...p }: OtpStepProps) {
         <Beacon channel={p.channel} tint={look.tint} soft={look.soft} size={compact ? 62 : 76} />
         <Txt v="h1" style={styles.center}>{look.title}</Txt>
         <Txt muted style={[styles.center, styles.subtitle]}>{subtitle}</Txt>
+        {/* manzil va uni o'zgartirish tugmasi: sariq doiradagi qalam, ajratgich chiziq bilan */}
         <Pressable
           onPress={p.onEdit ? () => { haptic.tap(); p.onEdit?.(); } : undefined}
           disabled={!p.onEdit}
-          accessibilityLabel={tr("Raqamni o'zgartirish")}
-          style={({ pressed }) => [styles.chip, { backgroundColor: pressed ? c.surface3 : c.surface2, borderColor: c.line }]}>
-          <Ionicons name={p.channel === 'EMAIL' ? 'mail-outline' : 'call-outline'} size={15} color={c.muted} />
-          <Text style={[styles.chipText, { color: c.text }]}>{p.destination}</Text>
-          {p.onEdit && (
-            <View style={[styles.chipEdit, { backgroundColor: c.surface3 }]}>
-              <Ionicons name="pencil" size={12} color={c.text} />
-            </View>
+          accessibilityRole={p.onEdit ? 'button' : undefined}
+          accessibilityLabel={p.channel === 'EMAIL' ? tr("Emailni o'zgartirish") : tr("Raqamni o'zgartirish")}
+          style={({ pressed }) => [styles.chip, !p.onEdit && styles.chipStatic, { backgroundColor: pressed ? c.surface3 : c.surface2, borderColor: c.line }]}>
+          {({ pressed }) => (
+            <>
+              <View style={[styles.chipIcon, { backgroundColor: c.surface }]}>
+                <Ionicons name={p.channel === 'EMAIL' ? 'mail' : 'call'} size={14} color={c.muted} />
+              </View>
+              <Text style={[styles.chipText, { color: c.text }]} numberOfLines={1} ellipsizeMode="middle" adjustsFontSizeToFit minimumFontScale={0.8}>{p.destination}</Text>
+              {p.onEdit && (
+                <>
+                  <View style={[styles.chipDivider, { backgroundColor: c.line }]} />
+                  <View style={[styles.chipEdit, { backgroundColor: c.brand, transform: [{ scale: pressed ? 0.9 : 1 }] }]}>
+                    <Ionicons name="pencil" size={15} color={c.brandText} />
+                  </View>
+                </>
+              )}
+            </>
           )}
         </Pressable>
       </View>
@@ -328,10 +339,13 @@ const styles = StyleSheet.create({
   beacon: { alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
   ring: { position: 'absolute', borderWidth: 1.5 },
   beaconTile: { alignItems: 'center', justifyContent: 'center', borderWidth: StyleSheet.hairlineWidth },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 40, paddingLeft: 14, paddingRight: 8, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, marginTop: 6 },
-  chipText: { fontSize: 15.5, fontFamily: F.bold, fontVariant: ['tabular-nums'], letterSpacing: 0.3 },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 10, maxWidth: '100%', height: 48, paddingStart: 6, paddingEnd: 6, borderRadius: 24, borderWidth: StyleSheet.hairlineWidth, marginTop: 6 },
+  chipStatic: { paddingEnd: 16 },
+  chipIcon: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  chipText: { flexShrink: 1, fontSize: 15.5, fontFamily: F.bold, fontVariant: ['tabular-nums'], letterSpacing: 0.2 },
+  chipDivider: { width: StyleSheet.hairlineWidth, height: 22, marginStart: 2 },
   subtitle: { fontSize: 14.5, lineHeight: 20, maxWidth: 310 },
-  chipEdit: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  chipEdit: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
   // kod raqamlari har doim chapdan o'ngga (arab tilida ham)
   cells: { flexDirection: 'row', gap: 9, justifyContent: 'center' },
   cell: { flex: 1, maxWidth: 60, height: 62, borderRadius: 17, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
