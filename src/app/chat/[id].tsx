@@ -16,7 +16,7 @@ import { openFile } from '@/lib/open-file';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
 import { dayLabel, fmtDay, weekdayShort } from '@/lib/format';
-import { tr } from '@/lib/i18n';
+import { flipRTL, tr } from '@/lib/i18n';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
 
@@ -26,6 +26,23 @@ const dayKey = (iso: string) => new Date(iso).toDateString();
 const GROUP_MS = 5 * 60_000;
 // bo‘linmaydigan bo‘shliq: qator oxirida ham kenglikka hisoblanadi (oddiy bo‘shliq web’da «osilib» qoladi)
 const NB = ' ';
+
+/**
+ * Telegram uslubidagi ranglar: kunduzi — yashil fon, och yashil (o'zim) va oq (u) pufakchalar;
+ * tunda — to'q ko'k fon, ko'k va to'q ko'k pufakchalar. Sana va tizim yozuvlari — shaffof to'q plashkada.
+ */
+const chatPalette = (dark: boolean) => (dark
+  ? {
+    wall: ['#1B2836', '#121B24', '#0E1621'] as const, doodle: 'rgba(255,255,255,0.045)',
+    out: '#2B5278', in: '#182533', outText: '#FFFFFF', inText: '#F1F4F7', outMeta: 'rgba(255,255,255,0.62)', inMeta: 'rgba(255,255,255,0.42)',
+    outTint: 'rgba(255,255,255,0.12)', inTint: 'rgba(255,255,255,0.08)', outFile: '#5B8DBE', accent: '#6AB2F2', service: 'rgba(0,0,0,0.38)',
+  }
+  : {
+    wall: ['#D9E4B4', '#B9D5A3', '#A3C9A8'] as const, doodle: 'rgba(48,90,40,0.11)',
+    out: '#EFFDDE', in: '#FFFFFF', outText: '#000000', inText: '#000000', outMeta: '#4FAE4E', inMeta: '#9AA6B2',
+    outTint: 'rgba(79,174,78,0.14)', inTint: 'rgba(58,141,218,0.10)', outFile: '#78C272', accent: '#3A8DDA', service: 'rgba(40,62,36,0.42)',
+  });
+type ChatPalette = ReturnType<typeof chatPalette>;
 
 type ListRow =
   | { kind: 'day'; key: string; at: string }
@@ -97,8 +114,7 @@ export default function ChatScreen() {
     ? { pathname: '/company/[id]' as const, params: { id: cv.peerId } }
     : cv.peerKind === 'specialist' ? { pathname: '/specialist/[id]' as const, params: { id: cv.peerId } } : null;
   const hasText = !!text.trim();
-  // fon ustidagi shaffof plashkalar (kun, tizim xabari, kirish kartasi)
-  const glass = dark ? 'rgba(20,26,36,0.72)' : 'rgba(255,255,255,0.78)';
+  const tg = chatPalette(dark);
 
   const send = (file?: Attachment) => {
     const t = text.trim();
@@ -130,7 +146,7 @@ export default function ChatScreen() {
         </Pressable>
         <Pressable style={{ flex: 1 }} disabled={!profileHref} onPress={() => profileHref && router.push(profileHref)}>
           <Row gap={10}>
-            <PeerAvatar conv={cv} size={40} />
+            <View style={styles.avatarRound}><PeerAvatar conv={cv} size={42} /></View>
             <View style={{ flex: 1 }}>
               <Row gap={4}><Text style={[styles.peerName, { color: c.text }]} numberOfLines={1}>{cv.peerName}</Text>{cv.peerVerified && <Verified size={14} />}</Row>
               <Text style={[styles.peerSub, { color: cv.blocked ? c.danger : c.muted }]} numberOfLines={1}>
@@ -151,7 +167,7 @@ export default function ChatScreen() {
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={{ flex: 1 }}>
-          <Wallpaper />
+          <Wallpaper tg={tg} />
           <ScrollView
             ref={scroll}
             contentContainerStyle={styles.list}
@@ -162,24 +178,24 @@ export default function ChatScreen() {
             keyboardShouldPersistTaps="handled">
             {cv.messages.length === 0 && (
               <View style={styles.introWrap}>
-                <View style={[styles.intro, { backgroundColor: glass }]}>
-                  <View style={[styles.introIcon, { backgroundColor: c.brandSoft }]}>
-                    <Ionicons name={pendingOut ? 'people' : 'chatbubbles'} size={28} color={c.brandDeep} />
+                <View style={[styles.intro, { backgroundColor: tg.service }]}>
+                  <View style={styles.introIcon}>
+                    <Ionicons name={pendingOut ? 'people' : 'chatbubbles'} size={30} color="#FFFFFF" />
                   </View>
-                  <Txt v="h3" style={{ textAlign: 'center' }}>{pendingOut ? tr("Hamkorlik so'rovi") : tr('Suhbatni boshlang')}</Txt>
-                  <Txt v="small" muted style={{ textAlign: 'center' }}>
+                  <Text style={styles.introTitle}>{pendingOut ? tr("Hamkorlik so'rovi") : tr('Suhbatni boshlang')}</Text>
+                  <Text style={styles.introText}>
                     {pendingOut ? tr("{peerName}ga o'zingiz va taklifingiz haqida qisqacha yozing. So'rov qabul qilingach, yozishmani davom ettirasiz.", { peerName: cv.peerName }) : tr("Xabarlar shifrlangan holda yuboriladi. Shaxsiy to'lov ma'lumotlarini hech qachon chatda yubormang.")}
-                  </Txt>
+                  </Text>
                 </View>
               </View>
             )}
             {rows.map(r =>
               r.kind === 'day' ? (
-                <View key={r.key} style={[styles.pill, { backgroundColor: glass }]}>
-                  <Text style={[styles.pillText, { color: dark ? '#E7ECF3' : c.text }]}>{dayLabel(r.at)}</Text>
+                <View key={r.key} style={[styles.pill, { backgroundColor: tg.service }]}>
+                  <Text style={styles.pillText}>{dayLabel(r.at)}</Text>
                 </View>
               ) : (
-                <Bubble key={r.key} m={r.m} tail={r.tail} joined={r.joined} glass={glass} />
+                <Bubble key={r.key} m={r.m} tail={r.tail} joined={r.joined} tg={tg} />
               ),
             )}
           </ScrollView>
@@ -201,9 +217,6 @@ export default function ChatScreen() {
         {canWrite ? (
           // yozish paneli: qisqich, matn maydoni, yuborish (bo'sh bo'lsa — uchrashuv)
           <View style={[styles.composer, { paddingBottom: insets.bottom + 6, backgroundColor: c.surface, borderTopColor: c.line }]}>
-            <Pressable onPress={attach} hitSlop={6} style={styles.composerBtn} accessibilityLabel={tr('Hujjat biriktirish')}>
-              <Ionicons name="attach" size={27} color={c.muted} style={{ transform: [{ rotate: '45deg' }] }} />
-            </Pressable>
             <TextInput
               ref={inputRef}
               value={text}
@@ -226,10 +239,16 @@ export default function ChatScreen() {
                 }
               } : undefined}
               style={[styles.input, { color: c.text, height: inputH }]}
+              selectionColor={tg.accent}
             />
+            {!hasText && (
+              <Pressable onPress={attach} hitSlop={6} style={styles.composerBtn} accessibilityLabel={tr('Hujjat biriktirish')}>
+                <Ionicons name="attach" size={27} color={c.muted} style={{ transform: [{ rotate: '45deg' }] }} />
+              </Pressable>
+            )}
             {hasText ? (
-              <Pressable onPress={() => send()} style={({ pressed }) => [styles.sendBtn, { backgroundColor: c.brand, transform: [{ scale: pressed ? 0.92 : 1 }] }]} accessibilityLabel={tr('Yuborish')}>
-                <Ionicons name="send" size={18} color={c.brandText} style={{ marginLeft: 3 }} />
+              <Pressable onPress={() => send()} hitSlop={6} style={({ pressed }) => [styles.composerBtn, { transform: [{ scale: pressed ? 0.88 : 1 }] }]} accessibilityLabel={tr('Yuborish')}>
+                <Ionicons name="send" size={25} color={tg.accent} style={flipRTL()} />
               </Pressable>
             ) : (
               <Pressable onPress={() => setMeet(true)} hitSlop={6} style={styles.composerBtn} accessibilityLabel={tr('Onlayn uchrashuv belgilash')}>
@@ -274,8 +293,7 @@ const DOODLES: IconName[] = [
 ];
 const CELL = 62;
 
-function Wallpaper() {
-  const { dark } = useStore();
+function Wallpaper({ tg }: { tg: ChatPalette }) {
   const { width, height } = useWindowDimensions();
   const marks = useMemo(() => {
     const cols = Math.ceil(width / CELL) + 1;
@@ -299,10 +317,10 @@ function Wallpaper() {
     }
     return out;
   }, [width, height]);
-  const color = dark ? 'rgba(255,200,0,0.055)' : 'rgba(40,70,100,0.075)';
+  const color = tg.doodle;
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <LinearGradient colors={dark ? ['#0E141D', '#0A0F16'] : ['#E7EDF3', '#D9E3EC']} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={tg.wall} start={{ x: 0.1, y: 0 }} end={{ x: 0.9, y: 1 }} style={StyleSheet.absoluteFill} />
       <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
         {marks.map(m => (
           <Ionicons key={m.key} name={m.icon} size={m.size} color={color} style={{ position: 'absolute', left: m.left, top: m.top, transform: [{ rotate: m.rotate }] }} />
@@ -313,26 +331,26 @@ function Wallpaper() {
 }
 
 /** Xabar pufakchasi: guruhda yaqin, oxirgisida dum; vaqt va belgi pufakcha ichida, matn oxirida */
-function Bubble({ m, tail, joined, glass }: { m: Message; tail: boolean; joined: boolean; glass: string }) {
-  const { colors: c, dark } = useStore();
+function Bubble({ m, tail, joined, tg }: { m: Message; tail: boolean; joined: boolean; tg: ChatPalette }) {
   const { meetings } = usePlatform();
   if (m.from === 'system') {
     return (
-      <View style={[styles.pill, { backgroundColor: glass, maxWidth: '86%' }]}>
-        <Text style={[styles.pillText, { color: dark ? '#E7ECF3' : c.text, textAlign: 'center' }]}>{m.text}</Text>
+      <View style={[styles.pill, { backgroundColor: tg.service, maxWidth: '86%' }]}>
+        <Text style={[styles.pillText, { textAlign: 'center' }]}>{m.text}</Text>
       </View>
     );
   }
   const me = m.from === 'me';
   const meeting = m.meetingId ? meetings.find(x => x.id === m.meetingId) : undefined;
-  const bg = me ? c.brand : dark ? '#1A2230' : '#FFFFFF';
-  const fg = me ? c.brandText : c.text;
-  const metaColor = me ? 'rgba(14,21,37,0.62)' : c.faint;
+  const bg = me ? tg.out : tg.in;
+  const fg = me ? tg.outText : tg.inText;
+  const metaColor = me ? tg.outMeta : tg.inMeta;
+  const tint = me ? tg.outTint : tg.inTint;
   const time = hhmm(m.at);
   const meta = (
     <View style={styles.meta}>
       <Text style={[styles.time, { color: metaColor }]}>{time}</Text>
-      {me && <Ionicons name="checkmark" size={14} color={metaColor} />}
+      {me && <Ionicons name="checkmark" size={15} color={metaColor} />}
     </View>
   );
   // guruh ichidagi tomonda burchaklar kichikroq — xabarlar bir-biriga «yopishadi»
@@ -345,13 +363,13 @@ function Bubble({ m, tail, joined, glass }: { m: Message; tail: boolean; joined:
       <View style={[styles.bubble, corners, { backgroundColor: bg }]}>
         {meeting ? (
           <View style={{ gap: 6, minWidth: 200 }}>
-            <Row gap={8}><Ionicons name="videocam" size={18} color={fg} /><Text style={{ color: fg, fontFamily: F.bold, fontSize: 15 }}>{tr('Onlayn uchrashuv')}</Text></Row>
+            <Row gap={8}><Ionicons name="videocam" size={18} color={me ? tg.outMeta : tg.accent} /><Text style={{ color: me ? tg.outMeta : tg.accent, fontFamily: F.bold, fontSize: 15 }}>{tr('Onlayn uchrashuv')}</Text></Row>
             <Text style={{ color: fg, fontFamily: F.semi, fontSize: 15 }}>{meeting.title}</Text>
             <Text style={{ color: fg, opacity: 0.75, fontSize: 13, fontFamily: F.medium }}>
               {tr('{day}, {date} · {time} · {min} daq', { day: weekdayShort(new Date(meeting.at)), date: fmtDay(meeting.at), time: hhmm(meeting.at), min: meeting.durationMin })}</Text>
             {meeting.status === 'cancelled'
               ? <Text style={{ color: fg, fontFamily: F.bold, fontSize: 13 }}>{tr('Bekor qilingan')}</Text>
-              : <Pressable onPress={() => Linking.openURL(meeting.link).catch(() => toast(tr('Havola ochilmadi'), 'alert-circle'))} style={[styles.join, { backgroundColor: me ? 'rgba(14,21,37,0.12)' : c.surface2 }]}><Text style={{ color: fg, fontFamily: F.bold }}>{tr("Qo'shilish")}</Text></Pressable>}
+              : <Pressable onPress={() => Linking.openURL(meeting.link).catch(() => toast(tr('Havola ochilmadi'), 'alert-circle'))} style={[styles.join, { backgroundColor: tint }]}><Text style={{ color: me ? tg.outMeta : tg.accent, fontFamily: F.bold }}>{tr("Qo'shilish")}</Text></Pressable>}
             {meta}
           </View>
         ) : m.file ? (
@@ -361,10 +379,10 @@ function Bubble({ m, tail, joined, glass }: { m: Message; tail: boolean; joined:
             openFile(f.uri, f.name).then(ok => { if (!ok) toast(tr("Faylni ochib bo'lmadi"), 'alert-circle'); }).catch(() => toast(tr("Faylni ochib bo'lmadi"), 'alert-circle'));
           }} style={{ gap: 6 }}>
             <Row gap={10}>
-              <View style={[styles.fileIco, { backgroundColor: me ? 'rgba(14,21,37,0.12)' : c.accentSoft }]}><Ionicons name="document-text" size={20} color={me ? fg : c.accent} /></View>
+              <View style={[styles.fileIco, { backgroundColor: me ? tg.outFile : tg.accent }]}><Ionicons name="document-text" size={20} color="#FFFFFF" /></View>
               <View style={{ flexShrink: 1 }}>
                 <Text style={{ color: fg, fontFamily: F.bold, fontSize: 14.5 }} numberOfLines={1}>{m.file.name}</Text>
-                <Text style={{ color: fg, opacity: 0.7, fontSize: 12, fontFamily: F.medium }}>{fileSize(m.file.size) || 'hujjat'}</Text>
+                <Text style={{ color: metaColor, fontSize: 12.5, fontFamily: F.medium }}>{fileSize(m.file.size) || 'hujjat'}</Text>
               </View>
             </Row>
             {m.text !== m.file.name ? <Text style={[styles.msgText, { color: fg }]}>{m.text}</Text> : null}
@@ -375,7 +393,7 @@ function Bubble({ m, tail, joined, glass }: { m: Message; tail: boolean; joined:
             {/* oxiridagi ko'rinmas joy vaqt uchun — u matnning so'nggi qatoriga sig'sa, o'sha qatorda turadi */}
             <Text style={[styles.msgText, { color: fg }]}>
               {m.text}
-              <Text style={[styles.time, styles.spacer]}>{` ${NB}${NB}${time}${NB.repeat(me ? 6 : 1)}`}</Text>
+              <Text style={[styles.time, styles.spacer]}>{` ${NB}${NB}${time}${NB.repeat(me ? 7 : 1)}`}</Text>
             </Text>
             <View style={styles.metaFloat}>{meta}</View>
           </>
@@ -424,29 +442,32 @@ const TAIL = 9;
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingBottom: 8, borderBottomWidth: StyleSheet.hairlineWidth, zIndex: 2 },
   headerBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
-  peerName: { fontSize: 16.5, fontFamily: F.bold, letterSpacing: -0.2, flexShrink: 1 },
+  peerName: { fontSize: 17, fontFamily: F.bold, letterSpacing: -0.2, flexShrink: 1 },
+  avatarRound: { width: 42, height: 42, borderRadius: 21, overflow: 'hidden' },
   peerSub: { fontSize: 12.5, fontFamily: F.medium, marginTop: 1 },
   // Telegram'dagidek: xabarlar pastdan boshlanadi, kam bo'lsa ham tepada «osilib» turmaydi
   list: { paddingHorizontal: 10, paddingTop: 10, paddingBottom: 12, flexGrow: 1, justifyContent: 'flex-end' },
   introWrap: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
-  intro: { alignItems: 'center', gap: 8, padding: 20, borderRadius: 22 },
-  introIcon: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  pill: { alignSelf: 'center', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 14, marginVertical: 8 },
-  pillText: { fontSize: 13, fontFamily: F.semi },
+  intro: { alignItems: 'center', gap: 8, paddingVertical: 20, paddingHorizontal: 22, borderRadius: 22, maxWidth: 320, alignSelf: 'center' },
+  introIcon: { width: 64, height: 64, borderRadius: 32, alignItems: 'center', justifyContent: 'center', marginBottom: 4, backgroundColor: 'rgba(255,255,255,0.2)' },
+  introTitle: { color: '#FFFFFF', fontSize: 16, fontFamily: F.bold, textAlign: 'center' },
+  introText: { color: 'rgba(255,255,255,0.92)', fontSize: 14, lineHeight: 20, fontFamily: F.medium, textAlign: 'center' },
+  pill: { alignSelf: 'center', paddingHorizontal: 11, paddingVertical: 4, borderRadius: 13, marginVertical: 8 },
+  pillText: { fontSize: 13.5, fontFamily: F.semi, color: '#FFFFFF' },
   bubbleRow: { maxWidth: '84%', position: 'relative' },
   bubble: {
     paddingLeft: 11,
     paddingRight: 10,
     paddingTop: 7,
     paddingBottom: 7,
-    borderRadius: 18,
+    borderRadius: 17,
     shadowColor: '#000',
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.1,
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
     elevation: 1,
   },
-  msgText: { fontSize: 15.5, lineHeight: 21, fontFamily: F.medium },
+  msgText: { fontSize: 16, lineHeight: 21, fontFamily: F.medium },
   spacer: { color: 'transparent' },
   metaFloat: { position: 'absolute', right: 9, bottom: 6 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 2, alignSelf: 'flex-end' },
@@ -454,12 +475,11 @@ const styles = StyleSheet.create({
   // dum: pufakcha rangidagi uchburchak, pastki burchakda
   tailRight: { position: 'absolute', right: -TAIL + 2, bottom: 0, width: 0, height: 0, borderTopWidth: TAIL + 3, borderTopColor: 'transparent', borderLeftWidth: TAIL },
   tailLeft: { position: 'absolute', left: -TAIL + 2, bottom: 0, width: 0, height: 0, borderTopWidth: TAIL + 3, borderTopColor: 'transparent', borderRightWidth: TAIL },
-  fileIco: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  fileIco: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   join: { alignItems: 'center', paddingVertical: 8, borderRadius: 12, marginTop: 2 },
   banner: { marginHorizontal: 10, marginBottom: 8, padding: 12, borderRadius: 18, gap: 10, borderWidth: StyleSheet.hairlineWidth },
-  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, paddingHorizontal: 6, paddingTop: 6, borderTopWidth: StyleSheet.hairlineWidth },
+  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 0, paddingStart: 14, paddingEnd: 4, paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth },
   composerBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   input: { flex: 1, minWidth: 0, minHeight: 44, maxHeight: 150, paddingHorizontal: 6, paddingTop: 11, paddingBottom: 11, fontSize: 16, fontFamily: F.medium },
-  sendBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', margin: 2 },
   locked: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 16, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },
 });
