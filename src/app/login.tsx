@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState, type ComponentRef } from 'react';
 import { ActivityIndicator, AppState, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,7 +11,7 @@ import { Logo, PickerSheet, SelectField } from '@/components/platform-ui';
 import { OtpStep } from '@/components/otp-step';
 import { openTelegram, SmsButton, TelegramButton } from '@/components/telegram-otp';
 import { toast } from '@/components/toast';
-import { Avatar, BrandLogo, BrandMark, DEFAULT_AVATAR, Button, Field, Flag, IconTile, Row, Txt } from '@/components/ui';
+import { Avatar, BrandLogo, BrandMark, DEFAULT_AVATAR, Button, Field, Flag, Row, Txt } from '@/components/ui';
 import { type OtpContact, requestOtp, saveProfile, type SecondStep, verifyOtp, verifySecondFactor } from '@/lib/account-api';
 import { ApiError, errorText } from '@/lib/api';
 import { som } from '@/lib/geo';
@@ -73,8 +74,14 @@ type Step = 'accounts' | 'contact' | 'code' | 'profile';
  * raqam (yoki email) → SMS kod → hisob bo'lsa darhol ichkariga, yangi bo'lsa «Keling, tanishamiz».
  * Qurilmada avval kirilgan hisoblar «Hisobni tanlang» ro'yxatida chiqadi.
  */
+/** Hisob turi belgisi: shaxs — sariq, kompaniya — binafsha gradient katakda */
+const KIND_ART = {
+  person: { colors: ['#FFDD55', '#FFB800'] as const, ink: '#0E1525' },
+  company: { colors: ['#9B7BFF', '#6A4BEF'] as const, ink: '#FFFFFF' },
+};
+
 export default function Login() {
-  const { colors: c, signIn, savedAccounts, forgetAccount, settings } = useStore();
+  const { colors: c, dark, signIn, savedAccounts, forgetAccount, settings } = useStore();
   const bonus = settings?.signupBonus ?? 0;
   const CODE_LEN = settings?.otpLength ?? DEFAULT_CODE_LEN;
   const insets = useSafeAreaInsets();
@@ -294,6 +301,8 @@ export default function Login() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: c.bg }} behavior={KEYBOARD_BEHAVIOR}>
+      {/* tepa qism doim qora — soat va batareya oq rangda */}
+      <StatusBar style="light" />
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
@@ -472,26 +481,42 @@ export default function Login() {
           {/* ---------- Yangi foydalanuvchi ---------- */}
           {step === 'profile' && (
             <>
-              <View style={{ gap: 6 }}>
-                <Txt v="h1">{tr('Keling, tanishamiz')}</Txt>
-                <Txt muted>{method === 'phone' ? tr("Bu raqam bilan hali hisob yo'q. Profilingizni to'ldiring — bir daqiqa vaqt oladi") : tr("Bu email bilan hali hisob yo'q. Profilingizni to'ldiring — bir daqiqa vaqt oladi")}</Txt>
+              <View style={{ gap: 8 }}>
+                <View style={[styles.verified, { backgroundColor: c.okSoft }]} accessibilityLabel={tr('Kod tasdiqlandi')}>
+                  <Ionicons name={method === 'phone' ? 'call' : 'mail'} size={13} color={c.ok} />
+                  <Text style={[styles.verifiedText, { color: c.ok }]} numberOfLines={1}>{target}</Text>
+                  <Ionicons name="checkmark-circle" size={15} color={c.ok} />
+                </View>
+                <Text style={[styles.profileTitle, { color: c.text }]}>{tr('Keling, tanishamiz')}</Text>
+                <Text style={[styles.profileSub, { color: c.muted }]}>{method === 'phone' ? tr("Bu raqam bilan hali hisob yo'q. Profilingizni to'ldiring — bir daqiqa vaqt oladi") : tr("Bu email bilan hali hisob yo'q. Profilingizni to'ldiring — bir daqiqa vaqt oladi")}</Text>
               </View>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                {([['person', tx('Jismoniy shaxs'), 'person-outline', tx('Tadbirkor, mutaxassis, investor')], ['company', tx('Kompaniya'), 'business-outline', tx('MChJ, AJ, xorijiy kompaniya')]] as const).map(([id, l, i, d]) => {
-                  const on = kind === id;
-                  return (
-                    <Pressable key={id} onPress={() => { haptic.tap(); setKind(id); }} style={[styles.kind, { backgroundColor: on ? c.brandSoft : c.surface2, borderColor: on ? c.brand : 'transparent' }]}>
-                      <Row style={{ justifyContent: 'space-between' }}>
-                        <Ionicons name={i} size={22} color={c.text} />
-                        <View style={[styles.radio, { borderColor: on ? c.brand : c.faint, backgroundColor: on ? c.brand : 'transparent' }]}>
-                          {on && <Ionicons name="checkmark" size={12} color={c.brandText} />}
-                        </View>
-                      </Row>
-                      <Txt v="h3">{tr(l)}</Txt>
-                      <Txt v="tiny" faint>{tr(d)}</Txt>
-                    </Pressable>
-                  );
-                })}
+              <View style={{ gap: 8 }}>
+                <Text style={[styles.groupLabel, { color: c.muted }]}>{tr('Hisob turi')}</Text>
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  {([['person', tx('Jismoniy shaxs'), 'person', tx('Tadbirkor, mutaxassis, investor')], ['company', tx('Kompaniya'), 'business', tx('MChJ, AJ, xorijiy kompaniya')]] as const).map(([id, l, i, d]) => {
+                    const on = kind === id;
+                    const art = KIND_ART[id];
+                    return (
+                      <Pressable
+                        key={id}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: on }}
+                        onPress={() => { haptic.tap(); setKind(id); }}
+                        style={({ pressed }) => [styles.kind, { backgroundColor: on ? c.brandSoft : c.surface, borderColor: on ? c.brand : c.line, transform: [{ scale: pressed ? 0.98 : 1 }] }]}>
+                        <Row style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <LinearGradient colors={art.colors} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.kindIcon}>
+                            <Ionicons name={i} size={22} color={art.ink} />
+                          </LinearGradient>
+                          <View style={[styles.radio, { borderColor: on ? c.brand : c.faint, backgroundColor: on ? c.brand : 'transparent' }]}>
+                            {on && <Ionicons name="checkmark" size={14} color={c.brandText} />}
+                          </View>
+                        </Row>
+                        <Text style={[styles.kindTitle, { color: c.text }]} numberOfLines={2}>{tr(l)}</Text>
+                        <Text style={[styles.kindSub, { color: c.muted }]}>{tr(d)}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
               </View>
               <SelectField label={tr('Mamlakat')} value={k.name} left={<Flag code={k.code} size={22} />} placeholder={tr('Mamlakat')} onPress={() => setPicker('country')} />
 
@@ -578,13 +603,15 @@ export default function Login() {
                   <Txt v="small" muted style={{ flex: 1 }}>{tr("Xorijiy kompaniyalar ro'yxatdan o'tgach hujjatlar orqali tasdiqlanadi (Kabinet → Profilni tasdiqlash)")}</Txt>
                 </Row>
               )}
-              <View style={[styles.bonus, { backgroundColor: c.brandSoft }]}>
-                <IconTile name="gift-outline" color={c.brandDeep} size={44} />
-                <View style={{ flex: 1 }}>
-                  <Txt v="h3">{tr("Xush kelibsiz sovg'asi")}</Txt>
-                  <Txt v="small" muted>{bonus > 0 ? tr('Birinchi loyiha joylashtirish bepul + YUMS Taxi balansiga {sum}', { sum: som(bonus) }) : tr('Birinchi loyiha joylashtirish bepul')}</Txt>
+              <LinearGradient colors={dark ? ['#3A3010', '#241E0B'] : ['#FFF6D1', '#FFE7A0']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.bonus}>
+                <LinearGradient colors={['#FFDD55', '#FFB800']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.bonusIcon}>
+                  <Ionicons name="gift" size={22} color="#0E1525" />
+                </LinearGradient>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={[styles.bonusTitle, { color: c.text }]}>{tr("Xush kelibsiz sovg'asi")}</Text>
+                  <Text style={[styles.bonusText, { color: c.muted }]}>{bonus > 0 ? tr('Birinchi loyiha joylashtirish bepul + YUMS Taxi balansiga {sum}', { sum: som(bonus) }) : tr('Birinchi loyiha joylashtirish bepul')}</Text>
                 </View>
-              </View>
+              </LinearGradient>
               <Button title={tr('Hisob yaratish')} icon="arrow-forward" disabled={!profileOk} loading={busy} onPress={finish} />
             </>
           )}
@@ -641,8 +668,19 @@ const styles = StyleSheet.create({
   legal: { textAlign: 'center', fontSize: 12, lineHeight: 17, fontFamily: F.medium, paddingHorizontal: 8 },
   lead: { fontSize: 14.5, lineHeight: 21 },
   altText: { fontSize: 15, fontFamily: F.bold, letterSpacing: -0.1 },
-  kind: { flex: 1, padding: 14, borderRadius: 18, borderWidth: 1.5, gap: 6 },
-  radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  kind: { flex: 1, padding: 14, borderRadius: 20, borderWidth: 1.5, gap: 6 },
+  kindIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  kindTitle: { fontFamily: F.bold, fontSize: 16, lineHeight: 20 },
+  kindSub: { fontFamily: F.medium, fontSize: 12.5, lineHeight: 17 },
+  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  verified: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', maxWidth: '100%', paddingHorizontal: 10, height: 28, borderRadius: 14 },
+  verifiedText: { fontFamily: F.bold, fontSize: 13, flexShrink: 1 },
+  profileTitle: { fontFamily: F.display, fontSize: 28, lineHeight: 33, letterSpacing: -0.6 },
+  profileSub: { fontFamily: F.medium, fontSize: 15, lineHeight: 21 },
+  groupLabel: { fontFamily: F.bold, fontSize: 13, marginLeft: 2 },
   reg: { padding: 12, borderRadius: 14, gap: 4 },
-  bonus: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18 },
+  bonus: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 20 },
+  bonusIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  bonusTitle: { fontFamily: F.bold, fontSize: 15.5, lineHeight: 20 },
+  bonusText: { fontFamily: F.medium, fontSize: 13, lineHeight: 18 },
 });

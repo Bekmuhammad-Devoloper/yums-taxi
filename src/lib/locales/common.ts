@@ -451,6 +451,7 @@ const common: Record<string, Row> = {
   "Aniq joylashuv o'chiq — sozlamalarda «Aniq joylashuv»ni yoqing": ["Точная геолокация выключена — включите «Точное местоположение» в настройках", "Precise location is off — turn on «Precise location» in settings", "Ҷойгиршавии дақиқ хомӯш аст — дар танзимот «Ҷойгиршавии дақиқ»-ро фаъол кунед", "الموقع الدقيق متوقف — فعّل «الموقع الدقيق» من الإعدادات"],
   "Joylashuv taxminiy (±{m} m). Pinni aniq joyga suring": ["Местоположение примерное (±{m} м). Передвиньте пин на точное место", "Location is approximate (±{m} m). Drag the pin to the exact spot", "Ҷойгиршавӣ тахминӣ аст (±{m} м). Пинро ба ҷои дақиқ кашед", "الموقع تقريبي (±{m} م). اسحب الدبوس إلى المكان الدقيق"],
   "Bir bosishda chaqirish": ["Вызов в одно касание", "One-tap ride", "Даъват бо як зер", "طلب بنقرة واحدة"],
+  "Hisob turi": ["Тип аккаунта", "Account type", "Навъи ҳисоб", "نوع الحساب"],
 };
 
 export default common;
