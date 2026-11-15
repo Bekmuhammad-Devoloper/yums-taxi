@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -15,6 +16,7 @@ import { coverOf } from '@/lib/covers';
 import { LANGUAGES, SEEKS, STAGES } from '@/lib/platform-data';
 import { ago, budget, countryOf, fileSize, flagged, sectorOf, short, usePlatform } from '@/lib/platform';
 import { openFile } from '@/lib/open-file';
+import { SECTOR_ART } from '@/lib/sector-art';
 import { useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
 import { flipRTL, tr } from '@/lib/i18n';
@@ -111,13 +113,10 @@ export default function ProjectScreen() {
   );
   const canToggle = mine && (pr.status === 'published' || pr.status === 'paused');
   const active = pr.status === 'published';
-  /** Nom (qo'lyozma), soha va holat bitta qatorda; egasi uchun iPhone uslubidagi Faol/Nofaol tugmasi */
-  const heroLine = (onColor: boolean) => {
-    const fg = onColor ? '#fff' : c.text;
-    return (
-      <View style={styles.heroLine}>
-        <Text style={[styles.heroTitle, { color: fg }]} numberOfLines={2}>{pr.title}</Text>
-        <View style={[styles.secPill, { backgroundColor: onColor ? 'rgba(255,255,255,0.22)' : alpha(sec.color, 0.14) }]}>
+  /** Soha, TOP va holat; egasi uchun iPhone uslubidagi Faol/Nofaol tugmasi */
+  const heroMeta = (onColor: boolean) => (
+    <>
+      <View style={[styles.secPill, { backgroundColor: onColor ? 'rgba(255,255,255,0.22)' : alpha(sec.color, 0.14) }]}>
           <SectorGlyph id={sec.id} size={16} />
           <Text style={[styles.secPillText, { color: onColor ? '#fff' : sec.color }]}>{sec.name}</Text>
         </View>
@@ -129,9 +128,16 @@ export default function ProjectScreen() {
             <IOSSwitch value={active} label={tr('Loyiha faolligi')} onChange={v => { p.setProjectActive(pr.id, v); toast(v ? tr('Loyiha yana katalogda') : tr('Loyiha vaqtincha yashirildi'), v ? 'eye' : 'eye-off'); }} />
           </View>
         ) : (mine || staff) ? <StatusBadge status={pr.status} /> : null}
-      </View>
-    );
-  };
+    </>
+  );
+  /** Nom (qo'lyozma) — uch qatorgacha to'liq, sig'masa biroz kichrayadi; ostida soha va holat */
+  const heroLine = (onColor: boolean) => (
+    <View style={{ gap: 10 }}>
+      <Text style={[styles.heroTitle, titleSize(pr.title), { color: onColor ? '#fff' : c.text }, onColor && styles.heroTitleOnColor]} numberOfLines={4} adjustsFontSizeToFit minimumFontScale={0.8}>{pr.title}</Text>
+      <View style={styles.heroLine}>{heroMeta(onColor)}</View>
+    </View>
+  );
+  const art = SECTOR_ART[sec.id];
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -144,11 +150,22 @@ export default function ProjectScreen() {
             {heroLine(false)}
           </View>
         ) : (
+          // Banner yuklanmagan: soha rangidagi gradient, yumshoq yorug' doiralar va sohaning 3D belgisi
           <View style={[styles.hero, { backgroundColor: sec.color, paddingTop: insets.top + 8 }]}>
-            <LinearGradient colors={[sec.color, shade(sec.color, 0.6)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-            <Ionicons name={sec.icon} size={190} color="rgba(255,255,255,0.1)" style={{ position: 'absolute', right: -30, bottom: -40 }} />
+            <LinearGradient colors={[sec.color, shade(sec.color, 0.22), shade(sec.color, 0.6)]} locations={[0, 0.45, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+            <View style={[styles.glow, styles.glowTop]} />
+            <View style={[styles.glow, styles.glowBottom]} />
+            <Ionicons name={sec.icon} size={170} color="rgba(255,255,255,0.07)" style={styles.heroWatermark} />
             {heroButtons}
-            <View style={{ marginTop: 28 }}>{heroLine(true)}</View>
+            <View style={styles.heroBody}>
+              <View style={{ flex: 1, minWidth: 0 }}>{heroLine(true)}</View>
+              {art ? (
+                <View style={styles.heroArtWrap}>
+                  <View style={styles.heroArtHalo} />
+                  <Image source={art} style={styles.heroArt} contentFit="contain" accessibilityLabel={sec.name} />
+                </View>
+              ) : null}
+            </View>
           </View>
         )}
 
@@ -288,8 +305,23 @@ export default function ProjectScreen() {
   );
 }
 
+/** Uzun nom kichikroq shriftda — to'rt qatorgacha to'liq sig'adi, «…» bilan kesilmaydi */
+const titleSize = (title: string) => {
+  const size = title.length <= 24 ? 34 : title.length <= 44 ? 30 : title.length <= 64 ? 26 : 23;
+  return { fontSize: size, lineHeight: Math.round(size * 1.12) };
+};
+
 const styles = StyleSheet.create({
   hero: { paddingHorizontal: 16, paddingBottom: 40, overflow: 'hidden' },
+  heroBody: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 24 },
+  glow: { position: 'absolute', borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.12)' },
+  glowTop: { width: 260, height: 260, top: -120, right: -70 },
+  glowBottom: { width: 200, height: 200, bottom: -110, left: -60, backgroundColor: 'rgba(255,255,255,0.07)' },
+  heroWatermark: { position: 'absolute', left: -36, bottom: -44 },
+  heroArtWrap: { width: 116, height: 116, alignItems: 'center', justifyContent: 'center' },
+  heroArtHalo: { position: 'absolute', width: 104, height: 104, borderRadius: 52, backgroundColor: 'rgba(255,255,255,0.16)' },
+  heroArt: { width: 100, height: 100 },
+  heroTitleOnColor: { textShadowColor: 'rgba(0,0,0,0.22)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 },
   // balandlik rasmning o'z nisbatiga moslanadi (1.2–3), banner to'liq ko'rinadi
   coverBox: { width: '100%', maxHeight: 460, borderRadius: radius.l },
   menuThumb: { width: 64, height: 48, borderRadius: 12 },
