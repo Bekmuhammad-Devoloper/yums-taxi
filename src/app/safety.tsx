@@ -10,12 +10,16 @@ import { tr, trPlace } from '@/lib/i18n';
 const call = (n: string) => Linking.openURL(`tel:${n}`).catch(() => toast(tr("Qo'ng'iroq: {n}", { n }), 'call'));
 
 export default function Safety() {
-  const { colors: c, order } = useStore();
+  const { colors: c, order, sos } = useStore();
   const d = order.driver;
   const inTrip = !!d && ['accepted', 'arrived', 'inride'].includes(order.phase);
   return (
     <Screen title={tr('Xavfsizlik')}>
-      <Pressable onPress={() => call('112')} style={({ pressed }) => [styles.sos, { opacity: pressed ? 0.85 : 1 }]}>
+      <Pressable onPress={() => {
+        // Safar paytida YUMS xavfsizlik xizmati ham darhol xabardor qilinadi (mashina joylashuvi bilan)
+        if (inTrip) sos().then(ok => { if (ok) toast(tr('YUMS xavfsizlik xizmati xabardor qilindi'), 'shield-checkmark'); });
+        call('112');
+      }} style={({ pressed }) => [styles.sos, { opacity: pressed ? 0.85 : 1 }]}>
         <View style={styles.sosRing}><Text style={styles.sosText}>{tr('SOS')}</Text></View>
         <View style={{ flex: 1 }}>
           <Text style={styles.sosTitle}>{tr('Favqulodda yordam')}</Text>

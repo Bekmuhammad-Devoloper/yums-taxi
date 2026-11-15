@@ -1,10 +1,26 @@
 // YUMS backend (Nest) bilan aloqa: javob konverti, tokenlar va ularni yangilash.
 // Qoidalar: docs/MOBILE-INTEGRATION.md (backend repo). Xatolar `code` bo'yicha ajratiladi, matn odam uchun.
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? 'https://api.yums.uz/api/v1').replace(/\/$/, '');
+/**
+ * Server manzili. Ishlab chiqishda EXPO_PUBLIC_API_URL xosti `auto` bo'lsa (masalan `http://auto:3000/api/v1`),
+ * ilova o'zi yuklangan kompyuterni oladi: vebda — sahifa xosti, telefonda (Expo Go) — Metro serveri xosti.
+ * Shunda Wi-Fi almashib kompyuter IP si o'zgarsa ham ilova serverni topadi. Prod build'da manzil aniq yoziladi.
+ */
+function resolveApiUrl(): string {
+  const raw = (process.env.EXPO_PUBLIC_API_URL ?? 'https://api.yums.uz/api/v1').replace(/\/$/, '');
+  const m = /^(https?:\/\/)auto(:\d+)?(\/.*)?$/.exec(raw);
+  if (!m) return raw;
+  const host = Platform.OS === 'web'
+    ? (typeof window !== 'undefined' ? window.location.hostname : '')
+    : (Constants.expoConfig?.hostUri ?? '').split(':')[0];
+  return `${m[1]}${host || 'localhost'}${m[2] ?? ''}${m[3] ?? ''}`;
+}
+
+export const API_URL = resolveApiUrl();
 
 const TOKENS_KEY = 'yums.tokens';
 const REQUEST_TIMEOUT_MS = 20_000;
@@ -34,10 +50,23 @@ const vault = {
 let tokens: Tokens | null = null;
 let restored = false;
 let refreshing: Promise<boolean> | null = null;
-let onSessionLost: () => void = () => {};
+let onSessionLost: (reason?: string) => void = () => {};
 
-/** Sessiya tugaganda (refresh rad etilsa) chaqiriladi: ilova foydalanuvchini kirishga qaytaradi */
-export const setSessionLostHandler = (handler: () => void) => { onSessionLost = handler; };
+/**
+ * Sessiya tugaganda (refresh rad etilsa yoki server sessiyani yopgan bo'lsa) chaqiriladi: ilova foydalanuvchini
+ * kirishga qaytaradi. `reason` — foydalanuvchiga ko'rsatiladigan sabab (masalan, «boshqa qurilmadan kirildi»).
+ */
+export const setSessionLostHandler = (handler: (reason?: string) => void) => { onSessionLost = handler; };
+
+/** Server shu sessiyani yopgan: «hamma qurilmalardan chiqish» yoki haydovchi boshqa telefondan kirgan */
+const ENDED = new Set(['SESSION_REVOKED', 'SESSION_REPLACED']);
+
+/** Sessiyani tugatib, ilovani kirish ekraniga qaytaradi (bir necha so'rov bir vaqtda kelsa — bir marta) */
+export async function endSession(reason?: string): Promise<void> {
+  if (!tokens && restored) return;
+  await clearTokens();
+  onSessionLost(reason);
+}
 
 async function currentTokens(): Promise<Tokens | null> {
   if (restored) return tokens;
@@ -48,6 +77,9 @@ async function currentTokens(): Promise<Tokens | null> {
 }
 
 export const hasSession = async (): Promise<boolean> => (await currentTokens()) !== null;
+
+/** Realtime ulanish uchun joriy kirish tokeni */
+export const accessToken = async (): Promise<string | null> => (await currentTokens())?.accessToken ?? null;
 
 export async function saveTokens(next: Tokens): Promise<void> {
   tokens = next;
@@ -99,9 +131,11 @@ function refreshOnce(): Promise<boolean> {
       const next = await read<Tokens>(await send('POST', '/auth/refresh', { refreshToken }));
       await saveTokens(next);
       return true;
-    } catch {
-      await clearTokens();
-      onSessionLost();
+    } catch (error) {
+      // Internet yo'q yoki server vaqtincha javob bermadi — sessiya saqlanadi, keyingi so'rovda yana uriniladi.
+      // (Yo'lda aloqa uzilib qolgan haydovchi tizimdan chiqib ketmasin.) Faqat server tokenni rad etsa — chiqiladi.
+      if (error instanceof ApiError && (error.status === 0 || error.status >= 500)) return false;
+      await endSession(error instanceof ApiError && ENDED.has(error.code) ? error.message : undefined);
       return false;
     } finally {
       refreshing = null;
@@ -122,6 +156,7 @@ export async function api<T>(method: string, path: string, body?: unknown, retri
   if (failure instanceof ApiError && failure.code === 'TOKEN_EXPIRED' && (await refreshOnce())) {
     return api<T>(method, path, body, true, headers);
   }
+  if (failure instanceof ApiError && ENDED.has(failure.code) && token) await endSession(failure.message);
   throw failure;
 }
 

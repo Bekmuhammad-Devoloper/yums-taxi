@@ -7,9 +7,8 @@ import { tr } from '@/lib/i18n';
 /** Suhbatni ochish (yoki hamkorlik so'rovini boshlash) va chat ekraniga o'tish */
 export function useStartChat() {
   const { openChat } = usePlatform();
-  return (peer: PeerInfo, opts?: { subject?: string; request?: boolean }) => {
-    const id = openChat(peer, opts);
-    router.push({ pathname: '/chat/[id]', params: { id } });
+  return (peer: PeerInfo, opts?: { subject?: string; request?: boolean; text?: string }) => {
+    openChat(peer, opts).then(id => { if (id) router.push({ pathname: '/chat/[id]', params: { id } }); });
   };
 }
 

@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Button, Card, Progress, Row, Screen, Txt } from '@/components/ui';
+import { Card, Progress, Row, Screen, Txt } from '@/components/ui';
 import { DocForm, DocViewer, STATUS, StatusChip } from '@/driver/components/doc-ui';
 import { DOC_KINDS, DOC_META, type DocKind } from '@/driver/lib/docs';
 import { useDriver } from '@/driver/lib/driver-store';
@@ -16,7 +16,6 @@ export default function Documents() {
   const [edit, setEdit] = useState<DocKind | null>(null);
   const [formKey, setFormKey] = useState(0);
   const approved = DOC_KINDS.filter(k => d.docs[k].status === 'approved').length;
-  const anyMissing = DOC_KINDS.some(k => d.docs[k].status === 'missing');
 
   // yuklanmagan hujjat — darhol forma, aks holda hujjatning o'zi ochiladi
   const open = (k: DocKind) => {
@@ -61,10 +60,6 @@ export default function Documents() {
           );
         })}
       </Card>
-
-      {anyMissing && (
-        <Button title={tr("Namuna hujjatlar bilan to'ldirish (demo)")} icon="flash" kind="ghost" onPress={d.fillDemoDocs} />
-      )}
 
       <View style={[styles.tip, { backgroundColor: c.accentSoft }]}>
         <Ionicons name="lock-closed" size={18} color={c.accent} />

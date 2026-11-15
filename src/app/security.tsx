@@ -1,11 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { Share, StyleSheet, View } from 'react-native';
 
 import { toast } from '@/components/toast';
-import { IOSSwitch, Badge, Card, ListItem, Row, Screen, SectionTitle, Segmented, Txt } from '@/components/ui';
+import { IOSSwitch, Badge, Card, ListItem, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { confirm } from '@/lib/confirm';
 import { ago, usePlatform } from '@/lib/platform';
+import { errorText } from '@/lib/api';
 import { useStore, type Role } from '@/lib/store';
 import { F } from '@/lib/theme';
 import { tr } from '@/lib/i18n';
@@ -17,22 +19,24 @@ const ROLES: { id: Role; label: string; short: string; can: string }[] = [
 ];
 
 export default function Security() {
-  const { colors: c, user, updateUser, deleteAccount } = useStore();
+  const { colors: c, user, deleteAccount } = useStore();
   const p = usePlatform();
   const role = user?.role ?? 'user';
+  const [openedAt] = useState(Date.now);
 
   const backup = () => {
-    Share.share({ title: tr("YUMS — ma'lumotlarim"), message: p.exportData() }).catch(() => {});
-    p.logEvent(tr("Ma'lumotlar nusxasi eksport qilindi"));
+    p.exportData().then(data => { if (data) Share.share({ title: tr("YUMS — ma'lumotlarim"), message: data }).catch(() => {}); });
   };
+  // So'nggi sutkada noto'g'ri kod bilan kirishga urinish bo'lganmi
+  const suspicious = p.security.some(e => !e.ok && openedAt - new Date(e.at).getTime() < 86_400_000);
 
   return (
     <Screen title={tr('Xavfsizlik va zaxira')}>
-      <View style={[styles.monitor, { backgroundColor: c.okSoft }]}>
-        <Ionicons name="pulse" size={26} color={c.ok} />
+      <View style={[styles.monitor, { backgroundColor: suspicious ? c.dangerSoft : c.okSoft }]}>
+        <Ionicons name={suspicious ? 'warning' : 'pulse'} size={26} color={suspicious ? c.danger : c.ok} />
         <View style={{ flex: 1 }}>
-          <Txt v="h3" color={c.ok}>{tr('Xavfsizlik monitoringi faol')}</Txt>
-          <Txt v="small" color={c.ok}>{tr('Shubhali faollik aniqlanmadi · oxirgi tekshiruv hozir')}</Txt>
+          <Txt v="h3" color={suspicious ? c.danger : c.ok}>{suspicious ? tr("So'nggi sutkada noto'g'ri kod kiritilgan") : tr('Shubhali faollik aniqlanmadi')}</Txt>
+          <Txt v="small" color={suspicious ? c.danger : c.ok}>{suspicious ? tr("Siz bo'lmasangiz — ikki bosqichli himoyani yoqing") : tr("Kirishlar tarixi quyida — server qayd etadi")}</Txt>
         </View>
       </View>
 
@@ -41,9 +45,9 @@ export default function Security() {
         <Row>
           <View style={{ flex: 1 }}>
             <Txt v="h3">{tr('Ikki bosqichli himoya')}</Txt>
-            <Txt v="small" muted>{tr("Har kirishda {v2} orqali qo'shimcha kod", { v2: user?.email ? tr('email') : 'SMS' })}</Txt>
+            <Txt v="small" muted>{user?.phone && user?.email ? tr("Har kirishda ikkinchi manzilingizga (SMS yoki email) qo'shimcha kod") : tr("Yoqish uchun profilga telefon va email ikkalasini qo'shing")}</Txt>
           </View>
-          <IOSSwitch value={p.twoFactor} onChange={v => { p.setTwoFactor(v); p.logEvent(v ? tr('2FA yoqildi') : tr("2FA o'chirildi")); toast(v ? tr('Ikki bosqichli himoya yoqildi') : tr("Ikki bosqichli himoya o'chirildi"), 'lock-closed'); }} />
+          <IOSSwitch value={p.twoFactor} onChange={v => { p.setTwoFactor(v).then(ok => { if (ok) toast(v ? tr('Ikki bosqichli himoya yoqildi') : tr("Ikki bosqichli himoya o'chirildi"), 'lock-closed'); }); }} />
         </Row>
         <Row>
           <Ionicons name="phone-portrait-outline" size={20} color={c.muted} />
@@ -71,7 +75,6 @@ export default function Security() {
 
       <SectionTitle>{tr('Ruxsat darajasi')}</SectionTitle>
       <Card style={{ gap: 12 }}>
-        <Segmented<Role> value={role} onChange={r => { updateUser({ role: r }); p.logEvent(tr("Rol o'zgartirildi: {role}", { role: ROLES.find(x => x.id === r)?.label ?? r })); }} items={ROLES.map(r => ({ id: r.id, label: r.short }))} />
         {ROLES.map(r => (
           <Row key={r.id} gap={10} style={{ alignItems: 'flex-start', opacity: r.id === role ? 1 : 0.55 }}>
             <Ionicons name={r.id === role ? 'radio-button-on' : 'radio-button-off'} size={18} color={r.id === role ? c.brandDeep : c.faint} />
@@ -81,7 +84,7 @@ export default function Security() {
             </View>
           </Row>
         ))}
-        <Txt v="tiny" faint>{tr("Demo rejim: rolni o'zingiz almashtira olasiz. Haqiqiy tizimda rollarni faqat administrator beradi.")}</Txt>
+        <Txt v="tiny" faint>{tr('Rollarni YUMS administratori beradi; yangi rol keyingi kirishda faollashadi.')}</Txt>
         {role !== 'user' && <ListItem icon="key-outline" iconColor={c.danger} title={tr("Moderatsiya paneliga o'tish")} onPress={() => router.push('/moderation')} />}
       </Card>
 
@@ -90,8 +93,10 @@ export default function Security() {
         <ListItem icon="cloud-download-outline" title={tr("Ma'lumotlarim nusxasi")} sub={tr("Profil, loyihalar, e'lonlar — JSON")} onPress={backup} />
         <ListItem icon="server-outline" title={tr('Avtomatik zaxira nusxa')} sub={tr('Har kuni · 35 kun saqlanadi')} right={<Badge label={tr('Yoqilgan')} tone="ok" />} />
         <ListItem icon="document-lock-outline" title={tr('Saqlash qoidalari')} onPress={() => router.push({ pathname: '/legal', params: { doc: 'retention' } })} />
-        <ListItem icon="trash-outline" title={tr("Hisobni o'chirish")} danger onPress={() => confirm(tr("Hisobni o'chirasizmi?"), tr("Barcha loyihalar, e'lonlar va xabarlar o'chiriladi. Bu amalni qaytarib bo'lmaydi."), () => {
-          p.resetPlatform(); deleteAccount(); router.replace('/login'); toast(tr("Hisob o'chirildi"), 'trash');
+        <ListItem icon="trash-outline" title={tr("Hisobni o'chirish")} danger onPress={() => confirm(tr("Hisobni o'chirasizmi?"), tr("Shaxsiy ma'lumotlaringiz o'chiriladi, kirish sessiyalari yopiladi. Bu amalni qaytarib bo'lmaydi."), () => {
+          deleteAccount()
+            .then(() => { p.resetPlatform(); router.replace('/login'); toast(tr("Hisob o'chirildi"), 'trash'); })
+            .catch(error => toast(errorText(error), 'alert-circle'));
         }, tr("O'chirish"))} />
       </Card>
     </Screen>

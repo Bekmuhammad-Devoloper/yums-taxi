@@ -40,13 +40,16 @@ export default function NewMarketItem() {
   const submit = () => {
     setTried(true);
     if (Object.values(errors).some(Boolean)) { toast(tr("Maydonlarni to'ldiring"), 'alert-circle'); return; }
-    const id = p.addMarketItem({
+    p.addMarketItem({
       title: title.trim(), kind, price: priceNum, unit: unit.trim() || undefined, desc: desc.trim(), delivery: delivery.trim() || undefined,
       minOrder: minOrder.trim() || undefined, sector, country, image,
+    }).then(id => {
+      if (!id) return;
+      haptic.success();
+      const live = p.myMarket.find(m => m.id === id)?.status === 'published' || !banned.length;
+      toast(live ? tr("E'lon katalogda e'lon qilindi") : tr("Yuborildi — moderator qo'lda tekshiradi"), live ? 'checkmark-circle' : 'hourglass');
+      router.replace({ pathname: '/market/[id]', params: { id } });
     });
-    haptic.success();
-    toast(tr("E'lon moderatsiyaga yuborildi"), 'hourglass');
-    router.replace({ pathname: '/market/[id]', params: { id } });
   };
 
   const k = countryOf(country);

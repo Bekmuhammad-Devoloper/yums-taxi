@@ -3,28 +3,36 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import TaxiMap, { type MapHandle } from '@/components/taxi-map';
+import TaxiMap, { TRAFFIC_AVAILABLE, type MapHandle } from '@/components/taxi-map';
 import { toast } from '@/components/toast';
 import { ActionSheet, PersonAvatar, Row, Sheet, Txt, alpha } from '@/components/ui';
 import { SlideButton } from '@/driver/components/slide-button';
 import { nearestHot, surgeAt, ZONE_COLOR } from '@/driver/lib/demand';
 import { DOC_KINDS } from '@/driver/lib/docs';
-import { ACTIVITY, FREE_WAIT_SEC, HOME_USES_PER_DAY, NO_SHOW_AFTER_SEC, WAIT_PER_MIN, useDriver, waitFeeOf, type Offer, type Trip } from '@/driver/lib/driver-store';
-import { fmtDist, MANEUVER_TEXT, nextManeuver, type ManeuverKind } from '@/driver/lib/nav';
+import { useDriver, waitFeeOf, type Offer, type Trip } from '@/driver/lib/driver-store';
+import { fmtDist, guide, maneuverText, nextManeuver, remainingPath, type ManeuverKind } from '@/driver/lib/nav';
 import { callNumber } from '@/driver/lib/support';
 import { activityColor, GREEN, ORANGE, VIOLET } from '@/driver/lib/theme';
 import { say, type PhraseKey } from '@/driver/lib/voice';
 import { TARIFF_ART } from '@/lib/cars';
-import { PLACES, TARIFFS, type LatLng } from '@/lib/data';
-import { DISPATCH_URL } from '@/lib/dispatch';
-import { distanceKm, som } from '@/lib/geo';
+import { TARIFFS, type LatLng, type Place } from '@/lib/data';
+import { errorText } from '@/lib/api';
+import { messagePassenger } from '@/lib/driver-api';
+import { popularPlaces } from '@/lib/trip-api';
+import { distanceKm, groupDigits, som } from '@/lib/geo';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
 import { fmtTime } from '@/lib/format';
 import { tr, tx, trPlace, route, flipRTL } from '@/lib/i18n';
+
+// panel ikonkalari ranglari
+const AMBER = '#F5A524';
+const RED = '#E5484D';
+const BLUE = '#3B82F6';
+const TEAL = '#14B8A6';
 
 const PAY: Record<string, { label: string; icon: keyof typeof Ionicons.glyphMap }> = {
   cash: { label: tx('Naqd'), icon: 'cash-outline' },
@@ -54,6 +62,8 @@ export default function DriverHome() {
   const map = useRef<MapHandle>(null);
   const [sheetH, setSheetH] = useState(300);
   const [demand, setDemand] = useState(true);
+  // tirbandlik manbai bo'lsa — yoqilgan holda boshlanadi
+  const [traffic, setTraffic] = useState(TRAFFIC_AVAILABLE);
   const { trip, offer, pos, summary } = d;
 
   // Xaritani mashinaga ergashtirish
@@ -84,7 +94,26 @@ export default function DriverHome() {
   const shown = offer?.order ?? trip?.order;
   const stage = trip?.stage;
   const path = stage === 'toPickup' ? trip?.approach : stage === 'inride' ? trip?.order.route.coords : undefined;
+  // navigator yo'li (server burilishlari bilan) kelgan bo'lsa — o'sha; chizishda bosib o'tilgan qismi ko'rsatilmaydi
+  const navPath = d.nav?.coords ?? path;
+  const ahead = navPath ? remainingPath(navPath, pos) : undefined;
   const showZones = demand && !trip && !offer && !summary;
+  const liveZones = d.zones.filter(z => z.kind === 'live').length;
+  const usualZones = d.zones.length - liveZones;
+  // talab xaritasi yoqilganda hududlar ko'rinadigan masshtabga keladi
+  const showDemand = () => {
+    const next = !demand;
+    setDemand(next);
+    if (next && d.zones.length) {
+      setFollow(false);
+      map.current?.fit([pos, ...d.zones.map(z => z.center)]);
+    }
+  };
+  const toggleTraffic = () => {
+    // manba yo'q (vebda kalit sozlanmagan) — tugma yoqilgandek ko'rinib, bo'sh xaritani ko'rsatmasin
+    if (!TRAFFIC_AVAILABLE) { toast(tr("Tirbandlik telefondagi ilovada ko'rinadi (vebda xarita kaliti sozlanmagan)"), 'information-circle'); return; }
+    setTraffic(v => !v);
+  };
   const hot = d.online && showZones ? nearestHot(d.zones, pos) : null;
   const hereSurge = surgeAt(d.zones, pos);
 
@@ -95,8 +124,8 @@ export default function DriverHome() {
         initial={pos}
         pickup={shown?.pickup}
         destination={shown?.destination}
-        route={offer ? offer.order.route.coords : path}
-        driverPath={path}
+        route={offer ? offer.order.route.coords : ahead}
+        driverPath={ahead}
         driverPos={pos}
         driverHeading={d.heading}
         showPickup={!!shown && stage !== 'inride'}
@@ -108,11 +137,12 @@ export default function DriverHome() {
         topPad={insets.top + (trip ? 150 : 70)}
         onDragStart={() => setFollow(false)}
         locationGranted={!d.autopilot}
+        traffic={traffic}
       />
 
       {/* Yuqori panel */}
       {trip ? (
-        <NavBanner trip={trip} path={path} pos={pos} top={insets.top + 8} />
+        <NavBanner trip={trip} path={navPath} pos={pos} top={insets.top + 8} />
       ) : (
         <View style={[styles.top, { paddingTop: insets.top + 8 }]} pointerEvents="box-none">
           <Pressable onPress={() => go('/menu')} style={[styles.round, { backgroundColor: c.surface }]} accessibilityLabel={tr('Menyu')}>
@@ -123,7 +153,7 @@ export default function DriverHome() {
             <Ionicons name="wallet" size={18} color={c.brandDeep} />
             <Text style={[styles.balanceText, { color: c.text }]} numberOfLines={1}>{som(d.balance)}</Text>
           </Pressable>
-          <Pressable onPress={() => setDemand(v => !v)} style={[styles.round, { backgroundColor: demand ? ORANGE : c.surface }]} accessibilityLabel={tr('Talab xaritasi')}>
+          <Pressable onPress={showDemand} style={[styles.round, { backgroundColor: demand ? ORANGE : c.surface }]} accessibilityLabel={tr('Talab xaritasi')}>
             <Ionicons name="flame" size={22} color={demand ? '#fff' : c.text} />
           </Pressable>
         </View>
@@ -140,8 +170,37 @@ export default function DriverHome() {
             <Ionicons name="flame" size={13} color="#fff" />
           </View>
           <Txt v="small" style={{ fontFamily: F.bold }}>
-            {hereSurge > 1 ? tr('Siz yuqori talab hududidasiz · ×{surge}', { surge: hereSurge.toFixed(1) }) : tr('Talab ×{surge} · {km} km', { surge: hot.zone.surge.toFixed(1), km: hot.km.toFixed(1) })}
+            {hereSurge > 1
+              ? tr('Siz yuqori talab hududidasiz · ×{surge}', { surge: hereSurge.toFixed(1) })
+              : hot.zone.surge > 1
+              ? tr('Talab ×{surge} · {km} km', { surge: hot.zone.surge.toFixed(1), km: hot.km.toFixed(1) })
+              : tr('Gavjum hudud · {km} km', { km: hot.km.toFixed(1) })}
           </Txt>
+        </Pressable>
+      )}
+
+      {showZones && !hot && (
+        <Pressable
+          onPress={() => { if (d.zones.length) { setFollow(false); map.current?.fit([pos, ...d.zones.map(z => z.center)]); } }}
+          style={[styles.hint, { bottom: sheetH + 30, backgroundColor: c.surface }]}
+          accessibilityLabel={tr('Talab xaritasi')}>
+          <View style={[styles.hintDot, { backgroundColor: liveZones ? ZONE_COLOR[2] : c.surface3 }]}>
+            <Ionicons name={liveZones ? 'flame' : 'time-outline'} size={14} color={liveZones ? '#fff' : c.text} />
+          </View>
+          <Txt v="small" numberOfLines={1} style={{ flex: 1, fontFamily: F.bold }}>
+            {liveZones
+              ? tr('Jonli talab · {n} ta hudud', { n: liveZones })
+              : usualZones
+              ? tr('Hozir talab past · odatda gavjum joylar')
+              : tr("Hozircha gavjum hudud yo'q")}
+          </Txt>
+        </Pressable>
+      )}
+
+      {/* Tirbandlik */}
+      {!offer && (
+        <Pressable onPress={toggleTraffic} style={[styles.locate, { bottom: sheetH + 84, backgroundColor: traffic ? GREEN : c.surface }]} accessibilityLabel={tr('Tirbandlik')}>
+          <MaterialCommunityIcons name="traffic-light" size={22} color={traffic ? '#fff' : c.text} />
         </Pressable>
       )}
 
@@ -170,7 +229,7 @@ function StatusBanner({ top }: { top: number }) {
     action = () => { if (Platform.OS !== 'web') Linking.openSettings().catch(() => {}); d.retryGps(); };
   } else if (d.gps === 'searching') {
     icon = 'locate-outline'; color = '#D97706'; text = tr('GPS signali qidirilmoqda…');
-  } else if (DISPATCH_URL && d.conn !== 'online') {
+  } else if (!d.live) {
     icon = 'cloud-offline-outline'; color = '#D97706'; text = tr("Aloqa yo'q — qayta ulanmoqda…");
   } else {
     return null;
@@ -187,18 +246,30 @@ function StatusBanner({ top }: { top: number }) {
 /* ---------- Navigator banneri ---------- */
 const MANEUVER_ICON: Record<ManeuverKind, keyof typeof MaterialCommunityIcons.glyphMap> = {
   left: 'arrow-left-top-bold', right: 'arrow-right-top-bold', sharpLeft: 'arrow-left-top-bold', sharpRight: 'arrow-right-top-bold',
+  slightLeft: 'arrow-top-left-thick', slightRight: 'arrow-top-right-thick', roundabout: 'rotate-left',
   uturn: 'arrow-u-left-top-bold', straight: 'arrow-up-bold', arrive: 'flag-checkered',
 };
+// ovozli kliplari bor burilishlar (to'g'riga va manzil alohida aytiladi)
+const SPOKEN: Partial<Record<ManeuverKind, true>> = { left: true, right: true, sharpLeft: true, sharpRight: true, uturn: true, slightLeft: true, slightRight: true };
+const nowPhrase = (kind: ManeuverKind, exit?: number): PhraseKey | null => {
+  if (kind === 'roundabout') return exit && exit >= 1 && exit <= 5 ? (`roundabout_${exit}` as PhraseKey) : null;
+  return SPOKEN[kind] ? (`turn_${kind}` as PhraseKey) : null;
+};
+const prePhrase = (kind: ManeuverKind, distM: number): PhraseKey | null =>
+  SPOKEN[kind] || kind === 'roundabout' ? (`pre${distM >= 350 ? 400 : distM >= 250 ? 300 : 200}_${kind}` as PhraseKey) : null;
 
 function NavBanner({ trip, path, pos, top }: { trip: Trip; path?: LatLng[]; pos: LatLng; top: number }) {
   const d = useDriver();
-  const m = nextManeuver(path ?? [], pos);
+  const plan = d.nav;
+  const m = plan ? guide(plan, pos) : nextManeuver(path ?? [], pos);
   const target = trip.stage === 'inride' ? trip.order.destination : trip.order.pickup;
-  const min = etaMin(m.leftKm);
+  // server vaqti (tirbandlik koeffitsienti bilan) qolgan yo'lga mutanosib; reja bo'lmasa — shahar tezligi
+  const min = plan ? Math.max(1, Math.round((plan.min * m.leftKm) / Math.max(0.05, plan.km))) : etaMin(m.leftKm);
 
   // Ovozli yo'riqnoma: burilishdan ~400 m oldin va burilish oldidan; manzilga yetganda
   const spoken = useRef(new Set<string>());
-  const key = `${trip.order.id}:${trip.stage}`;
+  // yo'l qayta tuzilsa burilishlar raqami o'zgaradi — kalitga reja vaqti qo'shiladi
+  const key = `${trip.order.id}:${trip.stage}:${plan?.at ?? 0}`;
   const hasPath = !!path && trip.stage !== 'waiting';
   useEffect(() => {
     if (!hasPath) return;
@@ -207,10 +278,16 @@ function NavBanner({ trip, path, pos, top }: { trip: Trip; path?: LatLng[]; pos:
     if (m.kind === 'arrive') { once(`${key}:arrive`, trip.stage === 'inride' ? 'arriveDest' : 'arrivePickup'); return; }
     if (m.at < 0 || m.kind === 'straight') return;
     const id = `${key}:${m.at}`;
-    if (m.distM <= 90) { s.add(`${id}:pre`); once(`${id}:now`, `turn_${m.kind}`); }
-    // oldindan ogohlantirish 200 / 300 / 400 m ga yaxlitlanadi
-    else if (m.distM <= 450 && m.distM >= 150) once(`${id}:pre`, `pre${m.distM >= 350 ? 400 : m.distM >= 250 ? 300 : 200}_${m.kind}`);
-  }, [hasPath, key, m.kind, m.at, m.distM, trip.stage]);
+    if (m.distM <= 90) {
+      s.add(`${id}:pre`);
+      const now = nowPhrase(m.kind, m.exit);
+      if (now) once(`${id}:now`, now);
+    } else if (m.distM <= 450 && m.distM >= 150) {
+      // oldindan ogohlantirish 200 / 300 / 400 m ga yaxlitlanadi
+      const pre = prePhrase(m.kind, m.distM);
+      if (pre) once(`${id}:pre`, pre);
+    }
+  }, [hasPath, key, m.kind, m.at, m.distM, m.exit, trip.stage]);
   const external = () => {
     const { latitude: la, longitude: lo } = target;
     const app = d.navApp === 'yandex' ? `yandexnavi://build_route_on_map?lat_to=${la}&lon_to=${lo}` : `google.navigation:q=${la},${lo}`;
@@ -233,16 +310,33 @@ function NavBanner({ trip, path, pos, top }: { trip: Trip; path?: LatLng[]; pos:
   return (
     <View style={[styles.navWrap, { top }]} pointerEvents="box-none">
       <View style={styles.nav}>
-        <View style={styles.navIcon}><MaterialCommunityIcons name={MANEUVER_ICON[m.kind]} size={40} color="#fff" /></View>
+        <View style={styles.navIcon}><MaterialCommunityIcons name={m.offRoute ? 'map-marker-path' : MANEUVER_ICON[m.kind]} size={40} color="#fff" /></View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.navDist}>{m.kind === 'arrive' ? tr('Yetib keldingiz') : fmtDist(m.distM)}</Text>
-          <Text style={styles.navText} numberOfLines={1}>{m.kind === 'arrive' ? trPlace(target.title) : tr('dan keyin {turn}', { turn: tr(MANEUVER_TEXT[m.kind]) })}</Text>
+          <Text style={[styles.navDist, m.offRoute && { fontSize: 21 }]}>{m.offRoute ? tr("Yo'ldan chiqdingiz") : m.kind === 'arrive' ? tr('Yetib keldingiz') : fmtDist(m.distM)}</Text>
+          {m.offRoute ? (
+            <Text style={styles.navText} numberOfLines={1}>{tr("Yangi yo'nalish hisoblanmoqda…")}</Text>
+          ) : m.kind === 'arrive' ? (
+            <Text style={styles.navText} numberOfLines={1}>{trPlace(target.title)}</Text>
+          ) : m.street ? (
+            <>
+              <Text style={styles.navStreet} numberOfLines={1}>{m.street}</Text>
+              <Text style={styles.navText} numberOfLines={1}>{maneuverText(m)}</Text>
+            </>
+          ) : (
+            <Text style={styles.navText} numberOfLines={1}>{tr('dan keyin {turn}', { turn: maneuverText(m) })}</Text>
+          )}
         </View>
         <Pressable onPress={external} style={styles.navExt} accessibilityLabel={tr('Tashqi navigator')}>
           <Ionicons name="navigate-circle" size={26} color="#fff" />
           <Text style={styles.navExtText}>{d.navApp === 'yandex' ? 'Yandex' : 'Google'}</Text>
         </Pressable>
       </View>
+      {m.then && !m.offRoute ? (
+        <View style={styles.navThen}>
+          <Text style={styles.navThenText}>{tr('keyin')}</Text>
+          <MaterialCommunityIcons name={MANEUVER_ICON[m.then]} size={20} color="#fff" />
+        </View>
+      ) : null}
       <View style={styles.navEta}>
         <Text style={styles.navEtaBig}>{tr('{min} daq', { min })}</Text>
         <Text style={styles.navEtaText}>{tr('{km} km · {time} da', { km: m.leftKm.toFixed(1), time: clock(min) })}</Text>
@@ -260,6 +354,17 @@ function HomePanel() {
   const now = useNow(d.online, 15000);
   const [sure, setSure] = useState(false);
   const [homeSheet, setHomeSheet] = useState(false);
+  // «Uyga» uchun joylar serverdan: haydovchiga eng yaqin mashhur joylar
+  const [homePlaces, setHomePlaces] = useState<Place[]>([]);
+  const homeFrom = homeSheet ? d.pos : null;
+  useEffect(() => {
+    if (!homeFrom) return;
+    let alive = true;
+    popularPlaces(homeFrom).then(list => { if (alive) setHomePlaces(list.slice(0, 8)); }).catch(() => {});
+    return () => { alive = false; };
+    // faqat oyna ochilganda
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [homeSheet]);
   const [pulse] = useState(() => new Animated.Value(0));
   useEffect(() => {
     if (!d.online) return;
@@ -276,7 +381,7 @@ function HomePanel() {
   const block = d.blocked
     ? { title: tr('Hisob bloklangan'), sub: d.blocked.reason, icon: 'lock-closed' as const, to: '/support' }
     : !d.docsApproved
-    ? { title: inReview ? tr('Hujjatlar tekshirilmoqda') : tr('Hujjatlarni yuklang'), sub: tr('{approvedDocs} / {length} tasdiqlangan · liniyaga chiqish uchun kerak', { approvedDocs, length: DOC_KINDS.length }), icon: inReview ? 'time' as const : 'document-text' as const, to: '/documents' }
+    ? { title: inReview ? tr('Hujjatlar tekshirilmoqda') : tr('Hujjatlarni yuklang'), sub: tr('{approvedDocs} / {length} tasdiqlangan · liniyaga chiqish uchun kerak', { approvedDocs, length: DOC_KINDS.length }), icon: inReview ? 'time' as const : 'document-text' as const, to: '/documents', docs: DOC_KINDS.map(k => d.docs[k].status) }
     : !d.activeTariffs.length ? { title: tr('Tarifni yoqing'), sub: tr("Shartlari bajarilgan tarif yo'q yoki hammasi o'chiq"), icon: 'car' as const, to: '/profile' } : null;
 
   return (
@@ -300,16 +405,24 @@ function HomePanel() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[styles.mainTitle, { color: GREEN }]}>{tr('Liniyadasiz')}</Text>
-            <Txt v="small" muted>{!d.docsApproved ? tr("Hujjatlar qayta tekshirilmoqda — buyurtmalar tekshiruvdan so'ng keladi") : d.live ? tr("Buyurtma qidirilmoqda · YUMS yo'lovchilari") : tr('Buyurtma qidirilmoqda · demo')}{d.homeDest ? tr(' · uyga: {title}', { title: d.homeDest.title }) : ''}</Txt>
+            <Txt v="small" muted>{!d.docsApproved ? tr("Hujjatlar qayta tekshirilmoqda — buyurtmalar tekshiruvdan so'ng keladi") : d.live ? tr("Buyurtma qidirilmoqda · YUMS yo'lovchilari") : tr('Buyurtma qidirilmoqda · aloqa tiklanmoqda')}{d.homeDest ? tr(' · uyga: {title}', { title: d.homeDest.title }) : ''}</Txt>
           </View>
           <Ionicons name="power" size={22} color={GREEN} />
         </Pressable>
       ) : block ? (
         <Pressable onPress={() => go(block.to)} style={({ pressed }) => [styles.mainBtn, { backgroundColor: c.surface2, transform: [{ scale: pressed ? 0.98 : 1 }] }]} accessibilityLabel={block.title}>
-          <View style={[styles.powerIcon, { backgroundColor: c.brandSoft }]}><Ionicons name={block.icon} size={22} color={c.brandDeep} /></View>
-          <View style={{ flex: 1 }}>
+          <View style={[styles.blockIcon, { backgroundColor: alpha(c.brand, 0.16) }]}><Ionicons name={block.icon} size={22} color={c.brand} /></View>
+          <View style={{ flex: 1, gap: 2 }}>
             <Text style={[styles.mainTitle, { color: c.text }]}>{block.title}</Text>
-            <Txt v="small" muted numberOfLines={1}>{block.sub}</Txt>
+            <Txt v="small" muted numberOfLines={2}>{block.sub}</Txt>
+            {'docs' in block && block.docs ? (
+              // har bir hujjat — bitta bo'lak: yashil tasdiqlangan, sariq tekshiruvda, qizil rad etilgan
+              <View style={styles.docBar}>
+                {block.docs.map((st, i) => (
+                  <View key={i} style={[styles.docSeg, { backgroundColor: st === 'approved' ? GREEN : st === 'review' ? AMBER : st === 'rejected' ? RED : c.surface3 }]} />
+                ))}
+              </View>
+            ) : null}
           </View>
           <Ionicons name="chevron-forward" size={20} color={c.faint} style={flipRTL()} />
         </Pressable>
@@ -323,27 +436,27 @@ function HomePanel() {
         </Pressable>
       )}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingRight: 4 }} style={{ marginHorizontal: -2 }}>
-        <Widget label={tr('Faollik')} onPress={() => go('/quality')}>
-          <Text style={[styles.wValue, { color: activityColor(d.activity) }]}>{d.activity}</Text>
+      {/* asosiy ko'rsatkichlar: uchtasi teng kartada, hech biri ekran chetida kesilmaydi */}
+      <View style={styles.tiles}>
+        <Tile icon="flash" tint={activityColor(d.activity)} label={tr('Faollik')} onPress={() => go('/quality')}>
+          <Text style={[styles.tValue, { color: activityColor(d.activity) }]} numberOfLines={1}>{d.activity}</Text>
           <View style={[styles.wBar, { backgroundColor: c.surface3 }]}><View style={{ width: `${d.activity}%`, height: 4, borderRadius: 2, backgroundColor: activityColor(d.activity) }} /></View>
-        </Widget>
-        <Widget label={tr('Bugun · {count} ta', { count: d.today.count })} onPress={() => go('/earnings')}>
-          <Text style={[styles.wValue, { color: c.text }]} numberOfLines={1} adjustsFontSizeToFit>{som(d.today.sum)}</Text>
-        </Widget>
-        <Widget label={tr('Liniyada')} onPress={() => go('/earnings')}>
-          <Text style={[styles.wValue, { color: c.text }]}>{hm}</Text>
-        </Widget>
-        <Widget label={tr('Reyting')} onPress={() => go('/quality')}>
-          <Text style={[styles.wValue, { color: c.text }]}>★ {d.rating.toFixed(2)}</Text>
-        </Widget>
-        <Widget label={d.homeDest ? tr('Uyga · {homeUsesLeft} ta qoldi', { homeUsesLeft: d.homeUsesLeft }) : tr('Uyga · kuniga {homeUsesLeft} marta', { homeUsesLeft: d.homeUsesLeft })} onPress={() => setHomeSheet(true)} active={!!d.homeDest}>
-          <Row gap={6}><Ionicons name="home" size={16} color={d.homeDest ? c.accent : c.muted} /><Text style={[styles.wSmall, { color: d.homeDest ? c.accent : c.text }]} numberOfLines={1}>{d.homeDest?.title ?? tr("O'chiq")}</Text></Row>
-        </Widget>
-        <Widget label={tr('Tariflar')} onPress={() => go('/profile')}>
-          <Text style={[styles.wSmall, { color: c.text }]} numberOfLines={2}>{tariffNames.join(', ')}</Text>
-        </Widget>
-      </ScrollView>
+        </Tile>
+        <Tile icon="wallet" tint={BLUE} label={tr('Bugun')} onPress={() => go('/earnings')}>
+          <Text style={[styles.tValue, { color: c.text, fontSize: fitSize(groupDigits(d.today.sum)) }]} numberOfLines={1}>{groupDigits(d.today.sum)}</Text>
+          <Text style={[styles.tUnit, { color: c.muted }]} numberOfLines={1}>{tr("so'm · {count} ta", { count: d.today.count })}</Text>
+        </Tile>
+        <Tile icon="time" tint={VIOLET} label={tr('Liniyada')} onPress={() => go('/earnings')}>
+          <Text style={[styles.tValue, { color: c.text, fontSize: fitSize(hm) }]} numberOfLines={1}>{hm}</Text>
+          <Text style={[styles.tUnit, { color: c.muted }]} numberOfLines={1}>{tr('bugun')}</Text>
+        </Tile>
+      </View>
+      {/* tezkor o'tishlar: reyting, «Uyga» rejimi, tariflar */}
+      <View style={styles.tiles}>
+        <Chip icon="star" tint={AMBER} text={d.rating.toFixed(2)} label={tr('Reyting')} onPress={() => go('/quality')} />
+        <Chip icon="home" tint={TEAL} text={d.homeDest ? trPlace(d.homeDest.title) : tr('Uyga')} label={tr("Uyga yo'nalish")} active={!!d.homeDest} onPress={() => setHomeSheet(true)} />
+        <Chip icon="car-sport" tint={ORANGE} text={tariffNames.length ? (tariffNames.length > 1 ? `${tariffNames[0]} +${tariffNames.length - 1}` : tariffNames[0]) : tr('Tariflar')} label={tr('Tariflar')} onPress={() => go('/profile')} />
+      </View>
 
       <ActionSheet
         visible={sure}
@@ -352,18 +465,20 @@ function HomePanel() {
         groups={[[{ icon: 'power', title: tr('Liniyadan chiqish'), danger: true, onPress: () => { setSure(false); d.setOnline(false); } }]]}
       />
       <Sheet visible={homeSheet} onClose={() => setHomeSheet(false)} title={tr("Uyga yo'nalish")}>
-        <Txt v="small" muted>{tr('Buyurtmalar tanlagan manzilingiz tomonga taklif qilinadi. Kuniga {HOME_USES_PER_DAY} marta yoqish mumkin — bugun {homeUsesLeft} ta qoldi.', { HOME_USES_PER_DAY, homeUsesLeft: d.homeUsesLeft })}</Txt>
+        <Txt v="small" muted>{tr('Buyurtmalar tanlagan manzilingiz tomonga taklif qilinadi. Kuniga {HOME_USES_PER_DAY} marta yoqish mumkin — bugun {homeUsesLeft} ta qoldi.', { HOME_USES_PER_DAY: d.rules.homeUsesPerDay, homeUsesLeft: d.homeUsesLeft })}</Txt>
         {d.homeDest && (
-          <Pressable onPress={() => { d.setHomeDest(null); setHomeSheet(false); toast(tr("«Uyga» rejimi o'chirildi"), 'home-outline'); }} style={[styles.placeRow, { backgroundColor: c.dangerSoft }]}>
+          <Pressable onPress={() => { d.setHomeDest(null).then(ok => { if (ok) { setHomeSheet(false); toast(tr("«Uyga» rejimi o'chirildi"), 'home-outline'); } }); }} style={[styles.placeRow, { backgroundColor: c.dangerSoft }]}>
             <Ionicons name="close-circle" size={20} color={c.danger} /><Txt v="h3" color={c.danger}>{tr("O'chirish · {title}", { title: trPlace(d.homeDest.title) })}</Txt>
           </Pressable>
         )}
-        {PLACES.slice(0, 8).map(p => (
+        {homePlaces.map(p => (
           <Pressable key={p.title} disabled={d.homeDest?.title === p.title}
             onPress={() => {
-              if (!d.setHomeDest(p)) { toast(tr('Bugungi «Uyga» imkoniyati tugadi'), 'alert-circle'); return; }
-              setHomeSheet(false);
-              toast(tr('Buyurtmalar «{title}» tomonga', { title: trPlace(p.title) }), 'home');
+              d.setHomeDest(p).then(ok => {
+                if (!ok) return;
+                setHomeSheet(false);
+                toast(tr('Buyurtmalar «{title}» tomonga', { title: trPlace(p.title) }), 'home');
+              });
             }}
             style={[styles.placeRow, { backgroundColor: d.homeDest?.title === p.title ? c.accentSoft : c.surface2 }]}>
             <Ionicons name="location" size={18} color={c.accent} />
@@ -376,12 +491,30 @@ function HomePanel() {
   );
 }
 
-function Widget({ label, children, onPress, active }: { label: string; children: React.ReactNode; onPress?: () => void; active?: boolean }) {
+type IconName = keyof typeof Ionicons.glyphMap;
+
+/** Uzun qiymat (katta summa, «12 s 45 d») kartaga sig'ishi uchun shrift kichrayadi */
+const fitSize = (text: string) => (text.length > 10 ? 14 : text.length > 8 ? 16 : 19);
+
+function Tile({ icon, tint, label, children, onPress }: { icon: IconName; tint: string; label: string; children: React.ReactNode; onPress?: () => void }) {
   const { colors: c } = useStore();
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.widget, { backgroundColor: active ? c.accentSoft : c.surface2, opacity: pressed ? 0.8 : 1 }]} accessibilityLabel={label}>
-      <Txt v="tiny" muted numberOfLines={1}>{label}</Txt>
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.tile, { backgroundColor: c.surface2, transform: [{ scale: pressed ? 0.97 : 1 }] }]} accessibilityLabel={label}>
+      <Row gap={7}>
+        <View style={[styles.tIcon, { backgroundColor: alpha(tint, 0.16) }]}><Ionicons name={icon} size={13} color={tint} /></View>
+        <Text style={[styles.tLabel, { color: c.muted }]} numberOfLines={1}>{label}</Text>
+      </Row>
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>{children}</View>
+    </Pressable>
+  );
+}
+
+function Chip({ icon, tint, text, label, onPress, active }: { icon: IconName; tint: string; text: string; label: string; onPress?: () => void; active?: boolean }) {
+  const { colors: c } = useStore();
+  return (
+    <Pressable onPress={onPress} style={({ pressed }) => [styles.chip, { backgroundColor: active ? alpha(tint, 0.14) : c.surface2, borderColor: active ? alpha(tint, 0.45) : 'transparent', transform: [{ scale: pressed ? 0.97 : 1 }] }]} accessibilityLabel={label}>
+      <View style={[styles.chipIcon, { backgroundColor: alpha(tint, active ? 0.24 : 0.16) }]}><Ionicons name={icon} size={14} color={tint} /></View>
+      <Text style={[styles.chipText, { color: active ? tint : c.text }]} numberOfLines={1}>{text}</Text>
     </Pressable>
   );
 }
@@ -420,7 +553,7 @@ function OfferPanel({ offer }: { offer: Offer }) {
       <Row style={{ alignItems: 'flex-end' }}>
         <View style={{ flex: 1 }}>
           <Text style={[styles.price, { color: c.text }]}>{som(o.price)}</Text>
-          <Txt v="small" muted>{tr('Sizga ≈ {price} · komissiya {commission}%', { price: som(Math.round(o.price * (1 - d.commission))), commission: Math.round(d.commission * 100) })}</Txt>
+          <Txt v="small" muted>{tr('Sizga {price} · komissiya {commission}', { price: som(o.earning), commission: som(Math.max(0, o.price - o.earning)) })}</Txt>
         </View>
         <Image source={TARIFF_ART[o.tariffId] ?? TARIFF_ART.start} style={{ width: 92, height: 50 }} contentFit="contain" />
       </Row>
@@ -434,7 +567,7 @@ function OfferPanel({ offer }: { offer: Offer }) {
       {chainFrom ? <Txt v="small" color={VIOLET} style={{ fontFamily: F.bold, marginTop: -6 }}>{tr('Joriy safar ({chainFrom}) tugagach boshlanadi', { chainFrom })}</Txt> : null}
 
       <Row gap={10}>
-        <PersonAvatar name={o.passenger.name} photo={o.passenger.photo} gender={o.passenger.gender} size={34} />
+        <PersonAvatar name={o.passenger.name} gender={o.passenger.gender} size={34} />
         <Txt v="h3">{o.passenger.name}</Txt>
         <Txt v="small" muted>★ {o.passenger.rating.toFixed(1)}</Txt>
         {o.comment ? <Txt v="small" muted numberOfLines={1} style={{ flex: 1, textAlign: 'right' }}>💬 {tr(o.comment)}</Txt> : null}
@@ -450,7 +583,7 @@ function OfferPanel({ offer }: { offer: Offer }) {
           <Text style={styles.acceptSec}>{Math.ceil(leftMs / 1000)}</Text>
         </Pressable>
       </Row>
-      <Txt v="tiny" faint style={{ textAlign: 'center', marginTop: -6 }}>{tr("Qabul qilish: faollik +{accept} · rad etish yoki o'tkazib yuborish: {decline}", { accept: ACTIVITY.accept, decline: ACTIVITY.decline })}</Txt>
+      <Txt v="tiny" faint style={{ textAlign: 'center', marginTop: -6 }}>{tr("Qabul qilish: faollik +{accept} · rad etish yoki o'tkazib yuborish: {decline}", { accept: d.rules.activity.accept, decline: d.rules.activity.decline })}</Txt>
     </View>
   );
 }
@@ -486,12 +619,14 @@ function TripPanel({ trip }: { trip: Trip }) {
   const now = useNow(trip.stage !== 'toPickup');
   const [more, setMore] = useState(false);
   const [chat, setChat] = useState(false);
-  const call = () => Linking.openURL(`tel:${(o.passenger.phone ?? '').replace(/\s/g, '')}`).catch(() => toast(tr("Qo'ng'iroq: {phone}", { phone: o.passenger.phone }), 'call'));
+  const call = () => setChat(true);
+  const tell = (text: string) => messagePassenger(o.id, text).then(() => toast(tr('Xabar yuborildi'), 'paper-plane')).catch(error => toast(errorText(error), 'alert-circle'));
   const waited = trip.arrivedAt ? Math.max(0, (now - trip.arrivedAt) / 1000) : 0;
-  const paid = Math.max(0, waited - FREE_WAIT_SEC);
-  const waitFee = trip.stage === 'waiting' ? waitFeeOf(trip.arrivedAt, now) : trip.waitFee;
+  const paid = Math.max(0, waited - d.rules.freeWaitSec);
+  const waitFee = trip.stage === 'waiting' ? waitFeeOf(d.rules, trip.arrivedAt, now) : trip.waitFee;
   const total = o.price + waitFee;
-  const canNoShow = trip.stage === 'waiting' && waited >= NO_SHOW_AFTER_SEC;
+  const noShowAt = d.rules.freeWaitSec + d.rules.noShowAfterSec;
+  const canNoShow = trip.stage === 'waiting' && waited >= noShowAt;
 
   // Pullik kutish boshlanganini ovozda aytish (bir marta)
   const paidStarted = paid > 0;
@@ -516,10 +651,10 @@ function TripPanel({ trip }: { trip: Trip }) {
         <View style={[styles.waitBox, { backgroundColor: paid > 0 ? '#FEF3E2' : alpha(GREEN, 0.1) }]}>
           <View style={{ flex: 1 }}>
             <Txt v="small" color={paid > 0 ? '#B45309' : GREEN} style={{ fontFamily: F.bold }}>{paid > 0 ? tr('Pullik kutish') : tr('Bepul kutish')}</Txt>
-            <Text style={[styles.waitTime, { color: paid > 0 ? '#B45309' : GREEN }]}>{paid > 0 ? mmss(paid) : mmss(FREE_WAIT_SEC - waited)}</Text>
+            <Text style={[styles.waitTime, { color: paid > 0 ? '#B45309' : GREEN }]}>{paid > 0 ? mmss(paid) : mmss(d.rules.freeWaitSec - waited)}</Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
-            <Txt v="tiny" muted>{paid > 0 ? tr('{sum}/daq', { sum: som(WAIT_PER_MIN) }) : tr('keyin pullik')}</Txt>
+            <Txt v="tiny" muted>{paid > 0 ? tr('{sum}/daq', { sum: som(d.rules.waitPerMin) }) : tr('keyin pullik')}</Txt>
             {paid > 0 ? <Txt v="h3" color="#B45309">+{som(waitFee)}</Txt> : <Txt v="small" muted>{tr('Mijozga xabar yuborildi')}</Txt>}
           </View>
         </View>
@@ -544,7 +679,7 @@ function TripPanel({ trip }: { trip: Trip }) {
       )}
 
       <View style={[styles.passenger, { backgroundColor: c.surface2 }]}>
-        <PersonAvatar name={o.passenger.name} photo={o.passenger.photo} gender={o.passenger.gender} size={42} />
+        <PersonAvatar name={o.passenger.name} gender={o.passenger.gender} size={42} />
         <View style={{ flex: 1 }}>
           <Txt v="h3">{o.passenger.name}</Txt>
           <Txt v="small" muted numberOfLines={1}>★ {o.passenger.rating.toFixed(1)} · {tr(PAY[o.payment]?.label ?? '')}{o.comment ? ` · ${tr(o.comment)}` : ''}</Txt>
@@ -563,18 +698,18 @@ function TripPanel({ trip }: { trip: Trip }) {
         header={<Txt v="small" muted style={{ textAlign: 'center' }}>{route(trPlace(o.pickup.title), trPlace(o.destination.title))} · {som(o.price)}</Txt>}
         groups={[
           [
-            { icon: 'call', title: tr("Mijozga qo'ng'iroq"), onPress: () => { setMore(false); call(); } },
+            { icon: 'chatbubbles', title: tr('Mijozga xabar yozish'), sub: tr("Raqami yashirin — xabar ilovasiga boradi"), onPress: () => { setMore(false); call(); } },
             { icon: 'headset', title: tr('Yordam markazi'), sub: tr('Chat · javob 2 daqiqada'), onPress: () => { setMore(false); go('/support-chat'); } },
             { icon: 'shield-checkmark', title: tr('Xavfsizlik · 112'), sub: tr('Favqulodda vaziyatda'), onPress: () => { setMore(false); callNumber('112'); } },
           ],
           trip.stage === 'waiting' ? [{
             icon: 'person-remove', title: tr('Mijoz chiqmadi'), color: '#D97706',
-            sub: canNoShow ? tr('Faollik kamaymaydi · kutish uchun kompensatsiya') : tr('{time} dan keyin mumkin', { time: mmss(NO_SHOW_AFTER_SEC - waited) }),
-            onPress: () => { setMore(false); if (canNoShow) d.noShow(); else toast(tr('«Mijoz chiqmadi» {time} dan keyin', { time: mmss(NO_SHOW_AFTER_SEC - waited) }), 'time-outline'); },
+            sub: canNoShow ? tr('Faollik kamaymaydi · buyurtma yopiladi') : tr('{time} dan keyin mumkin', { time: mmss(noShowAt - waited) }),
+            onPress: () => { setMore(false); if (canNoShow) d.noShow(); else toast(tr('«Mijoz chiqmadi» {time} dan keyin', { time: mmss(noShowAt - waited) }), 'time-outline'); },
           }] : [],
           [
-            ...(d.next ? [{ icon: 'unlink' as const, title: tr('Keyingi buyurtmadan voz kechish'), sub: tr('Faollik {cancel}', { cancel: ACTIVITY.cancel }), danger: true, onPress: () => { setMore(false); d.cancelNext(); } }] : []),
-            ...(trip.stage === 'inride' ? [] : [{ icon: 'close-circle' as const, title: tr('Buyurtmani bekor qilish'), sub: tr('Faollik {cancel}', { cancel: ACTIVITY.cancel }), danger: true, onPress: () => { setMore(false); d.cancelTrip(); } }]),
+            ...(d.next ? [{ icon: 'unlink' as const, title: tr('Keyingi buyurtmadan voz kechish'), sub: tr('Faollik {cancel}', { cancel: d.rules.activity.cancel }), danger: true, onPress: () => { setMore(false); d.cancelNext(); } }] : []),
+            ...(trip.stage === 'inride' ? [] : [{ icon: 'close-circle' as const, title: tr('Buyurtmani bekor qilish'), sub: tr('Faollik {cancel}', { cancel: d.rules.activity.cancel }), danger: true, onPress: () => { setMore(false); d.cancelTrip(); } }]),
           ],
         ]}
       />
@@ -582,7 +717,7 @@ function TripPanel({ trip }: { trip: Trip }) {
         visible={chat}
         onClose={() => setChat(false)}
         header={<Txt v="h3" style={{ textAlign: 'center' }}>{tr('{name}ga xabar', { name: o.passenger.name })}</Txt>}
-        groups={[QUICK.map(q => ({ icon: 'chatbubble-ellipses-outline' as const, title: tr(q), onPress: () => { setChat(false); toast(tr('Xabar yuborildi'), 'paper-plane'); } }))]}
+        groups={[QUICK.map(q => ({ icon: 'chatbubble-ellipses-outline' as const, title: tr(q), onPress: () => { setChat(false); tell(tr(q)); } }))]}
       />
     </View>
   );
@@ -596,7 +731,7 @@ function SummaryPanel() {
   if (!d.summary) return null;
   const e = d.summary.earning;
   const total = e.price + (e.waitFee ?? 0);
-  const fee = e.fee ?? Math.round(total * d.commission);
+  const fee = e.fee ?? d.commission;
   const cash = e.payment === 'cash';
   return (
     <View style={{ gap: 14 }}>
@@ -617,7 +752,7 @@ function SummaryPanel() {
       <View style={{ gap: 6 }}>
         <Line label={tr('Safar narxi')} value={som(e.price)} />
         {e.waitFee ? <Line label={tr('Pullik kutish')} value={som(e.waitFee)} /> : null}
-        <Line label={tr('YUMS komissiyasi ({pct}%)', { pct: Math.round((fee / Math.max(1, total)) * 100) })} value={`−${som(fee)}`} color={c.danger} />
+        <Line label={tr('YUMS komissiyasi')} value={`−${som(fee)}`} color={c.danger} />
         <Line label={tr('Sizning daromadingiz')} value={som(total - fee)} bold />
       </View>
       <View style={{ alignItems: 'center', gap: 6 }}>
@@ -670,6 +805,9 @@ const styles = StyleSheet.create({
   nav: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#1B5E3A', borderRadius: 22, padding: 12, ...shadow },
   navIcon: { width: 58, height: 58, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center' },
   navDist: { color: '#fff', fontFamily: F.heavy, fontSize: 28, letterSpacing: -0.8 },
+  navStreet: { color: '#fff', fontFamily: F.bold, fontSize: 16.5, letterSpacing: -0.2 },
+  navThen: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: '#1B5E3A', borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6, ...shadow },
+  navThenText: { color: 'rgba(255,255,255,0.85)', fontFamily: F.bold, fontSize: 13 },
   navText: { color: 'rgba(255,255,255,0.85)', fontFamily: F.semi, fontSize: 14 },
   navExt: { alignItems: 'center', gap: 1, paddingHorizontal: 6 },
   navExtText: { color: 'rgba(255,255,255,0.8)', fontFamily: F.bold, fontSize: 10 },
@@ -677,7 +815,7 @@ const styles = StyleSheet.create({
   navEtaBig: { color: '#7CE0A8', fontFamily: F.heavy, fontSize: 16 },
   navEtaText: { color: 'rgba(255,255,255,0.75)', fontFamily: F.semi, fontSize: 13 },
   // bosh panel
-  mainBtn: { height: 72, borderRadius: 22, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16 },
+  mainBtn: { minHeight: 72, borderRadius: 22, flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 16, paddingVertical: 12 },
   notice: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 18 },
   noticeIcon: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   mainTitle: { fontFamily: F.heavy, fontSize: 19, letterSpacing: -0.4 },
@@ -686,9 +824,18 @@ const styles = StyleSheet.create({
   pulseWrap: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   pulseRing: { position: 'absolute', width: 30, height: 30, borderRadius: 15, borderWidth: 3 },
   pulseDot: { width: 14, height: 14, borderRadius: 7 },
-  widget: { width: 124, height: 84, borderRadius: 18, padding: 12, gap: 4 },
-  wValue: { fontFamily: F.heavy, fontSize: 19, letterSpacing: -0.4 },
-  wSmall: { fontFamily: F.bold, fontSize: 13.5, flexShrink: 1 },
+  tiles: { flexDirection: 'row', gap: 8 },
+  tile: { flex: 1, minWidth: 0, height: 86, borderRadius: 18, paddingHorizontal: 11, paddingTop: 10, paddingBottom: 10, gap: 4 },
+  tIcon: { width: 22, height: 22, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
+  tLabel: { flexShrink: 1, fontFamily: F.semi, fontSize: 12 },
+  tValue: { fontFamily: F.heavy, fontSize: 19, letterSpacing: -0.4 },
+  tUnit: { fontFamily: F.semi, fontSize: 11.5, marginTop: -1 },
+  chip: { flex: 1, minWidth: 0, height: 44, borderRadius: 15, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 8 },
+  chipIcon: { width: 26, height: 26, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  chipText: { flexShrink: 1, fontFamily: F.bold, fontSize: 13.5 },
+  blockIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  docBar: { flexDirection: 'row', gap: 4, marginTop: 6 },
+  docSeg: { flex: 1, height: 4, borderRadius: 2 },
   wBar: { height: 4, borderRadius: 2, marginTop: 6, overflow: 'hidden' },
   placeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14 },
   // taklif

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 
 import { FavButton, KeyValue, Logo, Place, ProjectCard, ReportSheet } from '@/components/platform-ui';
+import { ProfileReviews } from '@/components/profile-reviews';
 import { toast } from '@/components/toast';
 import { Badge, Button, Card, EmptyState, IconButton, Row, Screen, SectionHeader, Txt, Verified } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
@@ -15,7 +16,7 @@ import { tr } from '@/lib/i18n';
 
 export default function CompanyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors: c } = useStore();
+  const { colors: c, user } = useStore();
   const p = usePlatform();
   const start = useStartChat();
   const [reporting, setReporting] = useState(false);
@@ -97,6 +98,8 @@ export default function CompanyScreen() {
       {projects.length > 0 && <SectionHeader title={tr('Kompaniya loyihalari')} />}
       {projects.map(x => <ProjectCard key={x.id} p={x} />)}
 
+      <ProfileReviews profileId={co.id} ownerId={p.ownerOf(co.id)} onChanged={() => { p.refresh().catch(() => {}); }} />
+      {p.ownerOf(co.id) === user?.id && <Button title={tr('Profilni tahrirlash')} kind="ghost" icon="create-outline" onPress={() => router.push({ pathname: '/directory-edit', params: { type: 'company' } })} />}
       <ReportSheet visible={reporting} onClose={() => setReporting(false)} kind="company" id={co.id} title={co.name} />
       <Txt v="tiny" faint style={{ textAlign: 'center' }} onPress={() => router.push('/legal')}>{tr("Ma'lumotlar kompaniya tomonidan taqdim etilgan · Qoidalar")}</Txt>
     </Screen>

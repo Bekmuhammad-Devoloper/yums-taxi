@@ -9,7 +9,8 @@ import { ChoosingSheet, DriverSheet, IdleSheet, OptionsModal, RatingModal, RideS
 import TaxiMap, { type MapHandle } from '@/components/taxi-map';
 import { BrandMark, IconButton } from '@/components/ui';
 import { DEFAULT_CENTER, type LatLng, type Place } from '@/lib/data';
-import { addressOf, distanceKm } from '@/lib/geo';
+import { distanceKm } from '@/lib/geo';
+import { addressOf } from '@/lib/trip-api';
 import { trackPrecise, type Fix } from '@/lib/locate';
 import { useStore } from '@/lib/store';
 import { F, shadow } from '@/lib/theme';
@@ -148,7 +149,7 @@ export default function Taxi() {
         driverPos={inTrip ? order.driverPos : undefined}
         showPickup={!idle && order.phase !== 'inride'}
         showNearby={idle || order.phase === 'choosing' || order.phase === 'searching'}
-        fleet={s.dispatchState === 'online' ? s.fleet.filter(f => !f.busy) : undefined}
+        fleet={s.fleet}
         searching={order.phase === 'searching'}
         bottomPad={idle ? 0 : sheetH}
         overlayBottom={sheetH}
@@ -164,7 +165,7 @@ export default function Taxi() {
         <View pointerEvents="none" style={styles.pinWrap}>
           <Animated.View style={{ alignItems: 'center', transform: [{ translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [0, -14] }) }] }}>
             <View style={[styles.pinLabel, { backgroundColor: '#0F1E3D' }]}>
-              <Text style={styles.pinLabelText}>{order.pickup ? tr('3 daq') : '…'}</Text>
+              <Text style={styles.pinLabelText}>{order.pickup && s.pickupEta !== null ? tr('{min} daq', { min: Math.max(1, s.pickupEta) }) : '…'}</Text>
             </View>
             <View style={[styles.pinHead, { borderColor: '#0F1E3D' }]}><View style={styles.pinDot} /></View>
             <View style={styles.pinStick} />

@@ -1,8 +1,5 @@
-import * as Location from 'expo-location';
-import { Platform } from 'react-native';
-
-import { PLACES, type LatLng, type Place, type Tariff } from './data';
-import { tr, tx } from './i18n';
+import type { LatLng } from './data';
+import { tr } from './i18n';
 
 const R = 6371;
 const rad = (d: number) => (d * Math.PI) / 180;
@@ -20,7 +17,7 @@ export function bearing(a: LatLng, b: LatLng) {
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
 }
 
-/** Ikki nuqta orasida yumshoq egri chiziq — marshrut serveri javob bermasa ishlatiladi */
+/** Ikki nuqta orasida yumshoq egri chiziq — marshrut chizig'i hali kelmaganda ko'rsatiladi */
 export function curve(a: LatLng, b: LatLng, n = 40): LatLng[] {
   const mid = { latitude: (a.latitude + b.latitude) / 2, longitude: (a.longitude + b.longitude) / 2 };
   const ctrl = { latitude: mid.latitude + (b.longitude - a.longitude) * 0.18, longitude: mid.longitude - (b.latitude - a.latitude) * 0.18 };
@@ -62,103 +59,32 @@ export function pointAt(pts: LatLng[], t: number): LatLng {
 
 export type RouteInfo = { coords: LatLng[]; km: number; min: number };
 
-/** OSRM orqali haqiqiy yo'l marshruti, xatolikda — egri chiziq */
-export async function fetchRoute(a: LatLng, b: LatLng): Promise<RouteInfo> {
-  const fallback = (): RouteInfo => {
-    const coords = curve(a, b);
-    const km = pathLength(coords) * 1.25;
-    return { coords, km, min: Math.max(3, Math.round((km / 28) * 60)) };
+/** Server marshrutlari Google Encoded Polyline (aniqlik 5) ko'rinishida keladi */
+export function decodePolyline(encoded: string): LatLng[] {
+  const points: LatLng[] = [];
+  let index = 0;
+  let lat = 0;
+  let lng = 0;
+  const next = () => {
+    let result = 0;
+    let shift = 0;
+    let byte: number;
+    do {
+      byte = encoded.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20 && index < encoded.length + 1);
+    return result & 1 ? ~(result >> 1) : result >> 1;
   };
-  try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 6000);
-    const url = `https://router.project-osrm.org/route/v1/driving/${a.longitude},${a.latitude};${b.longitude},${b.latitude}?overview=full&geometries=geojson`;
-    const res = await fetch(url, { signal: ctrl.signal });
-    clearTimeout(timer);
-    const json = await res.json();
-    const r = json?.routes?.[0];
-    if (!r) return fallback();
-    const coords: LatLng[] = r.geometry.coordinates.map(([lng, lat]: [number, number]) => ({ latitude: lat, longitude: lng }));
-    // Toshkent tirbandligi uchun o'rtacha tezlikni hisobga olamiz
-    return { coords, km: r.distance / 1000, min: Math.max(3, Math.round((r.duration / 60) * 1.35)) };
-  } catch {
-    return fallback();
+  while (index < encoded.length) {
+    lat += next();
+    lng += next();
+    points.push({ latitude: lat / 1e5, longitude: lng / 1e5 });
   }
-}
-
-export function nearestPlace(p: LatLng): Place {
-  return PLACES.reduce((best, x) => (distanceKm(p, x) < distanceKm(p, best) ? x : best), PLACES[0]);
-}
-
-/** OpenStreetMap (Nominatim) teskari geokoder: koordinata → ko'cha, uy, mahalla */
-const geoCache = new Map<string, Place>();
-async function osmAddress(p: LatLng): Promise<Place | null> {
-  const key = `${p.latitude.toFixed(4)},${p.longitude.toFixed(4)}`;
-  const hit = geoCache.get(key);
-  if (hit) return { ...hit, latitude: p.latitude, longitude: p.longitude };
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 6000);
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${p.latitude}&lon=${p.longitude}&zoom=18&addressdetails=1&accept-language=uz,ru,en`;
-    const res = await fetch(url, { signal: ctrl.signal, headers: Platform.OS === 'web' ? { Accept: 'application/json' } : { Accept: 'application/json', 'User-Agent': 'YUMS-Taxi/1.0' } });
-    if (!res.ok) return null;
-    const j = await res.json();
-    const a = j?.address ?? {};
-    const road = a.road ?? a.pedestrian ?? a.footway ?? a.residential ?? a.street;
-    const street = [road, a.house_number].filter(Boolean).join(', ');
-    const poi = typeof j?.name === 'string' && j.name && j.name !== road ? j.name : '';
-    const area = a.neighbourhood ?? a.quarter ?? a.suburb ?? a.city_district;
-    const title = poi || street || area || '';
-    if (!title) return null;
-    const subtitle = [poi ? street : area, a.city ?? a.town ?? a.village ?? a.state].filter(Boolean).join(', ');
-    const place: Place = { ...p, title, subtitle: subtitle || undefined };
-    geoCache.set(key, place);
-    return place;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function deviceAddress(p: LatLng): Promise<Place | null> {
-  try {
-    const [r] = await Location.reverseGeocodeAsync(p);
-    if (!r) return null;
-    const street = [r.street, r.streetNumber].filter(Boolean).join(', ');
-    const title = street || r.name || r.district || '';
-    return title ? { ...p, title, subtitle: [r.district, r.city].filter(Boolean).join(', ') || undefined } : null;
-  } catch {
-    return null;
-  }
-}
-
-/** Manzil: qurilma geokoderi (iOS/Android) → OpenStreetMap → eng yaqin mashhur joy */
-export async function addressOf(p: LatLng): Promise<Place> {
-  const found = Platform.OS === 'web' ? await osmAddress(p) : (await deviceAddress(p)) ?? (await osmAddress(p));
-  if (found) return found;
-  // Manzil xizmati javob bermadi — eng yaqin mashhur joyga nisbatan ko'rsatamiz
-  const n = nearestPlace(p);
-  const km = distanceKm(p, n);
-  if (km < 0.25) return { ...p, title: n.title, subtitle: n.subtitle };
-  // nomlar o'zbekcha saqlanadi (haydovchi va admin ham ko'radi), ekranda trPlace() bilan tarjima qilinadi
-  if (km < 1.2) return { ...p, title: `${n.title} yaqinida`, subtitle: `${Math.round(km * 1000)} m · ${n.subtitle ?? tx('Toshkent')}` };
-  return { ...p, title: tx('Xaritadagi nuqta'), subtitle: `${n.title}dan ${km.toFixed(1)} km` };
-}
-
-export function priceFor(t: Tariff, km: number, min: number, surge = 1) {
-  const raw = (t.base + km * t.perKm + min * t.perMin) * surge;
-  return Math.ceil(Math.max(raw, t.minFare) / 500) * 500;
+  return points;
 }
 
 /** Pul: «12 500 so'm» (valyuta nomi joriy tilda) */
 /** Minglar bo'linmaydigan bo'shliq bilan: qator uzilmaydi, arab tilida esa raqam bir butun (chapdan o'ngga) qoladi */
-export const groupDigits = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+export const groupDigits = (n: number) => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
 export const som = (n: number) => tr("{n} so'm", { n: groupDigits(n) });
-
-/** Haydovchining boshlang'ich joyi: yo'lovchidan ~1–2 km uzoqda */
-export function nearbyPoint(p: LatLng): LatLng {
-  const ang = Math.random() * Math.PI * 2;
-  const d = 0.009 + Math.random() * 0.008;
-  return { latitude: p.latitude + Math.sin(ang) * d, longitude: p.longitude + Math.cos(ang) * d * 1.3 };
-}

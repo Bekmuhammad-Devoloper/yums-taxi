@@ -1,11 +1,10 @@
 // STIR (INN) va JShShIR (PINFL) tekshiruvi.
 //
-// Haqiqiy reyestr: EXPO_PUBLIC_REGISTRY_API berilsa, `${API}/company/{stir}` so'raladi
-// (javob: { name, director, status: 'active' | 'liquidated' }). Bu server soliq.uz / orginfo.uz
-// kabi rasmiy manbalardan ma'lumot oladi — mobil ilova ularga to'g'ridan-to'g'ri murojaat qilmaydi.
-// API berilmasa, demo reyestr ishlatiladi (to'qilgan yozuvlar, haqiqiy kompaniyalar emas).
-
+// Reyestr: `${API}/company/{stir}` (javob: { name, director, status: 'active' | 'liquidated' }) —
+// backenddagi davlat reyestri nusxasi; ro'yxatdan o'tishda server ham xuddi shu reyestr bilan solishtiradi.
 import { tr } from '@/lib/i18n';
+
+import { API_URL } from './api';
 
 export type CompanyRecord = { stir: string; name: string; director: string; status: 'active' | 'liquidated' };
 export type LookupResult = { ok: true; record: CompanyRecord } | { ok: false; reason: 'notfound' | 'network' };
@@ -59,34 +58,19 @@ export function nameGender(name?: string): 'm' | 'f' {
   return /(a|ya|oy|xon|gul|bonu|niso|bibi|а|я|ой|хон|гул)$/.test(first) ? 'f' : 'm';
 }
 
-/** Demo reyestr — faqat sinov uchun to'qilgan yozuvlar */
-export const DEMO_REGISTRY: CompanyRecord[] = [
-  { stir: '301234567', name: '«YUMS DEMO» MChJ', director: 'Karimov Aziz Bahodirovich', status: 'active' },
-  { stir: '302345678', name: '«SILK ROAD LOGISTICS» MChJ', director: 'Saidova Nodira Alisherovna', status: 'active' },
-  { stir: '207654321', name: '«AGROSMART» MChJ', director: 'Rahimov Bekzod Tolibovich', status: 'active' },
-  { stir: '305555555', name: '«ESKI SAVDO» MChJ', director: 'Tursunov Jamshid', status: 'liquidated' },
-];
-
-const API = process.env.EXPO_PUBLIC_REGISTRY_API;
+// Davlat reyestri: backend GET /registry/company/:stir (xodimlar yuritadi). Boshqa manba bo'lsa — EXPO_PUBLIC_REGISTRY_API
+const API = process.env.EXPO_PUBLIC_REGISTRY_API ?? `${API_URL}/registry`;
 
 export async function lookupCompany(stir: string): Promise<LookupResult> {
-  if (API) {
-    try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 8000);
-      const res = await fetch(`${API.replace(/\/$/, '')}/company/${stir}`, { signal: ctrl.signal });
-      clearTimeout(timer);
-      if (res.status === 404) return { ok: false, reason: 'notfound' };
-      if (!res.ok) return { ok: false, reason: 'network' };
-      const j = await res.json();
-      return { ok: true, record: { stir, name: String(j.name ?? ''), director: String(j.director ?? ''), status: j.status === 'liquidated' ? 'liquidated' : 'active' } };
-    } catch {
-      return { ok: false, reason: 'network' };
-    }
+  try {
+    const res = await fetch(`${API.replace(/\/$/, '')}/company/${stir}`, { signal: AbortSignal.timeout(8000) });
+    if (res.status === 404) return { ok: false, reason: 'notfound' };
+    if (!res.ok) return { ok: false, reason: 'network' };
+    const j = await res.json();
+    return { ok: true, record: { stir, name: String(j.name ?? ''), director: String(j.director ?? ''), status: j.status === 'liquidated' ? 'liquidated' : 'active' } };
+  } catch {
+    return { ok: false, reason: 'network' };
   }
-  await new Promise(r => setTimeout(r, 700)); // reyestr so'rovi taqlidi
-  const record = DEMO_REGISTRY.find(x => x.stir === stir);
-  return record ? { ok: true, record } : { ok: false, reason: 'notfound' };
 }
 
 /** Nomni solishtirish uchun: tashkiliy shakl, qo'shtirnoq, apostrof va bo'shliqlarsiz */

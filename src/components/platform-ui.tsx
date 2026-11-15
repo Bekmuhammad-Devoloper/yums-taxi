@@ -5,7 +5,7 @@ import { router } from 'expo-router';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 
-import { REPORT_REASONS, type Conversation, SEED_SPECIALISTS, SEEKS, STAGES, STATUS_META, INVESTOR_KINDS, type Company, type Investor, type ListingStatus, type Project, type ReportTarget, type Specialist } from '@/lib/platform-data';
+import { REPORT_REASONS, type Conversation, SEEKS, STAGES, STATUS_META, INVESTOR_KINDS, type Company, type Investor, type ListingStatus, type Project, type ReportTarget, type Specialist } from '@/lib/platform-data';
 import { coverOf, AD_BANNER } from '@/lib/covers';
 import { budget, countryOf, sectorOf, short, usePlatform } from '@/lib/platform';
 import { SECTION_ART, SECTION_ART_SCALE } from '@/lib/section-art';
@@ -98,12 +98,15 @@ export function FavButton({ k, style, size = 22, round }: { k: string; style?: S
 /** Bayroq + joy nomi: «[🇺🇿] Toshkent, O'zbekiston». before/after — qo'shimcha matn */
 export function Place({ code, city, before, after, faint }: { code: string; city?: string; before?: string; after?: string; faint?: boolean }) {
   const k = countryOf(code);
+  // joy yetmasa «…» bilan kesilmaydi: bayroq va mamlakat birga keyingi qatorga o'tadi
   return (
-    <Row gap={6} style={{ flexShrink: 1 }}>
-      {before ? <Txt v="small" muted={!faint} faint={faint} numberOfLines={1}>{before}</Txt> : null}
-      <Flag code={k.code} size={18} />
-      <Txt v="small" muted={!faint} faint={faint} numberOfLines={1} style={{ flexShrink: 1 }}>{city ? `${city}, ` : ''}{k.name}{after ?? ''}</Txt>
-    </Row>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 6, rowGap: 2, flexShrink: 1 }}>
+      {before ? <Txt v="small" muted={!faint} faint={faint}>{before}</Txt> : null}
+      <Row gap={6} style={{ flexShrink: 1 }}>
+        <Flag code={k.code} size={18} />
+        <Txt v="small" muted={!faint} faint={faint} style={{ flexShrink: 1 }}>{city ? `${city}, ` : ''}{k.name}{after ?? ''}</Txt>
+      </Row>
+    </View>
   );
 }
 
@@ -275,7 +278,7 @@ export function InvestorCard({ inv, onContact }: { inv: Investor; onContact: () 
       <Row>
         <Logo name={inv.name} color={c.violet} size={46} />
         <View style={{ flex: 1 }}>
-          <Row gap={4}><Txt v="h3" numberOfLines={1} style={{ flexShrink: 1 }}>{inv.name}</Txt>{inv.verified && <Verified />}</Row>
+          <Row gap={4}><Txt v="h3" numberOfLines={2} style={{ flexShrink: 1 }}>{inv.name}</Txt>{inv.verified && <Verified />}</Row>
           <Place code={inv.country} before={`${INVESTOR_KINDS[inv.kind]} ·`} />
         </View>
         <FavButton k={'investor:' + inv.id} round />
@@ -310,11 +313,12 @@ export const PEER_LABEL: Record<Conversation['peerKind'], string> = {
 
 export function PeerAvatar({ conv, size = 50 }: { conv: Conversation; size?: number }) {
   const { colors: c } = useStore();
+  const { specialists } = usePlatform();
   if (conv.peerKind === 'support') {
     return <BrandMark size={size} style={{ borderRadius: size / 3 }} />;
   }
   if (conv.peerKind === 'company' || conv.peerKind === 'investor') return <Logo name={conv.peerName} color={conv.peerKind === 'investor' ? c.violet : c.ok} size={size} />;
-  const sp = conv.peerKind === 'specialist' ? SEED_SPECIALISTS.find(x => x.id === conv.peerId) : undefined;
+  const sp = conv.peerKind === 'specialist' ? specialists.find(x => x.name === conv.peerName) : undefined;
   if (sp) return <SpecialistAvatar sp={sp} size={size} />;
   return <Avatar name={conv.peerName} size={size} bg={c.accent} />;
 }

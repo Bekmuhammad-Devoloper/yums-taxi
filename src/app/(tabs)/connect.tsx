@@ -1,19 +1,31 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRef, useState, type ComponentRef } from 'react';
+import { Linking, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PEER_LABEL, PeerAvatar } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { Badge, Button, Card, EmptyState, Row, Segmented, Txt, Verified } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, Row, SearchBar, Segmented, Sheet, Txt, Verified } from '@/components/ui';
 import type { Conversation } from '@/lib/platform-data';
 import { ago, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
-import { tr } from '@/lib/i18n';
+import { tr, tx } from '@/lib/i18n';
 
 type Tab = 'chats' | 'requests' | 'meetings';
+const TABS: Tab[] = ['chats', 'requests', 'meetings'];
+type SearchType = 'specialists' | 'companies' | 'investors' | 'projects';
+type IconName = keyof typeof Ionicons.glyphMap;
+
+// «Yangi suhbat»: kimga yozishni tanlab, qidiruvning o'sha bo'limiga o'tamiz — u yerda profilda «Yozish» bor
+const COMPOSE: { type: SearchType; icon: IconName; color: string; title: string; sub: string }[] = [
+  { type: 'specialists', icon: 'people', color: '#2F7BF6', title: tx('Mutaxassislar'), sub: tx('Dasturchi, dizayner, maslahatchi va boshqalar') },
+  { type: 'companies', icon: 'business', color: '#8B5CF6', title: tx('Kompaniyalar'), sub: tx('Hamkorlik, xizmatlar va buyurtmalar') },
+  { type: 'investors', icon: 'trending-up', color: '#12A150', title: tx('Investorlar'), sub: tx('Loyihangiz uchun sarmoya toping') },
+  { type: 'projects', icon: 'rocket', color: '#E8890C', title: tx('Loyihalar'), sub: tx("Jamoaga qo'shiling yoki hamkorlik taklif qiling") },
+];
 
 const preview = (cv: Conversation): { text: string; icon?: 'calendar-outline' | 'attach' } => {
   const m = cv.messages[cv.messages.length - 1];
@@ -30,11 +42,53 @@ export default function Connect() {
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ tab?: Tab }>();
   const [tab, setTab] = useState<Tab>(params.tab === 'requests' || params.tab === 'meetings' ? params.tab : 'chats');
+  // Bo'limlar yonma-yon: barmoq bilan surib yoki yorliqni bosib almashtiriladi
+  const { width: screenW } = useWindowDimensions();
+  const [pageW, setPageW] = useState(screenW);
+  const pager = useRef<ComponentRef<typeof ScrollView>>(null);
+  // yorliq bosilganda sahifa o'zi suriladi — oraliq sahifalar yorliqni almashtirib yubormasin
+  const heading = useRef<number | null>(null);
+  const showTab = (next: Tab) => {
+    if (next === tab) return;
+    heading.current = TABS.indexOf(next);
+    setTab(next);
+    pager.current?.scrollTo({ x: TABS.indexOf(next) * pageW, animated: true });
+  };
+  const onPagerScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const index = Math.round(e.nativeEvent.contentOffset.x / Math.max(1, pageW));
+    if (heading.current !== null) {
+      if (index === heading.current) heading.current = null;
+      return;
+    }
+    const next = TABS[index];
+    if (next && next !== tab) { haptic.tap(); setTab(next); }
+  };
 
-  const chats = p.conversations.filter(x => x.kind === 'chat' || x.requestStatus === 'accepted');
-  const requests = p.conversations.filter(x => x.kind === 'request' && x.requestStatus !== 'accepted');
-  const pendingIn = requests.filter(x => x.incoming && x.requestStatus === 'pending').length;
-  const upcoming = p.meetings.filter(m => m.status === 'scheduled');
+  const [searching, setSearching] = useState(false);
+  const [q, setQ] = useState('');
+  const [compose, setCompose] = useState(false);
+
+  const allRequests = p.conversations.filter(x => x.kind === 'request' && x.requestStatus !== 'accepted');
+  const allUpcoming = p.meetings.filter(m => m.status === 'scheduled');
+  // yorliqlardagi sonlar qidiruvga bog'liq emas
+  const pendingIn = allRequests.filter(x => x.incoming && x.requestStatus === 'pending').length;
+
+  const needle = searching ? q.trim().toLocaleLowerCase() : '';
+  const hit = (...xs: (string | undefined)[]) => !needle || xs.some(x => x?.toLocaleLowerCase().includes(needle));
+  const convHit = (cv: Conversation) => hit(cv.peerName, cv.subject, ...cv.messages.map(m => m.text));
+  const chats = p.conversations.filter(x => (x.kind === 'chat' || x.requestStatus === 'accepted') && convHit(x));
+  const requests = allRequests.filter(convHit);
+  const upcoming = allUpcoming.filter(m => hit(m.title, m.with));
+  const notFound = needle ? <EmptyState icon="search" title={tr('Hech narsa topilmadi')} sub={tr("Boshqa ism yoki so'zni yozib ko'ring")} /> : null;
+
+  const toggleSearch = () => {
+    setSearching(v => !v);
+    setQ('');
+  };
+  const startChat = (type: SearchType) => {
+    setCompose(false);
+    router.push({ pathname: '/world', params: { type } });
+  };
 
   const open = (id: string) => { haptic.tap(); router.push({ pathname: '/chat/[id]', params: { id } }); };
 
@@ -42,24 +96,48 @@ export default function Connect() {
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={{ paddingTop: insets.top + 10, paddingHorizontal: 16, gap: 12, paddingBottom: 10 }}>
         <Row style={{ justifyContent: 'space-between' }}>
-          <View>
-            <Txt v="h1">{t('connect.title')}</Txt>
-            <Txt v="small" muted>{t('sec.connect')}</Txt>
+          <View style={{ flex: 1 }}>
+            <Txt v="h1" numberOfLines={1}>{t('connect.title')}</Txt>
+            <Txt v="small" muted numberOfLines={1}>{t('sec.connect')}</Txt>
           </View>
+          <Row gap={8}>
+            <HeaderAction label={searching ? tr('Yopish') : tr('Qidirish')} active={searching} onPress={toggleSearch}>
+              {searching ? <Ionicons name="close" size={22} color={c.bg} /> : <MaterialCommunityIcons name="magnify" size={25} color={c.text} />}
+            </HeaderAction>
+            <HeaderAction label={tr('Yangi suhbat')} primary onPress={() => setCompose(true)}>
+              <MaterialCommunityIcons name="message-plus" size={24} color={c.brandText} />
+            </HeaderAction>
+          </Row>
         </Row>
+        {searching && <SearchBar value={q} onChangeText={setQ} placeholder={tr('Ism, loyiha yoki xabar')} autoFocus />}
         <Segmented<Tab>
+          fit
           value={tab}
-          onChange={setTab}
+          onChange={showTab}
           items={[
             { id: 'chats', label: t('connect.chats') },
             { id: 'requests', label: t('connect.requests'), badge: pendingIn },
-            { id: 'meetings', label: t('connect.meetings'), badge: upcoming.length },
+            { id: 'meetings', label: t('connect.meetings'), badge: allUpcoming.length },
           ]}
         />
       </View>
 
-      <ScrollView contentContainerStyle={{ padding: 16, paddingTop: 4, gap: 10, paddingBottom: 30 }}>
-        {tab === 'chats' && (chats.length ? chats.map(cv => (
+      <ScrollView
+        ref={pager}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={onPagerScroll}
+        onLayout={e => {
+          const w = e.nativeEvent.layout.width;
+          setPageW(w);
+          // havola orqali (masalan, ?tab=meetings) ochilganda — kerakli bo'limda turadi
+          pager.current?.scrollTo({ x: TABS.indexOf(tab) * w, animated: false });
+        }}
+        style={{ flex: 1 }}>
+      <ScrollView style={{ width: pageW }} contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+        {chats.length ? chats.map(cv => (
           <Pressable key={cv.id} onPress={() => open(cv.id)} style={({ pressed }) => [styles.row, { backgroundColor: pressed ? c.surface2 : c.surface }]}>
             <PeerAvatar conv={cv} />
             <View style={{ flex: 1, gap: 2 }}>
@@ -83,9 +161,11 @@ export default function Connect() {
               {cv.unread ? <View style={[styles.unread, { backgroundColor: c.brand }]}><Text style={[styles.unreadText, { color: c.brandText }]}>{cv.unread}</Text></View> : null}
             </View>
           </Pressable>
-        )) : <EmptyState icon="chatbubbles-outline" title={tr("Hali suhbatlar yo'q")} sub={tr('Loyiha, kompaniya yoki mutaxassis sahifasidan «Yozish» tugmasini bosing')} action={tr("Qidiruvga o'tish")} onAction={() => router.push('/world')} />)}
+        )) : notFound ?? <EmptyState icon="chatbubbles-outline" title={tr("Hali suhbatlar yo'q")} sub={tr('Loyiha, kompaniya yoki mutaxassis sahifasidan «Yozish» tugmasini bosing')} action={tr("Qidiruvga o'tish")} onAction={() => router.push('/world')} />}
+      </ScrollView>
 
-        {tab === 'requests' && (requests.length ? requests.map(cv => {
+      <ScrollView style={{ width: pageW }} contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+        {requests.length ? requests.map(cv => {
           const status = cv.requestStatus === 'declined' ? { l: tr('Rad etilgan'), tone: 'danger' as const } : cv.incoming ? { l: tr("Yangi so'rov"), tone: 'warn' as const } : { l: tr('Javob kutilmoqda'), tone: 'muted' as const };
           return (
             <Card key={cv.id} onPress={() => open(cv.id)} style={{ gap: 12 }}>
@@ -106,9 +186,11 @@ export default function Connect() {
               )}
             </Card>
           );
-        }) : <EmptyState icon="people-outline" title={tr("So'rovlar yo'q")} sub={tr("Investor, hamkor yoki mijozlardan hamkorlik so'rovlari shu yerda ko'rinadi")} />)}
+        }) : notFound ?? <EmptyState icon="people-outline" title={tr("So'rovlar yo'q")} sub={tr("Investor, hamkor yoki mijozlardan hamkorlik so'rovlari shu yerda ko'rinadi")} />}
+      </ScrollView>
 
-        {tab === 'meetings' && (upcoming.length ? upcoming.map(m => {
+      <ScrollView style={{ width: pageW }} contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
+        {upcoming.length ? upcoming.map(m => {
           const d = new Date(m.at);
           return (
             <Card key={m.id} style={{ gap: 12 }}>
@@ -129,15 +211,62 @@ export default function Connect() {
               </Row>
             </Card>
           );
-        }) : <EmptyState icon="calendar-outline" title={tr('Uchrashuvlar rejalashtirilmagan')} sub={tr('Suhbat ichidagi kalendar tugmasi orqali onlayn uchrashuv belgilang')} />)}
+        }) : notFound ?? <EmptyState icon="calendar-outline" title={tr('Uchrashuvlar rejalashtirilmagan')} sub={tr('Suhbat ichidagi kalendar tugmasi orqali onlayn uchrashuv belgilang')} />}
       </ScrollView>
+      </ScrollView>
+
+      <Sheet visible={compose} onClose={() => setCompose(false)} title={tr('Yangi suhbat')}>
+        <View style={{ gap: 8 }}>
+          {COMPOSE.map(o => (
+            <Pressable key={o.type} onPress={() => { haptic.tap(); startChat(o.type); }} style={({ pressed }) => [styles.option, { backgroundColor: pressed ? c.surface3 : c.surface2 }]}>
+              <View style={[styles.optionIco, { backgroundColor: o.color + '24' }]}>
+                <Ionicons name={o.icon} size={22} color={o.color} />
+              </View>
+              <View style={{ flex: 1, gap: 1 }}>
+                <Txt v="h3">{tr(o.title)}</Txt>
+                <Txt v="small" muted numberOfLines={2}>{tr(o.sub)}</Txt>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={c.faint} />
+            </Pressable>
+          ))}
+          <Row gap={8} style={{ paddingHorizontal: 4, paddingTop: 4, alignItems: 'flex-start' }}>
+            <Ionicons name="information-circle-outline" size={17} color={c.muted} style={{ marginTop: 1 }} />
+            <Txt v="small" muted style={{ flex: 1, lineHeight: 19 }}>{tr("Kerakli profilni oching va «Yozish» tugmasini bosing — suhbat shu yerda paydo bo'ladi")}</Txt>
+          </Row>
+        </View>
+      </Sheet>
     </View>
   );
 }
 
+/** Sarlavhadagi tugma: oddiy — sirt rangida, faol (qidiruv ochiq) — teskari rangda, asosiy — brend rangida nur bilan */
+function HeaderAction({ children, label, onPress, primary, active }: { children: React.ReactNode; label: string; onPress: () => void; primary?: boolean; active?: boolean }) {
+  const { colors: c, dark } = useStore();
+  return (
+    <Pressable
+      onPress={() => { haptic.tap(); onPress(); }}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      hitSlop={4}
+      style={({ pressed }) => [
+        styles.action,
+        primary
+          ? { backgroundColor: c.brand, shadowColor: c.brand, shadowOpacity: dark ? 0.4 : 0.5, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 4 }
+          : { backgroundColor: active ? c.text : c.surface, borderWidth: StyleSheet.hairlineWidth * 2, borderColor: active ? c.text : c.line },
+        { transform: [{ scale: pressed ? 0.92 : 1 }] },
+      ]}>
+      {children}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
+  page: { padding: 16, paddingTop: 4, gap: 10, paddingBottom: 30 },
+  action: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20 },
   unread: { minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
   unreadText: { fontFamily: F.heavy, fontSize: 12 },
+  option: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18 },
+  optionIco: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   date: { width: 56, height: 60, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
 });

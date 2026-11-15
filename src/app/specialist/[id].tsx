@@ -1,26 +1,20 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { SpecialistIdCard } from '@/components/id-card';
 import { FavButton, KeyValue, ReportSheet } from '@/components/platform-ui';
-import { Badge, Button, Card, EmptyState, IconButton, Row, Screen, SectionHeader, Txt } from '@/components/ui';
+import { ProfileReviews } from '@/components/profile-reviews';
+import { Badge, Button, Card, EmptyState, IconButton, Row, Screen, Txt } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
 import { LANGUAGES } from '@/lib/platform-data';
 import { usePlatform } from '@/lib/platform';
 import { useStore } from '@/lib/store';
 import { tr } from '@/lib/i18n';
 
-const REVIEWS = [
-  { who: 'AgroSmart LLC', stars: 5, text: "Muddatidan oldin topshirdi, kod sifati a'lo. Yana ishlaymiz." },
-  { who: 'Dilnoza K.', stars: 5, text: "Talablarni tez tushundi, har kuni hisobot berib turdi." },
-  { who: 'Silk Road Logistics', stars: 4, text: 'Yaxshi natija, kichik tuzatishlar bilan.' },
-];
-
 export default function SpecialistScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors: c } = useStore();
+  const { colors: c, user } = useStore();
   const p = usePlatform();
   const start = useStartChat();
   const [reporting, setReporting] = useState(false);
@@ -63,16 +57,8 @@ export default function SpecialistScreen() {
         <Row gap={6} style={{ flexWrap: 'wrap' }}>{sp.skills.map(s => <Badge key={s} label={s} tone="accent" />)}</Row>
       </Card>
 
-      <SectionHeader title={tr('Sharhlar · {reviews}', { reviews: sp.reviews })} />
-      {REVIEWS.map(r => (
-        <Card key={r.who} style={{ gap: 6 }}>
-          <Row style={{ justifyContent: 'space-between' }}>
-            <Txt v="h3">{r.who}</Txt>
-            <Row gap={1}>{[1, 2, 3, 4, 5].map(n => <Ionicons key={n} name={n <= r.stars ? 'star' : 'star-outline'} size={13} color="#F5A524" />)}</Row>
-          </Row>
-          <Txt v="small" muted>{r.text}</Txt>
-        </Card>
-      ))}
+      <ProfileReviews profileId={sp.id} ownerId={p.ownerOf(sp.id)} onChanged={() => { p.refresh().catch(() => {}); }} />
+      {p.ownerOf(sp.id) === user?.id && <Button title={tr('Profilni tahrirlash')} kind="ghost" icon="create-outline" onPress={() => router.push({ pathname: '/directory-edit', params: { type: 'specialist' } })} />}
       <ReportSheet visible={reporting} onClose={() => setReporting(false)} kind="specialist" id={sp.id} title={sp.name} />
     </Screen>
   );

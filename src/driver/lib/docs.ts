@@ -2,13 +2,11 @@
 // Hujjat yuborilgach «Tekshirilmoqda», so'ng «Tasdiqlangan» yoki sabab bilan «Rad etildi».
 
 import type Ionicons from '@expo/vector-icons/Ionicons';
+import type { DocKindServer, ServerDocument } from '@/lib/driver-api';
 import { tr, tx } from '@/lib/i18n';
 
 export type DocKind = 'license' | 'techPassport' | 'taxiLicense' | 'osago';
 export type DocStatus = 'missing' | 'review' | 'approved' | 'rejected';
-/** SAMPLE — demo hujjat: rasm o'rniga hujjat dizayni ko'rsatiladi */
-export const SAMPLE = 'sample';
-
 export type DriverDoc = {
   kind: DocKind;
   number: string;
@@ -103,19 +101,25 @@ export function validateDoc(d: DriverDoc, now = new Date()): Partial<Record<'num
   return e;
 }
 
-/** Moderator tekshiruvi (demo): muddati o'tgan hujjat rad etiladi */
-export function reviewDoc(d: DriverDoc, now = new Date()): Pick<DriverDoc, 'status' | 'note'> {
-  const exp = parseDate(d.expires);
-  if (DOC_META[d.kind].expires && exp && exp < now) return { status: 'rejected', note: tr("Hujjat muddati o'tgan — yangisini yuklang") };
-  return { status: 'approved', note: undefined };
-}
+/* ---------- Server bilan almashinuv ---------- */
 
-/** Demo uchun namuna hujjat */
-export function sampleDoc(kind: DocKind, now = new Date()): DriverDoc {
-  const y = now.getFullYear();
-  const num: Record<DocKind, string> = { license: 'AF 4821736', techPassport: 'AAF 0937215', taxiLicense: 'TL 205613', osago: 'EAA 7716240' };
-  return {
-    kind, number: num[kind], issued: `14.03.${y - 2}`, expires: DOC_META[kind].expires ? `14.03.${y + (kind === 'license' ? 8 : 1)}` : undefined,
-    categories: kind === 'license' ? 'B, C' : undefined, front: SAMPLE, back: DOC_META[kind].back ? SAMPLE : undefined, status: 'missing',
-  };
-}
+const SERVER_KIND: Record<DocKind, DocKindServer> = { license: 'LICENSE', techPassport: 'TECH_PASSPORT', taxiLicense: 'TAXI_LICENSE', osago: 'OSAGO' };
+const APP_KIND = Object.fromEntries(Object.entries(SERVER_KIND).map(([a, b]) => [b, a])) as Record<DocKindServer, DocKind>;
+export const serverKind = (k: DocKind): DocKindServer => SERVER_KIND[k];
+export const appKind = (k: DocKindServer): DocKind => APP_KIND[k];
+
+/** KK.OO.YYYY ⇄ YYYY-MM-DD */
+const toIso = (s?: string) => { const m = s?.match(/^(\d{2})\.(\d{2})\.(\d{4})$/); return m ? `${m[3]}-${m[2]}-${m[1]}` : undefined; };
+const fromIso = (s?: string) => { const m = s?.match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? `${m[3]}.${m[2]}.${m[1]}` : undefined; };
+
+const STATUS: Record<ServerDocument['status'], DocStatus> = { REVIEW: 'review', APPROVED: 'approved', REJECTED: 'rejected' };
+
+export const fromServerDoc = (d: ServerDocument): DriverDoc => ({
+  kind: appKind(d.kind), number: d.number, issued: fromIso(d.issuedOn), expires: fromIso(d.expiresOn), categories: d.categories,
+  front: d.frontImage, back: d.backImage, status: STATUS[d.status], note: d.note, submittedAt: d.submittedAt, checkedAt: d.checkedAt,
+});
+
+export const toServerDoc = (d: DriverDoc) => ({
+  number: d.number, issuedOn: toIso(d.issued), expiresOn: toIso(d.expires), categories: d.categories || undefined,
+  frontImage: d.front ?? '', backImage: d.back || undefined,
+});

@@ -9,6 +9,7 @@ import { PickerSheet, SectorGlyph, SectorIcon, SelectField } from '@/components/
 import { toast } from '@/components/toast';
 import { Button, Card, Chip, Field, Flag, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { COUNTRIES, LANGUAGES, SECTORS, SEEKS, STAGES, type Attachment, type ContactMethod, type Seek, type Stage } from '@/lib/platform-data';
+import { FILE_LIMIT } from '@/lib/platform-api';
 import { countryOf, fileSize, flagged, sectorOf, usePlatform, type ProjectInput } from '@/lib/platform';
 import { SECTOR_ART } from '@/lib/sector-art';
 import { haptic, useStore } from '@/lib/store';
@@ -74,19 +75,22 @@ export default function EditProject() {
     if (submit && !valid) { toast(tr("Belgilangan maydonlarni to'ldiring"), 'alert-circle'); return; }
     if (!submit && title.trim().length < 3) { toast(tr('Qoralama uchun kamida sarlavha kiriting'), 'alert-circle'); return; }
     if (submit && overLimit) { toast(tr("Free tarifda {FREE_LIMIT} tagacha faol loyiha — Pro tarifga o'ting", { FREE_LIMIT }), 'diamond'); router.push('/plans'); return; }
-    const pid = p.saveProject(input(), { id, submit });
-    haptic.success();
-    toast(submit ? (banned.length ? tr("Yuborildi — moderator qo'lda tekshiradi") : tr('Moderatsiyaga yuborildi')) : tr('Qoralama saqlandi'), submit ? 'send' : 'save');
-    router.dismissTo({ pathname: '/project/[id]', params: { id: pid } });
+    if (files.some(f => (f.size ?? 0) > FILE_LIMIT)) { toast(tr('Fayl juda katta — 1 MB gacha yuboring'), 'alert-circle'); return; }
+    p.saveProject(input(), { id, submit }).then(pid => {
+      if (!pid) return;
+      haptic.success();
+      toast(submit ? (banned.length ? tr("Yuborildi — moderator qo'lda tekshiradi") : tr("Loyiha katalogda e'lon qilindi")) : tr('Qoralama saqlandi'), submit ? 'send' : 'save');
+      router.dismissTo({ pathname: '/project/[id]', params: { id: pid } });
+    });
   };
 
   const attach = async () => {
     try {
       const r = await DocumentPicker.getDocumentAsync({ multiple: true, copyToCacheDirectory: true, type: ['application/pdf', 'application/*', 'image/*', 'text/*'] });
       if (r.canceled) return;
-      const big = r.assets.filter(a => (a.size ?? 0) > 25e6);
-      if (big.length) toast(tr("25 MB dan katta fayllar qo'shilmadi"), 'alert-circle');
-      setFiles(f => [...f, ...r.assets.filter(a => (a.size ?? 0) <= 25e6).map(a => ({ id: 'f' + a.lastModified + a.name, name: a.name, size: a.size, mime: a.mimeType, uri: a.uri }))].slice(0, 10));
+      const big = r.assets.filter(a => (a.size ?? 0) > FILE_LIMIT);
+      if (big.length) toast(tr("1 MB dan katta fayllar qo'shilmadi"), 'alert-circle');
+      setFiles(f => [...f, ...r.assets.filter(a => (a.size ?? 0) <= FILE_LIMIT).map(a => ({ id: 'f' + a.lastModified + a.name, name: a.name, size: a.size, mime: a.mimeType, uri: a.uri }))].slice(0, 3));
     } catch {
       toast(tr("Fayl tanlab bo'lmadi"), 'alert-circle');
     }

@@ -1,4 +1,6 @@
-// Mutaxassis profili — ID karta / pasport uslubida: rasm, maydonlar, himoya naqshi va MRZ qatori
+// Mutaxassis profili — ID karta / pasport uslubida: rasm, maydonlar, himoya naqshi va MRZ qatori.
+// O'lcham haqiqiy ID-karta kabi: ISO/IEC 7810 ID-1 (85,6 × 54 mm, nisbat 1,586 : 1).
+// Ichidagi barcha o'lchamlar karta kengligiga qarab mutanosib o'zgaradi.
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
@@ -22,14 +24,27 @@ const ISO3: Record<string, string> = {
   RU: 'RUS', DE: 'DEU', GB: 'GBR', FR: 'FRA', PL: 'POL', NL: 'NLD', EE: 'EST', US: 'USA', CA: 'CAN', BR: 'BRA', NG: 'NGA', KE: 'KEN', EG: 'EGY', AU: 'AUS',
 };
 
+/** ID-1 karta nisbati (85,6 / 54) */
+const ID1 = 85.6 / 54;
+/** Dizayn shu kenglik uchun chizilgan; boshqa kengliklarda mutanosib kattalashadi/kichrayadi */
+const BASE_W = 340;
+/** Juda keng ekranda karta haddan tashqari kattalashmasin */
+const MAX_W = 440;
+const MRZ_LEN = 30;
+
 // MRZ faqat lotin bosh harflari, raqam va «<» dan iborat
 const latin = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[ʻʼ'’`]/g, '').toUpperCase().replace(/[^A-Z0-9]+/g, '<');
 const pad = (s: string, n: number) => (s + '<'.repeat(n)).slice(0, n);
+
+/** o'lchamni karta kengligiga moslash */
+type Scale = (n: number) => number;
+const makeScale = (w: number): Scale => n => Math.round(n * (w / BASE_W) * 10) / 10;
 
 /** Karta: bosilganda orqa tomoniga aylanadi. Orqa tomon — portfolio sayti yoki YUMS chat */
 export function SpecialistIdCard({ sp }: { sp: Specialist }) {
   const [rot] = useState(() => new Animated.Value(0));
   const [backSide, setBackSide] = useState(false);
+  const [w, setW] = useState(BASE_W);
   const busy = useRef(false);
   const flip = () => {
     if (busy.current) return;
@@ -51,17 +66,19 @@ export function SpecialistIdCard({ sp }: { sp: Specialist }) {
   }, [rot]);
   const front = rot.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
   const back = rot.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '360deg'] });
+  const h = Math.round(w / ID1);
+  const z = makeScale(w);
   return (
-    <View>
-      <View>
-      <Animated.View style={[styles.face, { transform: [{ perspective: 1200 }, { rotateY: front }] }]} pointerEvents={backSide ? 'none' : 'auto'}>
-        <Pressable onPress={flip} accessibilityRole="button" accessibilityLabel={tr("Kartaning orqa tomonini ko'rish")}>
-          <IdFront sp={sp} />
-        </Pressable>
-      </Animated.View>
-      <Animated.View style={[StyleSheet.absoluteFill, styles.face, { transform: [{ perspective: 1200 }, { rotateY: back }] }]} pointerEvents={backSide ? 'auto' : 'none'}>
-        <IdBack sp={sp} onFlip={flip} />
-      </Animated.View>
+    <View style={styles.wrap} onLayout={e => { const nw = Math.round(e.nativeEvent.layout.width); if (nw && nw !== w) setW(nw); }}>
+      <View style={{ width: '100%', height: h }}>
+        <Animated.View style={[StyleSheet.absoluteFill, styles.face, { transform: [{ perspective: 1200 }, { rotateY: front }] }]} pointerEvents={backSide ? 'none' : 'auto'}>
+          <Pressable onPress={flip} style={{ flex: 1 }} accessibilityRole="button" accessibilityLabel={tr("Kartaning orqa tomonini ko'rish")}>
+            <IdFront sp={sp} w={w} z={z} />
+          </Pressable>
+        </Animated.View>
+        <Animated.View style={[StyleSheet.absoluteFill, styles.face, { transform: [{ perspective: 1200 }, { rotateY: back }] }]} pointerEvents={backSide ? 'auto' : 'none'}>
+          <IdBack sp={sp} onFlip={flip} z={z} />
+        </Animated.View>
       </View>
     </View>
   );
@@ -87,10 +104,16 @@ const BACK_THEMES: readonly (readonly [string, string, string])[] = [
   ['#0A1A12', '#11402B', '#06110B'],
 ];
 
-function IdBack({ sp, onFlip }: { sp: Specialist; onFlip: () => void }) {
-  const start = useStartChat();
+function CardArt({ sp }: { sp: Specialist }) {
   const i = backIndex(sp);
   const art = CARD_BACKS[i];
+  return art
+    ? <Image source={art} style={StyleSheet.absoluteFill} contentFit="cover" />
+    : <LinearGradient colors={BACK_THEMES[i % BACK_THEMES.length]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />;
+}
+
+function IdBack({ sp, onFlip, z }: { sp: Specialist; onFlip: () => void; z: Scale }) {
+  const start = useStartChat();
   const site = sp.website?.replace(/^https?:\/\//, '').replace(/\/$/, '');
   const num = 'YM' + sp.id.replace(/\D/g, '').padStart(7, '0');
   const bars = [...(num + sp.name)].map(ch => 1 + (ch.charCodeAt(0) % 4));
@@ -101,67 +124,72 @@ function IdBack({ sp, onFlip }: { sp: Specialist; onFlip: () => void }) {
     haptic.tap();
     Linking.openURL(sp.website).catch(() => toast(tr("Saytni ochib bo'lmadi"), 'alert-circle'));
   };
+  const btn = z(30);
   return (
-    <View style={styles.back}>
-      {art ? <Image source={art} style={StyleSheet.absoluteFill} contentFit="cover" /> : <LinearGradient colors={BACK_THEMES[i % BACK_THEMES.length]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
-      <LinearGradient colors={['rgba(0,0,0,0.7)', 'rgba(0,0,0,0.45)', 'rgba(0,0,0,0.15)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
-      <View style={styles.backTop}>
-        <BrandMark size={22} style={{ borderRadius: 6 }} />
-        <Text style={styles.backBrand}>YUMS <Text style={{ color: '#FFC800' }}>ID</Text></Text>
-        <Pressable onPress={onFlip} hitSlop={10} style={styles.backFlip} accessibilityLabel={tr('Old tomoniga qaytish')}>
-          <Ionicons name="sync-outline" size={16} color="#fff" />
+    <View style={[styles.cardBox, { borderRadius: z(16), padding: z(12), justifyContent: 'space-between' }]}>
+      <CardArt sp={sp} />
+      <LinearGradient colors={['rgba(0,0,0,0.72)', 'rgba(0,0,0,0.5)', 'rgba(0,0,0,0.2)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+      <View style={[styles.row, { gap: z(7) }]}>
+        <BrandMark size={z(20)} style={{ borderRadius: z(6) }} />
+        <Text style={[styles.backBrand, { fontSize: z(11.5) }]}>YUMS <Text style={{ color: '#FFC800' }}>ID</Text></Text>
+        <Pressable onPress={onFlip} hitSlop={10} style={[styles.round, { width: z(28), height: z(28), borderRadius: z(14) }]} accessibilityLabel={tr('Old tomoniga qaytish')}>
+          <Ionicons name="sync-outline" size={z(14)} color="#fff" />
         </Pressable>
       </View>
-      <View style={{ gap: 7 }}>
+      <View style={{ gap: z(5) }}>
         <View>
-          <Text style={styles.backKicker}>{sp.website ? tr('PORTFOLIO · {site}', { site }) : tr('YUMS CHAT ORQALI ALOQA')}</Text>
-          <Text style={styles.backTitle} numberOfLines={1}>{sp.name}</Text>
+          <Text style={[styles.backKicker, { fontSize: z(8.5) }]} numberOfLines={1}>{sp.website ? tr('PORTFOLIO · {site}', { site }) : tr('YUMS CHAT ORQALI ALOQA')}</Text>
+          <Text style={[styles.backTitle, { fontSize: z(18) }]} numberOfLines={1}>{sp.name}</Text>
         </View>
-        <View style={styles.statRow}>
-          <Stat icon="star" tint="#FFC800" text={`${sp.rating.toFixed(1)} (${sp.reviews})`} />
-          <Stat icon="cash-outline" text={tr('${rate}/soat', { rate: sp.rate })} />
-          <Stat icon="ribbon-outline" text={tr('{experience} yil', { experience: sp.experience })} />
-          {sp.remote && <Stat icon="globe-outline" text={tr('Masofaviy')} />}
+        <View style={[styles.row, { gap: z(5), flexWrap: 'wrap' }]}>
+          <Stat z={z} icon="star" tint="#FFC800" text={`${sp.rating.toFixed(1)} (${sp.reviews})`} />
+          <Stat z={z} icon="cash-outline" text={tr('${rate}/soat', { rate: sp.rate })} />
+          <Stat z={z} icon="ribbon-outline" text={tr('{experience} yil', { experience: sp.experience })} />
+          {sp.remote && <Stat z={z} icon="globe-outline" text={tr('Masofaviy')} />}
         </View>
-        <View style={styles.skillRow}>
-          {sp.skills.slice(0, 4).map(k => <View key={k} style={styles.skill}><Text style={styles.skillText} numberOfLines={1}>{k}</Text></View>)}
+        <View style={[styles.row, { gap: z(4), overflow: 'hidden' }]}>
+          {sp.skills.slice(0, 4).map(k => (
+            <View key={k} style={[styles.skill, { height: z(19), paddingHorizontal: z(7), borderRadius: z(6) }]}>
+              <Text style={[styles.skillText, { fontSize: z(10) }]} numberOfLines={1}>{k}</Text>
+            </View>
+          ))}
         </View>
-        <Text style={styles.backSub} numberOfLines={1}>
-          <Ionicons name="language-outline" size={12} color="rgba(255,255,255,0.8)" /> {langs}  ·  {sp.available ? tr("Hozir bo'sh — buyurtma qabul qiladi") : tr('Hozir band')}
+        <Text style={[styles.backSub, { fontSize: z(10.5) }]} numberOfLines={1}>
+          <Ionicons name="language-outline" size={z(11)} color="rgba(255,255,255,0.8)" /> {langs}  ·  {sp.available ? tr("Hozir bo'sh — buyurtma qabul qiladi") : tr('Hozir band')}
         </Text>
       </View>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-        <Pressable onPress={go} style={({ pressed }) => [styles.backCta, { opacity: pressed ? 0.85 : 1 }]}>
-          <Ionicons name={sp.website ? 'open-outline' : 'chatbubble-ellipses'} size={15} color="#0E1525" />
-          <Text style={styles.backCtaText}>{sp.website ? tr('Saytni ochish') : tr('Chatda yozish')}</Text>
+      <View style={[styles.row, { gap: z(7) }]}>
+        <Pressable onPress={go} style={({ pressed }) => [styles.backCta, { height: btn, paddingHorizontal: z(12), borderRadius: btn / 2, opacity: pressed ? 0.85 : 1 }]}>
+          <Ionicons name={sp.website ? 'open-outline' : 'chatbubble-ellipses'} size={z(14)} color="#0E1525" />
+          <Text style={[styles.backCtaText, { fontSize: z(12) }]}>{sp.website ? tr('Saytni ochish') : tr('Chatda yozish')}</Text>
         </Pressable>
         {sp.website ? (
-          <Pressable onPress={chat} style={({ pressed }) => [styles.backGhost, { opacity: pressed ? 0.7 : 1 }]} accessibilityLabel={tr('YUMS chatda yozish')}>
-            <Ionicons name="chatbubble-ellipses-outline" size={15} color="#fff" />
+          <Pressable onPress={chat} style={({ pressed }) => [styles.round, { width: btn, height: btn, borderRadius: btn / 2, opacity: pressed ? 0.7 : 1 }]} accessibilityLabel={tr('YUMS chatda yozish')}>
+            <Ionicons name="chatbubble-ellipses-outline" size={z(14)} color="#fff" />
           </Pressable>
         ) : null}
         <View style={{ flex: 1 }} />
-        <View style={{ alignItems: 'flex-end', gap: 3 }}>
-          <View style={styles.barcode}>
-            {bars.map((w, k) => <View key={k} style={{ width: w, height: k % 3 ? 18 : 14, backgroundColor: 'rgba(255,255,255,0.85)' }} />)}
+        <View style={{ alignItems: 'flex-end', gap: z(2) }}>
+          <View style={[styles.barcode, { height: z(16) }]}>
+            {bars.map((bw, k) => <View key={k} style={{ width: bw, height: k % 3 ? z(16) : z(12), backgroundColor: 'rgba(255,255,255,0.85)' }} />)}
           </View>
-          <Text style={styles.backNum}>№ {num}</Text>
+          <Text style={[styles.backNum, { fontSize: z(9) }]}>№ {num}</Text>
         </View>
       </View>
     </View>
   );
 }
 
-function Stat({ icon, text, tint }: { icon: IconName; text: string; tint?: string }) {
+function Stat({ icon, text, tint, z }: { icon: IconName; text: string; tint?: string; z: Scale }) {
   return (
-    <View style={styles.stat}>
-      <Ionicons name={icon} size={12} color={tint ?? 'rgba(255,255,255,0.85)'} />
-      <Text style={styles.statText}>{text}</Text>
+    <View style={[styles.stat, { height: z(21), paddingHorizontal: z(7), borderRadius: z(11) }]}>
+      <Ionicons name={icon} size={z(11)} color={tint ?? 'rgba(255,255,255,0.85)'} />
+      <Text style={[styles.statText, { fontSize: z(10.5) }]}>{text}</Text>
     </View>
   );
 }
 
-function IdFront({ sp }: { sp: Specialist }) {
+function IdFront({ sp, w, z }: { sp: Specialist; w: number; z: Scale }) {
   const { colors: c } = useStore();
   const k = countryOf(sp.country);
   const words = sp.name.trim().split(/\s+/);
@@ -169,126 +197,124 @@ function IdFront({ sp }: { sp: Specialist }) {
   const given = words.length > 1 ? words.slice(0, -1).join(' ') : '';
   const iso = ISO3[sp.country] ?? sp.country + 'X';
   const num = 'YM' + sp.id.replace(/\D/g, '').padStart(7, '0');
-  const mrz1 = pad(`ID${iso}${latin(surname)}<<${latin(given)}`, 30);
-  const mrz2 = pad(`${num}<${iso}<<${String(sp.experience).padStart(2, '0')}Y<<${sp.verified ? 'VERIFIED' : ''}`, 30);
+  const mrz1 = pad(`ID${iso}${latin(surname)}<<${latin(given)}`, MRZ_LEN);
+  const mrz2 = pad(`${num}<${iso}<<${String(sp.experience).padStart(2, '0')}Y<<${sp.verified ? 'VERIFIED' : ''}`, MRZ_LEN);
+  const t = { ink: '#FFFFFF', label: 'rgba(255,255,255,0.62)', line: 'rgba(255,214,90,0.14)' };
 
-  // Old tomon ham orqa tomondagi fon rasmida — matn har doim oq
-  const i = backIndex(sp);
-  const art = CARD_BACKS[i];
-  const t = { ink: '#FFFFFF', label: 'rgba(255,255,255,0.62)', line: 'rgba(255,214,90,0.14)', mrz: 'rgba(0,0,0,0.38)' };
+  // MRZ shrifti kenglikdan hisoblanadi: 30 belgi aylantirish tugmasigacha to'liq sig'adi (kesilmaydi)
+  const padX = z(12);
+  const hint = z(24);
+  const mrzSize = Math.min(z(13), Math.floor(((w - padX * 2 - hint - z(8)) / MRZ_LEN - 0.8) / 0.6 * 10) / 10);
+  const photoW = z(74);
 
   return (
-    <View style={[styles.card, { borderColor: 'rgba(229,193,88,0.3)' }]}>
-      {art ? <Image source={art} style={StyleSheet.absoluteFill} contentFit="cover" /> : <LinearGradient colors={BACK_THEMES[i % BACK_THEMES.length]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />}
-      <LinearGradient colors={['rgba(0,0,0,0.62)', 'rgba(0,0,0,0.38)', 'rgba(0,0,0,0.12)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+    <View style={[styles.cardBox, { borderRadius: z(16) }]}>
+      <CardArt sp={sp} />
+      <LinearGradient colors={['rgba(0,0,0,0.64)', 'rgba(0,0,0,0.4)', 'rgba(0,0,0,0.12)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
       {/* Himoya naqshi (gilosh) */}
-      <View pointerEvents="none" style={styles.rosette}>
+      <View pointerEvents="none" style={[styles.rosette, { right: -z(70), top: z(10), width: z(240), height: z(240) }]}>
         {Array.from({ length: 14 }, (_, i) => (
-          <View key={i} style={[styles.petal, { borderColor: t.line, transform: [{ rotate: `${i * 13}deg` }] }]} />
+          <View key={i} style={[styles.petal, { width: z(230), height: z(88), borderRadius: z(115), borderColor: t.line, transform: [{ rotate: `${i * 13}deg` }] }]} />
         ))}
       </View>
 
-      {/* Sarlavha */}
-      <View style={styles.head}>
-        <BrandMark size={24} style={{ borderRadius: 7 }} />
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.brand, { color: t.ink }]}>YUMS <Text style={{ color: '#E0A800' }}>ID</Text></Text>
-          <Text style={[styles.headSub, { color: t.label }]}>{tr('MUTAXASSIS GUVOHNOMASI')}</Text>
-        </View>
-        {sp.verified && (
-          <View style={styles.seal}>
-            <Ionicons name="shield-checkmark" size={12} color="#0095F6" />
-            <Text style={styles.sealText}>{tr('TASDIQLANGAN')}</Text>
+      <View style={{ flex: 1, paddingHorizontal: padX, paddingTop: z(11), gap: z(8) }}>
+        {/* Sarlavha */}
+        <View style={[styles.row, { gap: z(7) }]}>
+          <BrandMark size={z(20)} style={{ borderRadius: z(6) }} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={[styles.brand, { color: t.ink, fontSize: z(11.5) }]}>YUMS <Text style={{ color: '#E0A800' }}>ID</Text></Text>
+            <Text style={[styles.headSub, { color: t.label, fontSize: Math.max(6.5, z(6.8)) }]} numberOfLines={1}>{tr('MUTAXASSIS GUVOHNOMASI')}</Text>
           </View>
-        )}
-        <Flag code={k.code} size={22} />
-      </View>
-
-      {/* Asosiy qism */}
-      <View style={styles.body}>
-        <View>
-          <View style={[styles.photo, { borderColor: 'rgba(255,255,255,0.25)' }]}>
-            <SpecialistAvatar sp={sp} size={96} />
-          </View>
-          <LinearGradient colors={['rgba(255,120,200,0.55)', 'rgba(120,200,255,0.55)', 'rgba(255,230,120,0.55)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.holo} />
-          <View style={[styles.status, { backgroundColor: sp.available ? c.ok : c.faint }]}>
-            <Text style={styles.statusText}>{sp.available ? tr("BO'SH") : 'BAND'}</Text>
-          </View>
+          {sp.verified && (
+            <View style={[styles.seal, { paddingHorizontal: z(5), paddingVertical: z(2), borderRadius: z(6) }]}>
+              <Ionicons name="shield-checkmark" size={z(10)} color="#0095F6" />
+              <Text style={[styles.sealText, { fontSize: Math.max(6.5, z(7)) }]}>{tr('TASDIQLANGAN')}</Text>
+            </View>
+          )}
+          <Flag code={k.code} size={z(18)} />
         </View>
 
-        <View style={{ flex: 1, gap: 7 }}>
-          <Field label={tr('FAMILIYA / SURNAME')} value={surname.toUpperCase()} ink={t.ink} labelColor={t.label} big verified={sp.verified} />
-          {given ? <Field label={tr('ISM / GIVEN NAME')} value={given.toUpperCase()} ink={t.ink} labelColor={t.label} big /> : null}
-          <Field label={tr('KASB / PROFESSION')} value={sp.title} ink={t.ink} labelColor={t.label} />
-          <View style={{ flexDirection: 'row', gap: 14 }}>
-            <Field label={tr('MAMLAKAT')} value={`${iso} · ${sp.city}`} ink={t.ink} labelColor={t.label} />
-            <Field label={tr('TAJRIBA')} value={tr('{experience} yil', { experience: sp.experience })} ink={t.ink} labelColor={t.label} />
+        {/* Asosiy qism: tik rasm (3:4) va maydonlar */}
+        <View style={[styles.row, { flex: 1, gap: z(11), alignItems: 'flex-start' }]}>
+          <View>
+            <View style={[styles.photo, { width: photoW, height: Math.round(photoW * 4 / 3), borderRadius: z(10) }]}>
+              <SpecialistAvatar sp={sp} size={Math.round(photoW * 4 / 3)} />
+            </View>
+            <LinearGradient colors={['rgba(255,120,200,0.55)', 'rgba(120,200,255,0.55)', 'rgba(255,230,120,0.55)']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.holo, { left: -z(5), bottom: z(12), width: z(22), height: z(22), borderRadius: z(11) }]} />
+            <View style={[styles.status, { backgroundColor: sp.available ? c.ok : c.faint, bottom: -z(6), marginHorizontal: z(10), borderRadius: z(6) }]}>
+              <Text style={[styles.statusText, { fontSize: Math.max(6.5, z(7.5)) }]}>{sp.available ? tr("BO'SH") : 'BAND'}</Text>
+            </View>
+          </View>
+
+          <View style={{ flex: 1, minWidth: 0, gap: z(4) }}>
+            <Field z={z} label={tr('FAMILIYA / SURNAME')} value={surname.toUpperCase()} ink={t.ink} labelColor={t.label} big verified={sp.verified} />
+            {given ? <Field z={z} label={tr('ISM / GIVEN NAME')} value={given.toUpperCase()} ink={t.ink} labelColor={t.label} big /> : null}
+            <Field z={z} label={tr('KASB / PROFESSION')} value={sp.title} ink={t.ink} labelColor={t.label} />
+            <View style={[styles.row, { gap: z(12), alignItems: 'flex-start' }]}>
+              <Field z={z} label={tr('MAMLAKAT')} value={`${iso} · ${sp.city}`} ink={t.ink} labelColor={t.label} />
+              <Field z={z} label={tr('TAJRIBA')} value={tr('{experience} yil', { experience: sp.experience })} ink={t.ink} labelColor={t.label} />
+            </View>
           </View>
         </View>
       </View>
 
       {/* MRZ */}
-      <View style={[styles.mrz, { backgroundColor: t.mrz }]}>
-        <Text style={[styles.mrzText, { color: t.ink }]} numberOfLines={1} adjustsFontSizeToFit>{mrz1}</Text>
-        <Text style={[styles.mrzText, { color: t.ink }]} numberOfLines={1} adjustsFontSizeToFit>{mrz2}</Text>
-        <View style={[styles.flipHint, { backgroundColor: 'rgba(255,255,255,0.14)' }]}>
-          <Ionicons name="sync-outline" size={13} color={t.ink} />
+      <View style={[styles.mrz, { paddingHorizontal: padX, paddingVertical: z(6) }]}>
+        <Text style={[styles.mrzText, { color: t.ink, fontSize: mrzSize, lineHeight: Math.round(mrzSize * 1.3) }]} numberOfLines={1}>{mrz1}</Text>
+        <Text style={[styles.mrzText, { color: t.ink, fontSize: mrzSize, lineHeight: Math.round(mrzSize * 1.3) }]} numberOfLines={1}>{mrz2}</Text>
+        <View style={[styles.round, { position: 'absolute', right: z(9), top: '50%', marginTop: -hint / 2, width: hint, height: hint, borderRadius: hint / 2 }]}>
+          <Ionicons name="sync-outline" size={z(12)} color={t.ink} />
         </View>
       </View>
     </View>
   );
 }
 
-function Field({ label, value, ink, labelColor, big, verified }: { label: string; value: string; ink: string; labelColor: string; big?: boolean; verified?: boolean }) {
+function Field({ label, value, ink, labelColor, big, verified, z }: { label: string; value: string; ink: string; labelColor: string; big?: boolean; verified?: boolean; z: Scale }) {
   return (
-    <View style={{ flexShrink: 1 }}>
-      <Text style={[styles.label, { color: labelColor }]}>{label}</Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-        <Text style={[big ? styles.valueBig : styles.value, { color: ink }]} numberOfLines={big ? 1 : 2}>{value}</Text>
-        {verified && <Verified size={15} />}
+    <View style={{ flexShrink: 1, minWidth: 0 }}>
+      <Text style={[styles.label, { color: labelColor, fontSize: Math.max(6.5, z(6.8)) }]} numberOfLines={1}>{label}</Text>
+      <View style={[styles.row, { gap: z(4) }]}>
+        <Text style={[big ? styles.valueBig : styles.value, { color: ink, fontSize: big ? z(14) : z(11) }]} numberOfLines={1}>{value}</Text>
+        {verified && <Verified size={z(13)} />}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  wrap: { width: '100%', maxWidth: MAX_W, alignSelf: 'center' },
   face: { backfaceVisibility: 'hidden' },
-  card: { borderRadius: 20, overflow: 'hidden', borderWidth: 1, padding: 14, paddingBottom: 0, gap: 12 },
-  rosette: { position: 'absolute', right: -70, top: 18, width: 260, height: 260, alignItems: 'center', justifyContent: 'center' },
-  petal: { position: 'absolute', width: 250, height: 96, borderRadius: 125, borderWidth: 1 },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  brand: { fontFamily: F.brand, fontSize: 13, letterSpacing: 0.6 },
-  headSub: { fontFamily: F.bold, fontSize: 8.5, letterSpacing: 0.9, marginTop: 1 },
-  body: { flexDirection: 'row', gap: 14 },
-  photo: { borderRadius: 40, borderWidth: 1, overflow: 'hidden' },
-  holo: { position: 'absolute', left: -6, bottom: 14, width: 28, height: 28, borderRadius: 14, opacity: 0.8 },
-  status: { position: 'absolute', left: 0, right: 0, bottom: -8, alignSelf: 'center', marginHorizontal: 18, borderRadius: 8, paddingVertical: 2, alignItems: 'center' },
-  statusText: { color: '#fff', fontFamily: F.heavy, fontSize: 9.5, letterSpacing: 1 },
-  label: { fontFamily: F.bold, fontSize: 8, letterSpacing: 0.9 },
-  valueBig: { fontFamily: F.heavy, fontSize: 16, letterSpacing: 0.3, flexShrink: 1 },
-  value: { fontFamily: F.semi, fontSize: 12.5, lineHeight: 16, flexShrink: 1 },
-  seal: { flexDirection: 'row', alignItems: 'center', gap: 3, borderWidth: 1.2, borderColor: '#0095F6', borderRadius: 7, paddingHorizontal: 5, paddingVertical: 2, transform: [{ rotate: '-6deg' }] },
-  sealText: { color: '#0095F6', fontFamily: F.heavy, fontSize: 8, letterSpacing: 0.8 },
-  mrz: { marginHorizontal: -14, paddingHorizontal: 14, paddingVertical: 8, gap: 1 },
-  mrzText: { fontFamily: F.mono, fontSize: 14.5, letterSpacing: 1.6, paddingRight: 30 },
-  flipHint: { position: 'absolute', right: 10, top: 12, width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
+  cardBox: { flex: 1, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(229,193,88,0.3)', boxShadow: '0 14px 34px rgba(0,0,0,0.28)' },
+  row: { flexDirection: 'row', alignItems: 'center' },
+  round: { alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.16)' },
+  rosette: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  petal: { position: 'absolute', borderWidth: 1 },
+  brand: { fontFamily: F.brand, letterSpacing: 0.6 },
+  headSub: { fontFamily: F.bold, letterSpacing: 0.8, marginTop: 1 },
+  photo: { overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' },
+  holo: { position: 'absolute', opacity: 0.8 },
+  status: { position: 'absolute', left: 0, right: 0, paddingVertical: 2, alignItems: 'center' },
+  statusText: { color: '#fff', fontFamily: F.heavy, letterSpacing: 1 },
+  label: { fontFamily: F.bold, letterSpacing: 0.8 },
+  valueBig: { fontFamily: F.heavy, letterSpacing: 0.3, flexShrink: 1 },
+  value: { fontFamily: F.semi, flexShrink: 1 },
+  seal: { flexDirection: 'row', alignItems: 'center', gap: 3, borderWidth: 1.2, borderColor: '#0095F6', transform: [{ rotate: '-6deg' }] },
+  sealText: { color: '#0095F6', fontFamily: F.heavy, letterSpacing: 0.8 },
+  mrz: { backgroundColor: 'rgba(0,0,0,0.4)', gap: 0 },
+  mrzText: { fontFamily: F.mono, letterSpacing: 0.8 },
   // orqa tomon
-  back: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(229,193,88,0.3)', padding: 14, justifyContent: 'space-between' },
-  backTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  backBrand: { color: '#fff', fontFamily: F.brand, fontSize: 12, letterSpacing: 0.6, flex: 1 },
-  backFlip: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.16)' },
-  backKicker: { color: 'rgba(255,255,255,0.75)', fontFamily: F.heavy, fontSize: 10, letterSpacing: 1.6 },
-  backTitle: { color: '#fff', fontFamily: F.display, fontSize: 22, letterSpacing: -0.5 },
-  backSub: { color: 'rgba(255,255,255,0.85)', fontFamily: F.semi, fontSize: 12 },
-  statRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  stat: { flexDirection: 'row', alignItems: 'center', gap: 4, height: 24, paddingHorizontal: 8, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.14)' },
-  statText: { color: '#fff', fontFamily: F.bold, fontSize: 11.5 },
-  skillRow: { flexDirection: 'row', flexWrap: 'nowrap', gap: 5, overflow: 'hidden' },
-  skill: { height: 22, paddingHorizontal: 8, borderRadius: 7, borderWidth: 1, borderColor: 'rgba(255,214,90,0.5)', justifyContent: 'center', flexShrink: 1 },
-  skillText: { color: '#FFD54A', fontFamily: F.semi, fontSize: 11 },
-  backGhost: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.16)', marginTop: 0 },
-  backCta: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFC800', height: 34, paddingHorizontal: 14, borderRadius: 17 },
-  backCtaText: { color: '#0E1525', fontFamily: F.bold, fontSize: 13 },
-  barcode: { flexDirection: 'row', alignItems: 'flex-end', height: 18, gap: 1.5 },
-  backNum: { color: 'rgba(255,255,255,0.7)', fontFamily: F.mono, fontSize: 10.5, letterSpacing: 1.2 },
+  backBrand: { color: '#fff', fontFamily: F.brand, letterSpacing: 0.6, flex: 1 },
+  backKicker: { color: 'rgba(255,255,255,0.75)', fontFamily: F.heavy, letterSpacing: 1.4 },
+  backTitle: { color: '#fff', fontFamily: F.display, letterSpacing: -0.4 },
+  backSub: { color: 'rgba(255,255,255,0.85)', fontFamily: F.semi },
+  stat: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.14)' },
+  statText: { color: '#fff', fontFamily: F.bold },
+  skill: { borderWidth: 1, borderColor: 'rgba(255,214,90,0.5)', justifyContent: 'center', flexShrink: 1 },
+  skillText: { color: '#FFD54A', fontFamily: F.semi },
+  backCta: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFC800' },
+  backCtaText: { color: '#0E1525', fontFamily: F.bold },
+  barcode: { flexDirection: 'row', alignItems: 'flex-end', gap: 1.5 },
+  backNum: { color: 'rgba(255,255,255,0.7)', fontFamily: F.mono, letterSpacing: 1.2 },
 });

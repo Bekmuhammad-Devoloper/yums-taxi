@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Card, Divider, Row, Screen, Txt } from '@/components/ui';
-import { ACTIVITY, useDriver } from '@/driver/lib/driver-store';
+import { useDriver } from '@/driver/lib/driver-store';
 import { activityColor } from '@/driver/lib/theme';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
@@ -36,13 +36,13 @@ export default function Quality() {
 
       <Card style={{ gap: 12 }}>
         <Txt v="h3">{tr("Faollik qanday o'zgaradi")}</Txt>
-        <Rule icon="checkmark-circle" color="#12A66A" text={tr('Buyurtmani qabul qilish')} value={`+${ACTIVITY.accept}`} />
+        <Rule icon="checkmark-circle" color="#12A66A" text={tr('Buyurtmani qabul qilish')} value={`+${d.rules.activity.accept}`} />
         <Divider />
-        <Rule icon="remove-circle" color="#D97706" text={tr('Rad etish')} value={String(ACTIVITY.decline)} />
+        <Rule icon="remove-circle" color="#D97706" text={tr('Rad etish')} value={String(d.rules.activity.decline)} />
         <Divider />
-        <Rule icon="time" color="#D97706" text={tr("Taklifni o'tkazib yuborish")} value={String(ACTIVITY.missed)} />
+        <Rule icon="time" color="#D97706" text={tr("Taklifni o'tkazib yuborish")} value={String(d.rules.activity.missed)} />
         <Divider />
-        <Rule icon="close-circle" color="#E5484D" text={tr('Qabul qilingan buyurtmani bekor qilish')} value={String(ACTIVITY.cancel)} />
+        <Rule icon="close-circle" color="#E5484D" text={tr('Qabul qilingan buyurtmani bekor qilish')} value={String(d.rules.activity.cancel)} />
       </Card>
 
       <Card style={{ gap: 10 }}>

@@ -17,12 +17,43 @@ import type { TaxiMapProps } from './taxi-map';
 
 export type { MapHandle } from './taxi-map';
 
-export const TILES = {
-  light: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-  dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-};
-export const ATTRIBUTION = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> · © <a href="https://carto.com/attributions" target="_blank" rel="noreferrer">CARTO</a>';
+// CARTO plitkalari endi API kalit talab qiladi ("API KEY REQUIRED" yozuvi chiqadi) — ikkala mavzuda OSM.
+// Qorong'i mavzu plitkalarni CSS filtr bilan qorong'ilashtiradi (.ym-dark .ym-osm qoidasi); plitka qatlamiga
+// className: TILE_CLASS berilishi kerak.
+const OSM = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+export const TILES = { light: OSM, dark: OSM };
+export const TILE_CLASS = 'ym-osm';
+export const DARK_TILE_FILTER = 'invert(1) hue-rotate(180deg) brightness(.9) contrast(.85) saturate(.5)';
+export const ATTRIBUTION = '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a>';
 export const OFFLINE_ATTRIBUTION = tx("Sxematik xarita · xarita serveri bilan aloqa yo'q");
+
+/* ---------- Tirbandlik ---------- */
+// Toshkentda jonli tirbandlik ma'lumoti Google, Yandex va 2GIS da bor (TomTom/HERE O'zbekistonni qamramaydi).
+// Vebda rasmiy yo'l — Google Map Tiles API: faqat tirbandlik chiziqlari shaffof qatlam sifatida (overlay).
+// Kalit EXPO_PUBLIC_GOOGLE_MAPS_KEY da (Map Tiles API yoqilgan); bo'lmasa qatlam ko'rsatilmaydi.
+const GOOGLE_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY ?? '';
+export const TRAFFIC_AVAILABLE = GOOGLE_KEY.length > 0;
+// Google talabi: «Google Maps» yozuvi ko'rinib tursin
+const TRAFFIC_ATTRIBUTION = 'Tirbandlik: Google Maps';
+// Sessiya ~2 hafta amal qiladi (javobdagi expiry, soniyalarda); muddati yaqinlashsa yangisi olinadi
+let trafficSession: { token: Promise<{ session: string; expiry: number }> } | null = null;
+function trafficTiles(): Promise<string> {
+  const fresh = () => ({
+    token: fetch(`https://tile.googleapis.com/v1/createSession?key=${GOOGLE_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      // overlay: faqat tirbandlik chiziqlari, fon xaritasisiz; PNG — shaffoflik uchun (JPEG da yo'q)
+      body: JSON.stringify({ mapType: 'roadmap', language: 'en-US', region: 'UZ', layerTypes: ['layerTraffic'], overlay: true, imageFormat: 'png' }),
+    })
+      .then(r => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((j: { session: string; expiry: string }) => ({ session: j.session, expiry: Number(j.expiry) || 0 })),
+  });
+  trafficSession ??= fresh();
+  return trafficSession.token.then(t => {
+    if (t.expiry && t.expiry * 1000 - Date.now() < 3_600_000) { trafficSession = fresh(); return trafficTiles(); }
+    return `https://tile.googleapis.com/v1/2dtiles/{z}/{x}/{y}?session=${t.session}&key=${GOOGLE_KEY}`;
+  });
+}
 
 const ll = (p: LatLng): L.LatLngTuple => [p.latitude, p.longitude];
 export const assetUri = (m: unknown) => (typeof m === 'object' && m && 'uri' in m ? String((m as { uri: string }).uri) : String(m));
@@ -187,6 +218,7 @@ const CSS = `
 .ym-map{background:var(--ym-land);font-family:inherit}
 .ym-map .leaflet-control-attribution{background:rgba(255,255,255,.72);backdrop-filter:blur(6px);border-radius:8px;margin:0 0 6px 8px!important;padding:1px 7px;font:10px/1.5 Onest_500Medium,system-ui,sans-serif;color:#5b6472}
 .ym-dark .leaflet-control-attribution{background:rgba(20,24,31,.72);color:#8b95a7}
+.ym-dark .ym-osm{filter:${DARK_TILE_FILTER}}
 .ym-map .leaflet-control-attribution a{color:inherit}
 .ym-icon{background:none;border:none}
 .ym-me{width:18px;height:18px;border-radius:50%;background:#2F7BFF;border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.35);box-sizing:border-box;position:relative}
@@ -199,6 +231,12 @@ const CSS = `
 .ym-dest b{width:30px;height:30px;border-radius:10px;background:#FFC800;border:3px solid #fff;display:flex;align-items:center;justify-content:center;box-sizing:border-box}
 .ym-dest i{width:3px;height:10px;border-radius:2px;background:#0E1525}
 .ym-car{width:100%;height:100%;display:block;transition:transform .6s ease}
+svg.ym-car{overflow:visible}
+.ym-me-car{position:relative;width:100%;height:100%}
+.ym-me-car:before{content:"";position:absolute;left:50%;top:50%;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;background:radial-gradient(circle,rgba(255,200,0,.62) 0,rgba(255,200,0,.28) 45%,rgba(255,200,0,0) 70%);animation:ym-me-glow 2.4s ease-in-out infinite;pointer-events:none}
+.ym-me-car img{position:relative;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.9)) drop-shadow(0 3px 6px rgba(0,0,0,.55))}
+@keyframes ym-me-glow{0%,100%{transform:scale(.85);opacity:1}50%{transform:scale(1.12);opacity:.6}}
+@media (prefers-reduced-motion:reduce){.ym-me-car:before{animation:none}}
 .ym-glide{transition:transform .45s linear}
 .ym-zooming .ym-glide{transition:none}
 .ym-scan{width:240px;height:240px;border-radius:50%;position:relative;pointer-events:none}
@@ -206,6 +244,7 @@ const CSS = `
 .ym-scan:after{animation-delay:1.2s}
 @keyframes ym-scan{from{transform:scale(.12);opacity:1}to{transform:scale(1);opacity:0}}
 .ym-surge{font:800 11px/20px Onest_800ExtraBold,system-ui,sans-serif;color:#1A1205;text-align:center;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.ym-usual{display:inline-block;max-width:150px;padding:0 7px;font:700 10.5px/18px Onest_700Bold,system-ui,sans-serif;color:#fff;background:rgba(139,124,246,.92);border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 1px 4px rgba(0,0,0,.2);transform:translateX(-50%)}
 .ym-flow{stroke-dasharray:2 14;animation:ym-flow 1s linear infinite}
 @keyframes ym-flow{to{stroke-dashoffset:-16}}
 @keyframes ym-pulse{from{transform:scale(.5);opacity:1}to{transform:scale(1.4);opacity:0}}
@@ -223,8 +262,13 @@ function addCss() {
 const FLAG_SVG = '<svg width="14" height="14" viewBox="0 0 24 24"><path fill="#0E1525" d="M5 21V4h9l.4 2H20v10h-7l-.4-2H7v7z"/></svg>';
 
 const ZONE_FILL: Record<1 | 2 | 3, string> = { 1: '#FFD23F', 2: '#FF9A1F', 3: '#FF4D2E' };
+const USUAL_COLOR = '#8B7CF6';
+// koeffitsient 1 dan katta bo'lsa — «×1.4», aks holda faqat gavjumlik belgisi
 const zoneLabel = (surge: number, level: 1 | 2 | 3) =>
-  L.divIcon({ className: 'ym-icon', html: `<div class="ym-surge" style="background:${ZONE_FILL[level]}">×${surge.toFixed(1)}</div>`, iconSize: [40, 20], iconAnchor: [20, 10] });
+  L.divIcon({ className: 'ym-icon', html: `<div class="ym-surge" style="background:${ZONE_FILL[level]}">${surge > 1 ? `×${surge.toFixed(1)}` : '🔥'}</div>`, iconSize: [40, 20], iconAnchor: [20, 10] });
+const escapeHtml = (t: string) => t.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch] ?? ch);
+const usualLabel = (title: string) =>
+  L.divIcon({ className: 'ym-icon', html: `<div class="ym-usual">${escapeHtml(title)}</div>`, iconSize: [0, 18], iconAnchor: [0, 9] });
 
 const pickupIcon = (radar: boolean) =>
   L.divIcon({ className: 'ym-icon', html: `<div class="ym-pick${radar ? ' ym-radar' : ''}"></div>`, iconSize: [22, 22], iconAnchor: [11, 11] });
@@ -237,6 +281,15 @@ const carIcon = (kind: 'taxi' | 'car', rot: number, w: number) =>
     iconAnchor: [w / 2, w * 0.9],
   });
 
+// Haydovchining o'z mashinasi: kattaroq, ostida sariq nur va soya — kichik masshtabda ham darhol topiladi
+const myCarIcon = (rot: number) =>
+  L.divIcon({
+    className: 'ym-icon ym-glide',
+    html: `<div class="ym-me-car"><img class="ym-car" src="${assetUri(CAR_TOP.taxi)}" style="transform:rotate(${rot}deg)" alt="" draggable="false"></div>`,
+    iconSize: [34, 61],
+    iconAnchor: [17, 30.5],
+  });
+
 // Atrofdagi bo'sh mashinalar: olish nuqtasi atrofida sekin harakatlanadi
 type Nearby = { lat: number; lng: number; rot: number };
 const seedNearby = (c: LatLng): Nearby[] =>
@@ -247,8 +300,33 @@ const seedNearby = (c: LatLng): Nearby[] =>
   }));
 
 function setRot(m: L.Marker, rot: number) {
-  const img = m.getElement()?.querySelector('img');
-  if (img) img.style.transform = `rotate(${rot}deg)`;
+  const car = m.getElement()?.querySelector<HTMLElement | SVGElement>('.ym-car');
+  if (car) car.style.transform = `rotate(${rot}deg)`;
+}
+
+// Rasm yuklanmasa (server almashgan, tarmoq uzilgan) — kodda chizilgan sariq taksi: mashina hech qachon yo'qolmaydi
+const FALLBACK_CAR = `<svg class="ym-car" viewBox="0 0 34 61" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<rect x="0.5" y="19" width="4" height="6" rx="2" fill="#E8B400"/><rect x="29.5" y="19" width="4" height="6" rx="2" fill="#E8B400"/>
+<rect x="3" y="2" width="28" height="57" rx="11" fill="#FFC800" stroke="#5A4500" stroke-opacity=".45"/>
+<path d="M7 18 Q17 12.5 27 18 L25 26 Q17 23 9 26 Z" fill="#1C2533"/>
+<path d="M9 45 Q17 47.5 25 45 L27 52 Q17 56.5 7 52 Z" fill="#1C2533"/>
+<rect x="9" y="26" width="16" height="19" rx="3.5" fill="#FFD84D"/>
+<rect x="11.5" y="32" width="11" height="6" rx="1.5" fill="#1C2533"/>
+<rect x="6.5" y="3.5" width="6" height="2.6" rx="1.3" fill="#FFF6CC"/><rect x="21.5" y="3.5" width="6" height="2.6" rx="1.3" fill="#FFF6CC"/>
+</svg>`;
+function withCarFallback(marker: L.Marker, rot: number) {
+  const img = marker.getElement()?.querySelector('img.ym-car');
+  if (!img) return;
+  const swap = () => {
+    const box = document.createElement('span');
+    box.innerHTML = FALLBACK_CAR;
+    const svg = box.firstElementChild as SVGElement | null;
+    if (!svg) return;
+    svg.style.transform = `rotate(${rot}deg)`;
+    img.replaceWith(svg);
+  };
+  if ((img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth === 0) swap();
+  else img.addEventListener('error', swap, { once: true });
 }
 
 /** Marshrut chizig'ini "chizilayotgandek" ko'rsatish */
@@ -269,7 +347,7 @@ function drawIn(line: L.Polyline) {
 /* ---------- Xarita ---------- */
 
 export default function TaxiMap(props: TaxiMapProps) {
-  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching = false, bottomPad, topPad, overlayBottom = 0, onCenterChange, onDragStart, userPos, fleet, driverHeading, zones, radar } = props;
+  const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching = false, bottomPad, topPad, overlayBottom = 0, onCenterChange, onDragStart, userPos, fleet, driverHeading, zones, radar, traffic } = props;
   const { dark } = useStore();
   const box = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
@@ -338,6 +416,10 @@ export default function TaxiMap(props: TaxiMapProps) {
     // talab kataklari marshrut va belgilar ostida
     const zp = m.createPane('ym-zones');
     zp.style.zIndex = '350';
+    // tirbandlik asosiy plitkalar ustida, talab kataklari va marshrut ostida
+    const tp = m.createPane('ym-traffic');
+    tp.style.zIndex = '250';
+    tp.style.pointerEvents = 'none';
     const zl = m.createPane('ym-zone-labels');
     zl.style.zIndex = '450';
     zl.style.pointerEvents = 'none';
@@ -367,7 +449,7 @@ export default function TaxiMap(props: TaxiMapProps) {
       m.attributionControl?.addAttribution(attr);
       return () => { off.remove(); m.attributionControl?.removeAttribution(attr); };
     }
-    const tiles = L.tileLayer(TILES[theme], { subdomains: 'abcd', maxZoom: 19, detectRetina: true, attribution: ATTRIBUTION, crossOrigin: true });
+    const tiles = L.tileLayer(TILES[theme], { maxZoom: 19, attribution: ATTRIBUTION, crossOrigin: true, className: TILE_CLASS });
     let loaded = false, errors = 0;
     tiles.on('tileload', () => { loaded = true; });
     tiles.on('tileerror', () => { if (!loaded && ++errors >= 2) setOffline(true); });
@@ -375,6 +457,22 @@ export default function TaxiMap(props: TaxiMapProps) {
     tiles.addTo(m);
     return () => { clearTimeout(timer); tiles.remove(); };
   }, [theme, dark, offline]);
+
+  // Jonli tirbandlik qatlami
+  useEffect(() => {
+    const m = map.current;
+    if (!m || !traffic || !TRAFFIC_AVAILABLE || offline) return;
+    let alive = true;
+    let layer: L.TileLayer | null = null;
+    trafficTiles()
+      .then(url => {
+        if (!alive) return;
+        layer = L.tileLayer(url, { pane: 'ym-traffic', maxZoom: 19, opacity: 0.95, attribution: TRAFFIC_ATTRIBUTION }).addTo(m);
+      })
+      // sessiya ochilmadi (kalit cheklangan, tarmoq) — keyingi yoqishda qayta urinadi
+      .catch(() => { trafficSession = null; });
+    return () => { alive = false; layer?.remove(); };
+  }, [traffic, offline]);
 
   // Mualliflik yozuvi pastki panel ustida tursin
   useEffect(() => {
@@ -461,7 +559,10 @@ export default function TaxiMap(props: TaxiMapProps) {
       const i = Math.min(best, driverPath.length - 2);
       heading = bearing(driverPath[i], driverPath[i + 1]);
     }
-    if (!l.driver) l.driver = L.marker(ll(driverPos), { icon: carIcon('taxi', heading, 28), interactive: false, keyboard: false, zIndexOffset: 1000 }).addTo(m);
+    if (!l.driver) {
+      l.driver = L.marker(ll(driverPos), { icon: myCarIcon(heading), interactive: false, keyboard: false, zIndexOffset: 1000 }).addTo(m);
+      withCarFallback(l.driver, heading);
+    }
     else { l.driver.setLatLng(ll(driverPos)); setRot(l.driver, heading); }
   }, [driverPos, driverPath, driverHeading]);
 
@@ -481,10 +582,14 @@ export default function TaxiMap(props: TaxiMapProps) {
     l.zones?.remove();
     l.zones = undefined;
     if (!zones?.length) return;
-    const items: L.Layer[] = zones.map(z => L.polygon(z.ring.map(ll), {
-      pane: 'ym-zones', color: ZONE_FILL[z.level], weight: 1, opacity: 0.55, fillColor: ZONE_FILL[z.level], fillOpacity: z.level === 3 ? 0.34 : z.level === 2 ? 0.26 : 0.17, interactive: false,
-    }));
-    zones.filter(z => z.level >= 2).forEach(z => items.push(L.marker(ll(z.center), { icon: zoneLabel(z.surge, z.level), pane: 'ym-zone-labels', interactive: false, keyboard: false })));
+    const items: L.Layer[] = zones.map(z => (z.kind === 'usual'
+      // odatda gavjum joy: shtrixli chegara, och to'ldirish — jonli talabdan ajralib tursin
+      ? L.polygon(z.ring.map(ll), { pane: 'ym-zones', color: USUAL_COLOR, weight: 1.5, opacity: 0.85, dashArray: '6 6', fillColor: USUAL_COLOR, fillOpacity: 0.12, interactive: false })
+      : L.polygon(z.ring.map(ll), {
+        pane: 'ym-zones', color: ZONE_FILL[z.level], weight: 1, opacity: 0.55, fillColor: ZONE_FILL[z.level], fillOpacity: z.level === 3 ? 0.34 : z.level === 2 ? 0.26 : 0.17, interactive: false,
+      })));
+    zones.filter(z => z.kind !== 'usual' && z.level >= 2).forEach(z => items.push(L.marker(ll(z.center), { icon: zoneLabel(z.surge, z.level), pane: 'ym-zone-labels', interactive: false, keyboard: false })));
+    zones.filter(z => z.kind === 'usual' && z.title).forEach(z => items.push(L.marker(ll(z.center), { icon: usualLabel(z.title ?? ''), pane: 'ym-zone-labels', interactive: false, keyboard: false })));
     l.zones = L.layerGroup(items).addTo(m);
   }, [zones]);
 

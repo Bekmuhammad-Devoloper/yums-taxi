@@ -259,6 +259,125 @@
       "en": "In four hundred meters, make a U-turn.",
       "tg": "Пас аз чорсад метр ба қафо гардед.",
       "ar": "بعد أربعمئة متر، استدر للخلف."
+    },
+    "turn_slightLeft": {
+      "uz": "Chap tomonga og'ing.",
+      "ru": "Держитесь левее.",
+      "en": "Keep left.",
+      "tg": "Ба тарафи чап майл кунед.",
+      "ar": "ابقَ على اليسار."
+    },
+    "pre200_slightLeft": {
+      "uz": "Ikki yuz metrdan keyin chap tomonga og'ing.",
+      "ru": "Через двести метров держитесь левее.",
+      "en": "In two hundred meters, keep left.",
+      "tg": "Пас аз дусад метр ба тарафи чап майл кунед.",
+      "ar": "بعد مئتي متر، ابقَ على اليسار."
+    },
+    "pre300_slightLeft": {
+      "uz": "Uch yuz metrdan keyin chap tomonga og'ing.",
+      "ru": "Через триста метров держитесь левее.",
+      "en": "In three hundred meters, keep left.",
+      "tg": "Пас аз сесад метр ба тарафи чап майл кунед.",
+      "ar": "بعد ثلاثمئة متر، ابقَ على اليسار."
+    },
+    "pre400_slightLeft": {
+      "uz": "To'rt yuz metrdan keyin chap tomonga og'ing.",
+      "ru": "Через четыреста метров держитесь левее.",
+      "en": "In four hundred meters, keep left.",
+      "tg": "Пас аз чорсад метр ба тарафи чап майл кунед.",
+      "ar": "بعد أربعمئة متر، ابقَ على اليسار."
+    },
+    "turn_slightRight": {
+      "uz": "O'ng tomonga og'ing.",
+      "ru": "Держитесь правее.",
+      "en": "Keep right.",
+      "tg": "Ба тарафи рост майл кунед.",
+      "ar": "ابقَ على اليمين."
+    },
+    "pre200_slightRight": {
+      "uz": "Ikki yuz metrdan keyin o'ng tomonga og'ing.",
+      "ru": "Через двести метров держитесь правее.",
+      "en": "In two hundred meters, keep right.",
+      "tg": "Пас аз дусад метр ба тарафи рост майл кунед.",
+      "ar": "بعد مئتي متر، ابقَ على اليمين."
+    },
+    "pre300_slightRight": {
+      "uz": "Uch yuz metrdan keyin o'ng tomonga og'ing.",
+      "ru": "Через триста метров держитесь правее.",
+      "en": "In three hundred meters, keep right.",
+      "tg": "Пас аз сесад метр ба тарафи рост майл кунед.",
+      "ar": "بعد ثلاثمئة متر، ابقَ على اليمين."
+    },
+    "pre400_slightRight": {
+      "uz": "To'rt yuz metrdan keyin o'ng tomonga og'ing.",
+      "ru": "Через четыреста метров держитесь правее.",
+      "en": "In four hundred meters, keep right.",
+      "tg": "Пас аз чорсад метр ба тарафи рост майл кунед.",
+      "ar": "بعد أربعمئة متر، ابقَ على اليمين."
+    },
+    "pre200_roundabout": {
+      "uz": "Ikki yuz metrdan keyin aylanma yo'lga kirasiz.",
+      "ru": "Через двести метров въезд на круговое движение.",
+      "en": "In two hundred meters, enter the roundabout.",
+      "tg": "Пас аз дусад метр ба гардиши даврӣ медароед.",
+      "ar": "بعد مئتي متر، ادخل الدوار."
+    },
+    "pre300_roundabout": {
+      "uz": "Uch yuz metrdan keyin aylanma yo'lga kirasiz.",
+      "ru": "Через триста метров въезд на круговое движение.",
+      "en": "In three hundred meters, enter the roundabout.",
+      "tg": "Пас аз сесад метр ба гардиши даврӣ медароед.",
+      "ar": "بعد ثلاثمئة متر، ادخل الدوار."
+    },
+    "pre400_roundabout": {
+      "uz": "To'rt yuz metrdan keyin aylanma yo'lga kirasiz.",
+      "ru": "Через четыреста метров въезд на круговое движение.",
+      "en": "In four hundred meters, enter the roundabout.",
+      "tg": "Пас аз чорсад метр ба гардиши даврӣ медароед.",
+      "ar": "بعد أربعمئة متر، ادخل الدوار."
+    },
+    "roundabout_1": {
+      "uz": "Aylanma yo'ldan birinchi chiqishga chiqing.",
+      "ru": "На круговом движении — первый съезд.",
+      "en": "At the roundabout, take the first exit.",
+      "tg": "Дар гардиши даврӣ аз баромади якум бароед.",
+      "ar": "عند الدوار، اسلك المخرج الأول."
+    },
+    "roundabout_2": {
+      "uz": "Aylanma yo'ldan ikkinchi chiqishga chiqing.",
+      "ru": "На круговом движении — второй съезд.",
+      "en": "At the roundabout, take the second exit.",
+      "tg": "Дар гардиши даврӣ аз баромади дуюм бароед.",
+      "ar": "عند الدوار، اسلك المخرج الثاني."
+    },
+    "roundabout_3": {
+      "uz": "Aylanma yo'ldan uchinchi chiqishga chiqing.",
+      "ru": "На круговом движении — третий съезд.",
+      "en": "At the roundabout, take the third exit.",
+      "tg": "Дар гардиши даврӣ аз баромади сеюм бароед.",
+      "ar": "عند الدوار، اسلك المخرج الثالث."
+    },
+    "roundabout_4": {
+      "uz": "Aylanma yo'ldan to'rtinchi chiqishga chiqing.",
+      "ru": "На круговом движении — четвёртый съезд.",
+      "en": "At the roundabout, take the fourth exit.",
+      "tg": "Дар гардиши даврӣ аз баромади чорум бароед.",
+      "ar": "عند الدوار، اسلك المخرج الرابع."
+    },
+    "roundabout_5": {
+      "uz": "Aylanma yo'ldan beshinchi chiqishga chiqing.",
+      "ru": "На круговом движении — пятый съезд.",
+      "en": "At the roundabout, take the fifth exit.",
+      "tg": "Дар гардиши даврӣ аз баромади панҷум бароед.",
+      "ar": "عند الدوار، اسلك المخرج الخامس."
+    },
+    "rerouted": {
+      "uz": "Marshrut qayta tuzildi.",
+      "ru": "Маршрут перестроен.",
+      "en": "Route recalculated.",
+      "tg": "Масир аз нав сохта шуд.",
+      "ar": "تمت إعادة حساب المسار."
     }
   }
 }

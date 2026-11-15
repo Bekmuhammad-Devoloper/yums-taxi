@@ -70,7 +70,7 @@ export default function Profile() {
           <View style={[styles.cam, { backgroundColor: c.brand, borderColor: c.surface }]}><Ionicons name="camera" size={15} color={c.brandText} /></View>
         </Pressable>
         <Txt v="h2">{p.name}</Txt>
-        <Txt v="small" muted>{tr('{phone} · {city} · YUMSda {v2} dan', { phone: p.phone, city: p.city, v2: fmtDate(p.joinedAt).split(',')[0] })}</Txt>
+        <Txt v="small" muted>{tr('{phone} · {city} · YUMSda {v2} dan', { phone: p.phone, city: tr(p.city), v2: fmtDate(p.joinedAt).split(',')[0] })}</Txt>
         <Row gap={8} style={{ marginTop: 6 }}>
           <Chip label={tr('Erkak')} icon="male" active={p.gender === 'm'} onPress={() => d.updateProfile({ gender: 'm' })} />
           <Chip label={tr('Ayol')} icon="female" active={p.gender === 'f'} onPress={() => d.updateProfile({ gender: 'f' })} />
@@ -86,7 +86,8 @@ export default function Profile() {
             <Txt v="small" muted>{[car ? tr(CLASS_NAME[car.cls]) : tr("Katalogda yo'q"), p.year ? tr('{year} yil', { year: p.year }) : tr("yili ko'rsatilmagan"), p.color ? tr(p.color) : null].filter(Boolean).join(' · ')}</Txt>
           </View>
         </Row>
-        <Row style={{ justifyContent: 'space-between' }}>
+        {/* tor ekranda «O'zgartirish» tugmasi raqam ostiga o'tadi (oldin karta chetidan chiqib turardi) */}
+        <Row style={{ justifyContent: 'space-between', flexWrap: 'wrap', rowGap: 10 }}>
           <View style={[styles.plate, { borderColor: c.text }]}>
             <Text style={[styles.plateText, { color: c.text }]}>{p.plate}</Text>
             <View style={styles.uz}><Text style={styles.uzText}>{tr('UZ')}</Text></View>
@@ -198,7 +199,7 @@ function TariffSheet({ t, onClose, onFix }: { t: TariffState | null; onClose: ()
         <View style={{ gap: 8 }}>
           <Txt v="small" muted style={{ fontFamily: F.bold }}>{tr('Yetkazish qoidalari')}</Txt>
           {DELIVERY_TERMS.map(x => <Row key={x} gap={8} style={{ alignItems: 'flex-start' }}><Text style={{ color: c.muted }}>•</Text><Txt v="small" muted style={{ flex: 1 }}>{tr(x)}</Txt></Row>)}
-          <Button title={tr('Qoidalarni qabul qilaman')} icon="checkmark-done" onPress={() => { d.acceptDeliveryTerms(); toast(tr('Yetkazish qoidalari qabul qilindi'), 'checkmark-circle'); }} />
+          <Button title={tr('Qoidalarni qabul qilaman')} icon="checkmark-done" onPress={() => { d.acceptDeliveryTerms().then(ok => { if (ok) toast(tr('Yetkazish qoidalari qabul qilindi'), 'checkmark-circle'); }).catch(() => {}); }} />
         </View>
       ) : null}
     </Sheet>

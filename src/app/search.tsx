@@ -1,14 +1,15 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { toast } from '@/components/toast';
 import { Divider, IconButton, ListItem, SectionTitle, Txt, type IconName } from '@/components/ui';
-import { PLACES, type Place } from '@/lib/data';
+import { type Place } from '@/lib/data';
 import { distanceKm } from '@/lib/geo';
 import { useStore } from '@/lib/store';
+import { popularPlaces, searchPlaces } from '@/lib/trip-api';
 import { F } from '@/lib/theme';
 import { tr, tx, trPlace } from '@/lib/i18n';
 
@@ -22,12 +23,19 @@ export default function Search() {
   const insets = useSafeAreaInsets();
   const [q, setQ] = useState('');
 
-  const results = useMemo(() => {
-    const t = q.trim().toLowerCase();
-    const base = order.pickup ?? PLACES[7];
-    const list = t ? PLACES.filter(p => (p.title + ' ' + (p.subtitle ?? '')).toLowerCase().includes(t)) : PLACES;
-    return [...list].sort((a, b) => distanceKm(base, a) - distanceKm(base, b));
-  }, [q, order.pickup]);
+  // Joylar serverdan: bo'sh qidiruvda — mashhur joylar, matn bo'lsa — qidiruv; ikkalasi ham olish nuqtasiga yaqinidan
+  const [results, setResults] = useState<Place[]>([]);
+  const near = order.pickup ?? undefined;
+  useEffect(() => {
+    const t = q.trim();
+    let alive = true;
+    const timer = setTimeout(() => {
+      (t.length >= 2 ? searchPlaces(t, near) : popularPlaces(near))
+        .then(list => { if (alive) setResults(list); })
+        .catch(() => { if (alive) setResults([]); });
+    }, t ? 250 : 0);
+    return () => { alive = false; clearTimeout(timer); };
+  }, [q, near]);
 
   const choose = (p: Place) => {
     if (mode === 'to') { setDestination(p); pushRecent(p); }

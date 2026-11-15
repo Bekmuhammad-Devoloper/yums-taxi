@@ -45,7 +45,8 @@ export default function Profile() {
         <Row>
           <AvatarEditor size={64} />
           <View style={{ flex: 1, gap: 2 }}>
-            <Txt v="h2" numberOfLines={1}>{displayName}</Txt>
+            {/* uzun ism-familiya «…» bilan kesilmaydi — ikki qatorgacha to'liq ko'rinadi */}
+            <Txt v="h2" numberOfLines={2}>{displayName}</Txt>
             <Place code={k.code} before={company ? tr('Kompaniya · {name} ·', { name: user.name }) : tr('Jismoniy shaxs ·')} />
             <Txt v="small" muted numberOfLines={1}>{user.email || user.phone}</Txt>
           </View>
@@ -93,6 +94,7 @@ export default function Profile() {
       <Card style={{ padding: 6 }}>
         <ListItem icon="rocket-outline" title={t('profile.myProjects')} sub={tr('Qoralama, moderatsiya, faol')} onPress={() => router.push({ pathname: '/projects', params: { tab: 'mine' } })} />
         <ListItem icon="storefront-outline" title={tr("Bozordagi e'lonlarim")} sub={tr("{length} ta e'lon", { length: p.myMarket.length })} onPress={() => router.push({ pathname: '/market', params: { tab: 'mine' } })} />
+        <ListItem icon="id-card-outline" title={tr('Katalogdagi profilim')} sub={tr('Kompaniya, mutaxassis yoki investor sifatida')} onPress={() => router.push({ pathname: '/directory-edit', params: { type: user?.kind === 'company' ? 'company' : 'specialist' } })} />
         <ListItem icon="bookmark-outline" title={t('profile.favorites')} sub={tr('{length} ta', { length: p.favorites.length })} onPress={() => router.push('/favorites')} />
         <ListItem icon="notifications-outline" title={t('profile.notifications')} right={p.unreadNotices ? <Badge label={String(p.unreadNotices)} tone="danger" /> : undefined} onPress={() => router.push('/notifications')} />
       </Card>
@@ -116,7 +118,7 @@ export default function Profile() {
       </Card>
 
       <Card style={{ padding: 6 }}>
-        <ListItem icon="log-out-outline" title={t('profile.logout')} danger onPress={() => { p.logEvent(tr('Tizimdan chiqish')); logout(); router.replace('/login'); }} />
+        <ListItem icon="log-out-outline" title={t('profile.logout')} danger onPress={() => { p.resetPlatform(); logout(); router.replace('/login'); }} />
       </Card>
       <Txt v="tiny" faint style={{ textAlign: 'center' }}>{user.joinedAt ? tr('YUMS 1.0 · ID {id} · {year} yildan beri', { id: user.id, year: new Date(user.joinedAt).getFullYear() }) : tr('YUMS 1.0 · ID {id}', { id: user.id })}</Txt>
     </ScrollView>

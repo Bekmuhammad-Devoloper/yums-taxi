@@ -100,7 +100,7 @@ export default function Earnings() {
       <Card style={{ gap: 10 }}>
         <Line label={tr('Safarlar summasi')} value={som(gross)} />
         {wait ? <Line label={tr('shundan pullik kutish')} value={som(wait)} /> : null}
-        <Line label={tr('YUMS komissiyasi ({pct}%)', { pct: Math.round(d.commission * 100) })} value={`−${som(fee)}`} color={c.danger} />
+        <Line label={tr('YUMS komissiyasi · {sum} / safar', { sum: som(d.commission) })} value={`−${som(fee)}`} color={c.danger} />
         <Line label={tr('Choy puli')} value={`+${som(tips)}`} color={GREEN} />
         <Divider />
         <Line label={tr('Naqd olingan')} value={som(cash)} />
@@ -205,7 +205,7 @@ function TripSheet({ e, onClose }: { e: Earning | null; onClose: () => void }) {
       </View>
       {e.price ? <Line label={tr('Safar narxi')} value={som(e.price)} /> : null}
       {e.waitFee ? <Line label={e.noShow ? tr('Kutish uchun kompensatsiya') : tr('Pullik kutish')} value={som(e.waitFee)} /> : null}
-      <Line label={tr('YUMS komissiyasi ({pct}%)', { pct: Math.round((fee / Math.max(1, total)) * 100) })} value={`−${som(fee)}`} color={c.danger} />
+      <Line label={tr('YUMS komissiyasi')} value={`−${som(fee)}`} color={c.danger} />
       {e.tip ? <Line label={tr('Choy puli')} value={`+${som(e.tip)}`} color={GREEN} /> : null}
       <Divider />
       <Line label={tr('Sizga')} value={som(total - fee + e.tip)} bold />

@@ -30,13 +30,15 @@ export default function Cart() {
   const before = lines.reduce((s, l) => s + (l.item.oldPrice ?? l.item.price) * l.qty, 0);
   const saved = before - total;
 
-  const order = () => {
-    haptic.success();
-    sellers.forEach(g => {
+  const order = async () => {
+    // har bir sotuvchiga serverda hamkorlik so'rovi (chat) ochiladi; hammasi yetib borsagina savat tozalanadi
+    const sent = await Promise.all(sellers.map(g => {
       const first = g[0].item;
       const text = [tr('Assalomu alaykum! YUMS Market orqali buyurtma:'), ...g.map(l => `• ${l.item.title} — ${l.item.unit ? `${l.qty} ${tr(l.item.unit)}` : tr('{n} ta', { n: l.qty })} × ${usd(l.item.price)}`), tr('Jami: {sum}', { sum: usd(g.reduce((s, l) => s + l.item.price * l.qty, 0)) })].join('\n');
-      p.openChat({ peerId: first.sellerId, peerName: first.sellerName, peerKind: 'company', peerVerified: first.sellerVerified }, { request: true, subject: tr('Buyurtma · {n} ta mahsulot', { n: g.length }), text });
-    });
+      return p.openChat({ peerId: first.sellerId, peerName: first.sellerName, peerKind: 'company', peerVerified: first.sellerVerified }, { request: true, subject: tr('Buyurtma · {n} ta mahsulot', { n: g.length }), text });
+    }));
+    if (sent.some(id => !id)) return;
+    haptic.success();
     p.clearCart();
     toast(sellers.length > 1 ? tr('{length} ta sotuvchiga buyurtma yuborildi', { length: sellers.length }) : tr('Buyurtma sotuvchiga yuborildi'), 'checkmark-circle');
     router.replace({ pathname: '/connect', params: { tab: 'requests' } });
@@ -65,7 +67,7 @@ export default function Cart() {
             <Txt v="tiny" muted>{tr('Jami')}</Txt>
             <Text style={[styles.total, { color: c.text }]}>{usd(total)}</Text>
           </View>
-          <Button title={tr('Buyurtma berish')} icon="bag-check-outline" style={{ flex: 1.5 }} onPress={order} />
+          <Button title={tr('Buyurtma berish')} icon="bag-check-outline" style={{ flex: 1.5 }} onPress={() => { order().catch(() => {}); }} />
         </Row>
       }>
       {sellers.map(g => {

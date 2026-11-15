@@ -7,6 +7,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { toast } from '@/components/toast';
 import { Button, Card, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { usePlatform } from '@/lib/platform';
+import { FILE_LIMIT } from '@/lib/platform-api';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
 import { tr } from '@/lib/i18n';
@@ -21,7 +22,8 @@ export default function Verify() {
   const p = usePlatform();
   const kind = user?.kind ?? 'person';
   const docs = DOCS[kind];
-  const [files, setFiles] = useState<Record<string, string>>({});
+  const [files, setFiles] = useState<Record<string, { name: string; uri: string; mime?: string; size?: number }>>({});
+  const [sending, setSending] = useState(false);
   const v = p.myVerification;
   const required = kind === 'company' ? docs.slice(0, 2) : docs;
   const ready = required.every(d => files[d]);
@@ -31,7 +33,9 @@ export default function Verify() {
       const r = await DocumentPicker.getDocumentAsync({ type: ['image/*', 'application/pdf'], copyToCacheDirectory: true });
       if (r.canceled) return;
       haptic.tap();
-      setFiles(f => ({ ...f, [doc]: r.assets[0].name }));
+      const a = r.assets[0];
+      if ((a.size ?? 0) > FILE_LIMIT) { toast(tr('Fayl juda katta — 1 MB gacha yuboring'), 'alert-circle'); return; }
+      setFiles(f => ({ ...f, [doc]: { name: a.name, uri: a.uri, mime: a.mimeType, size: a.size } }));
     } catch {
       toast(tr("Fayl tanlab bo'lmadi"), 'alert-circle');
     }
@@ -50,7 +54,12 @@ export default function Verify() {
       title={tr('Profilni tasdiqlash')}
       subtitle={kind === 'company' ? tr('Kompaniya') : tr('Jismoniy shaxs')}
       footer={v?.status === 'approved' || v?.status === 'pending' ? undefined : (
-        <Button title={tr('Tekshiruvga yuborish')} icon="send" disabled={!ready} onPress={() => { p.requestVerification(Object.keys(files)); haptic.success(); toast(tr('Hujjatlar moderatorga yuborildi'), 'shield-checkmark'); }} />
+        <Button title={tr('Tekshiruvga yuborish')} icon="send" disabled={!ready} loading={sending} onPress={() => {
+          setSending(true);
+          p.requestVerification(Object.entries(files).map(([doc, f]) => ({ ...f, name: `${doc} · ${f.name}` })))
+            .then(ok => { if (ok) { haptic.success(); toast(tr('Hujjatlar moderatorga yuborildi'), 'shield-checkmark'); } })
+            .finally(() => setSending(false));
+        }} />
       )}>
       {status && (
         <View style={[styles.status, { backgroundColor: status.bg }]}>
@@ -95,7 +104,7 @@ export default function Verify() {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Txt v="h3">{d}{optional ? tr(' (ixtiyoriy)') : ''}</Txt>
-                  <Txt v="small" muted numberOfLines={1}>{f ?? tr('Rasm yoki PDF yuklang')}</Txt>
+                  <Txt v="small" muted numberOfLines={1}>{f?.name ?? tr('Rasm yoki PDF yuklang')}</Txt>
                 </View>
                 <Ionicons name={f ? 'refresh' : 'cloud-upload-outline'} size={20} color={c.muted} />
               </Pressable>
@@ -108,10 +117,10 @@ export default function Verify() {
         </>
       )}
 
-      {v?.status === 'pending' && user?.role === 'user' && (
+      {v?.status === 'pending' && (
         <Card style={{ gap: 8, backgroundColor: c.surface2 }}>
-          <Txt v="small" muted>{tr("Demo: tasdiqlash jarayonini ko'rish uchun Xavfsizlik bo'limida ruxsat darajasini «Moderator»ga o'zgartiring va Moderatsiya panelida so'rovni tasdiqlang.")}</Txt>
-          <Button title={tr("Xavfsizlik bo'limi")} small kind="ghost" onPress={() => router.push('/security')} />
+          <Txt v="small" muted>{tr("So'rovingiz moderatorlar navbatida. Odatda 24 soat ichida ko'rib chiqiladi — natija bildirishnoma bilan keladi.")}</Txt>
+          <Button title={tr('Bildirishnomalar')} small kind="ghost" onPress={() => router.push('/notifications')} />
         </Card>
       )}
     </Screen>
