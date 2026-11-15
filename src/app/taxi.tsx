@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Location from 'expo-location';
 import { Redirect, router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChoosingSheet, DriverSheet, IdleSheet, OptionsModal, RatingModal, RideSheet, SearchingSheet } from '@/components/order-sheets';
@@ -16,6 +16,9 @@ import { useStore } from '@/lib/store';
 import { F, shadow } from '@/lib/theme';
 import { tr } from '@/lib/i18n';
 
+/** GPS bundan yomon aniqlikda qolsa, joylashuv «taxminiy» deb aytiladi */
+const WEAK_FIX_M = 60;
+
 export default function Taxi() {
   const s = useStore();
   const { colors: c, order, user } = s;
@@ -26,6 +29,9 @@ export default function Taxi() {
   const [userPos, setUserPos] = useState<Fix | null>(null);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [locating, setLocating] = useState(false);
+  // Manzil so'ralyapti (pin ustida «…»); aniq bo'lmagan joylashuv — xaritada ogohlantirish
+  const [resolving, setResolving] = useState(false);
+  const [rough, setRough] = useState<'coarse' | 'weak' | null>(null);
   const [lift] = useState(() => new Animated.Value(0));
   const fromDrag = useRef<Place | null>(null);
   const skipRegion = useRef(false);
@@ -43,14 +49,20 @@ export default function Taxi() {
     try {
       const perm = await Location.requestForegroundPermissionsAsync();
       if (perm.status !== 'granted') throw new Error('denied');
+      // Android: «taxminiy joylashuv» tanlangan bo'lsa nuqta 1–3 km adashadi — foydalanuvchiga aytamiz
+      setRough(perm.android?.accuracy === 'coarse' ? 'coarse' : null);
+      // Android: Google joylashuv aniqligi o'chiq bo'lsa, yoqishni so'raydi (yoniq bo'lsa darhol qaytadi)
+      if (Platform.OS === 'android') await Location.enableNetworkProviderAsync().catch(() => undefined);
       setLocating(true);
       setGranted(true);
       userMoved.current = false;
       tracker.current?.();
       // GPS bir necha soniya kuzatiladi: birinchi nuqta tez ko'rsatiladi, keyin aniqlashib boradi
       let shown: LatLng | null = null;
+      let last: Fix | null = null;
       tracker.current = trackPrecise(
         fix => {
+          last = fix;
           setUserPos(fix);
           setLocating(false);
           if (!recenter || userMoved.current) return;
@@ -59,13 +71,21 @@ export default function Taxi() {
           skipRegion.current = true;
           map.current?.center(fix);
           const req = ++geoReq.current;
+          setResolving(true);
           addressOf(fix).then(place => {
-            if (req !== geoReq.current || userMoved.current) return;
+            if (req !== geoReq.current) return;
+            setResolving(false);
+            if (userMoved.current) return;
             fromDrag.current = place;
             s.setPickup(place);
           });
         },
-        () => setLocating(false),
+        () => {
+          setLocating(false);
+          // GPS 30 soniyada ham 60 m dan aniqroq nuqta bermadi (bino ichida) — pinni surishni taklif qilamiz
+          if (last && last.accuracy > WEAK_FIX_M) setRough(r => r ?? 'weak');
+        },
+        { goodEnough: 15, maxMs: 30000 },
       );
     } catch {
       // ruxsat berilmadi — standart nuqta yuqorida qo'yilgan
@@ -113,8 +133,10 @@ export default function Taxi() {
     if (!idle) return;
     if (skipRegion.current) { skipRegion.current = false; return; }
     const req = ++geoReq.current;
+    setResolving(true);
     addressOf(p).then(place => {
       if (req !== geoReq.current) return;
+      setResolving(false);
       fromDrag.current = place;
       s.setPickup(place);
     });
@@ -122,6 +144,7 @@ export default function Taxi() {
 
   const onDragStart = () => {
     userMoved.current = true;
+    if (rough === 'weak') setRough(null);
     if (idle) Animated.spring(lift, { toValue: 1, useNativeDriver: true, friction: 6 }).start();
   };
 
@@ -165,7 +188,7 @@ export default function Taxi() {
         <View pointerEvents="none" style={styles.pinWrap}>
           <Animated.View style={{ alignItems: 'center', transform: [{ translateY: lift.interpolate({ inputRange: [0, 1], outputRange: [0, -14] }) }] }}>
             <View style={[styles.pinLabel, { backgroundColor: '#0F1E3D' }]}>
-              <Text style={styles.pinLabelText}>{order.pickup && s.pickupEta !== null ? tr('{min} daq', { min: Math.max(1, s.pickupEta) }) : '…'}</Text>
+              <Text style={styles.pinLabelText}>{resolving || !order.pickup ? '…' : s.pickupEta !== null ? tr('{min} daq', { min: Math.max(1, s.pickupEta) }) : tr('Shu yerdan')}</Text>
             </View>
             <View style={[styles.pinHead, { borderColor: '#0F1E3D' }]}><View style={styles.pinDot} /></View>
             <View style={styles.pinStick} />
@@ -211,6 +234,19 @@ export default function Taxi() {
 
       <OptionsModal visible={optionsOpen} onClose={() => setOptionsOpen(false)} />
       <RatingModal />
+      {granted && idle && rough && (
+        <Pressable
+          onPress={() => { if (rough === 'coarse') Linking.openSettings(); else setRough(null); }}
+          style={[styles.hint, styles.hintWide, { top: insets.top + 74, backgroundColor: c.surface }, shadow(c)]}>
+          <Ionicons name={rough === 'coarse' ? 'warning-outline' : 'hand-left-outline'} size={18} color={c.warn} />
+          <Text style={[styles.hintText, { color: c.text }]}>
+            {rough === 'coarse'
+              ? tr("Aniq joylashuv o'chiq — sozlamalarda «Aniq joylashuv»ni yoqing")
+              : tr("Joylashuv taxminiy (±{m} m). Pinni aniq joyga suring", { m: Math.round(userPos?.accuracy ?? 0) })}
+          </Text>
+          <Ionicons name={rough === 'coarse' ? 'chevron-forward' : 'close'} size={16} color={c.muted} />
+        </Pressable>
+      )}
       {!granted && idle && order.pickup && (
         <View pointerEvents="none" style={[styles.hint, { top: insets.top + 74, backgroundColor: c.surface }, shadow(c)]}>
           <Ionicons name="navigate-circle-outline" size={18} color={c.muted} />
@@ -236,4 +272,6 @@ const styles = StyleSheet.create({
   pinStick: { width: 4, height: 18, borderRadius: 2, backgroundColor: '#0F1E3D' },
   pinShadow: { width: 14, height: 5, borderRadius: 4, backgroundColor: 'rgba(0,0,0,0.3)', marginTop: 1 },
   hint: { position: 'absolute', alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 14 },
+  hintWide: { left: 16, right: 16, gap: 10, paddingVertical: 10 },
+  hintText: { flex: 1, fontSize: 12.5, lineHeight: 17, fontFamily: F.semi },
 });

@@ -447,6 +447,10 @@ const common: Record<string, Row> = {
   "Yangi narsa bo'lishi bilan shu yerda xabar beramiz": ["Как только что-то произойдёт, сообщим здесь", "We will let you know here as soon as something happens", "Ҳамин ки чизи нав шавад, дар ин ҷо хабар медиҳем", "سنخبرك هنا فور حدوث أي جديد"],
   "Kecha": ["Вчера", "Yesterday", "Дирӯз", "أمس"],
   "Hisobingizga boshqa telefondan kirildi. YUMS Driver bir vaqtda faqat bitta qurilmada ishlaydi": ["В ваш аккаунт вошли с другого телефона. YUMS Driver работает одновременно только на одном устройстве", "Your account was signed in on another phone. YUMS Driver works on one device at a time", "Ба ҳисоби шумо аз телефони дигар ворид шуданд. YUMS Driver дар як вақт танҳо дар як дастгоҳ кор мекунад", "تم تسجيل الدخول إلى حسابك من هاتف آخر. يعمل YUMS Driver على جهاز واحد فقط في كل مرة"],
+  "Shu yerdan": ["Отсюда", "From here", "Аз ин ҷо", "من هنا"],
+  "Aniq joylashuv o'chiq — sozlamalarda «Aniq joylashuv»ni yoqing": ["Точная геолокация выключена — включите «Точное местоположение» в настройках", "Precise location is off — turn on «Precise location» in settings", "Ҷойгиршавии дақиқ хомӯш аст — дар танзимот «Ҷойгиршавии дақиқ»-ро фаъол кунед", "الموقع الدقيق متوقف — فعّل «الموقع الدقيق» من الإعدادات"],
+  "Joylashuv taxminiy (±{m} m). Pinni aniq joyga suring": ["Местоположение примерное (±{m} м). Передвиньте пин на точное место", "Location is approximate (±{m} m). Drag the pin to the exact spot", "Ҷойгиршавӣ тахминӣ аст (±{m} м). Пинро ба ҷои дақиқ кашед", "الموقع تقريبي (±{m} م). اسحب الدبوس إلى المكان الدقيق"],
+  "Bir bosishda chaqirish": ["Вызов в одно касание", "One-tap ride", "Даъват бо як зер", "طلب بنقرة واحدة"],
 };
 
 export default common;

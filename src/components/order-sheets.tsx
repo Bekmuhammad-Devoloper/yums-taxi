@@ -24,12 +24,18 @@ const PASSENGER_LINES = [tx('Chiqyapman'), tx('2 daqiqada chiqaman'), tx('Podyez
 function AddressRow({ dot, label, place, onPress, placeholder }: { dot: 'from' | 'to'; label: string; place?: Place | null; onPress?: () => void; placeholder?: string }) {
   const { colors: c } = useStore();
   return (
-    <Pressable onPress={() => { haptic.tap(); onPress?.(); }} style={({ pressed }) => [styles.addr, { opacity: pressed ? 0.7 : 1 }]}>
+    <Pressable disabled={!onPress} onPress={() => { haptic.tap(); onPress?.(); }} style={({ pressed }) => [styles.addr, { opacity: pressed ? 0.7 : 1 }]}>
       <View style={[styles.addrDot, dot === 'from' ? { backgroundColor: '#0F1E3D', borderColor: c.surface3 } : { backgroundColor: '#FFC800', borderRadius: 4, borderColor: c.brandSoft }]} />
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, minWidth: 0 }}>
         <Txt v="tiny" faint>{label}</Txt>
         <Txt v="h3" numberOfLines={1} muted={!place}>{place ? trPlace(place.title) : placeholder ?? tr('Aniqlanmoqda…')}</Txt>
+        {place?.subtitle ? <Txt v="tiny" muted numberOfLines={1}>{place.subtitle}</Txt> : null}
       </View>
+      {onPress ? (
+        <View style={[styles.addrEdit, { backgroundColor: c.surface2 }]}>
+          <Ionicons name="pencil" size={15} color={c.text} />
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -65,16 +71,21 @@ export function IdleSheet() {
         <Text style={{ flex: 1, fontSize: 16, fontFamily: F.display, letterSpacing: -0.4, color: c.text }}>{tr('Qayerga boramiz?')}</Text>
         <View style={[styles.arrowBtn, { backgroundColor: c.brand }]}><Ionicons name="arrow-forward" size={18} color={c.brandText} style={flipRTL()} /></View>
       </Pressable>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-        {quick.map(q => (
-          <Pressable key={q.key} onPress={() => { haptic.tap(); q.onPress(); }} style={[styles.quick, { backgroundColor: c.surface, borderColor: c.line }]}>
-            <Ionicons name={q.icon} size={17} color={c.text} />
-            <View style={{ maxWidth: 140 }}>
-              <Txt v="small" style={{ fontFamily: F.bold }} numberOfLines={1}>{q.title}</Txt>
-              {q.place && q.key.length < 5 ? <Txt v="tiny" faint numberOfLines={1}>{trPlace(q.place.title)}</Txt> : null}
-            </View>
-          </Pressable>
-        ))}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.bleed} contentContainerStyle={styles.quickRow}>
+        {quick.map(q => {
+          const saved = q.key === 'home' || q.key === 'work';
+          return (
+            <Pressable key={q.key} onPress={() => { haptic.tap(); q.onPress(); }} style={({ pressed }) => [styles.quick, { backgroundColor: pressed ? c.surface2 : c.surface, borderColor: c.line }]}>
+              <View style={[styles.quickIcon, { backgroundColor: saved && !q.place ? c.brandSoft : c.surface2 }]}>
+                <Ionicons name={saved && !q.place ? 'add' : q.icon} size={17} color={c.text} />
+              </View>
+              <View style={{ maxWidth: 150 }}>
+                <Txt v="small" style={{ fontFamily: F.bold }} numberOfLines={1}>{q.title}</Txt>
+                {saved ? <Txt v="tiny" faint numberOfLines={1}>{q.place ? trPlace(q.place.title) : tr('Bir bosishda chaqirish')}</Txt> : null}
+              </View>
+            </Pressable>
+          );
+        })}
       </ScrollView>
       <Row gap={8}>
         {services.map(s => (
@@ -440,9 +451,13 @@ export function OptionsModal({ visible, onClose }: { visible: boolean; onClose: 
 const styles = StyleSheet.create({
   addr: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 6 },
   addrDot: { width: 16, height: 16, borderRadius: 8, borderWidth: 4, marginLeft: 4 },
+  addrEdit: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
+  bleed: { marginHorizontal: -16 },
+  quickRow: { gap: 8, paddingHorizontal: 16 },
+  quickIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   whereTo: { flexDirection: 'row', alignItems: 'center', gap: 12, height: 62, borderRadius: radius.l, paddingLeft: 18, paddingRight: 10 },
   arrowBtn: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  quick: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, height: 52, borderRadius: 16, borderWidth: 1 },
+  quick: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingStart: 10, paddingEnd: 16, height: 56, borderRadius: 18, borderWidth: 1 },
   service: { flex: 1, alignItems: 'center', gap: 4, paddingTop: 8, paddingBottom: 10, borderRadius: 18 },
   serviceArt: { width: 64, height: 32 },
   tariff: { width: 124, padding: 12, paddingTop: 10, borderRadius: 20, borderWidth: 2, gap: 1 },
