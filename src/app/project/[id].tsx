@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ActionBar } from '@/components/action-bar';
 import { KeyValue, Logo, ReportSheet, SectorGlyph, SectorIcon, StatusBadge } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
 import { ActionSheet, alpha, Avatar, Badge, Button, IOSSwitch, NavButton, NavGroup, Card, DEFAULT_AVATAR, EmptyState, FitImage, ListItem, Row, Screen, shade, Txt, Verified } from '@/components/ui';
@@ -81,15 +82,14 @@ export default function ProjectScreen() {
       )}
     </Row>
   ) : (
-    <Row gap={10}>
-      <Button title={tr("Hamkorlik so'rovi")} kind="ghost" icon="people-outline" style={{ flex: 1 }} onPress={() => start(peer, { request: true, subject: tr("«{title}» bo'yicha hamkorlik", { title: pr.title }) })} />
-      <Button
-        title={pr.contact === 'phone' ? tr("Qo'ng'iroq") : pr.contact === 'email' ? tr('Email yozish') : tr('Yozish')}
-        icon={pr.contact === 'phone' ? 'call' : pr.contact === 'email' ? 'mail' : 'chatbubble-ellipses'}
-        style={{ flex: 1 }}
-        onPress={contact}
-      />
-    </Row>
+    <ActionBar
+      secondary={{ title: tr("Hamkorlik so'rovi"), icon: 'people', onPress: () => start(peer, { request: true, subject: tr("«{title}» bo'yicha hamkorlik", { title: pr.title }) }) }}
+      primary={{
+        title: pr.contact === 'phone' ? tr("Qo'ng'iroq") : pr.contact === 'email' ? tr('Email yozish') : tr('Yozish'),
+        icon: pr.contact === 'phone' ? 'call' : pr.contact === 'email' ? 'mail' : 'chatbubble-ellipses',
+        onPress: contact,
+      }}
+    />
   );
 
   const cover = coverOf(pr);
