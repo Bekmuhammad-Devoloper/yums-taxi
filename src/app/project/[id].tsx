@@ -182,14 +182,18 @@ export default function ProjectScreen() {
 
         <View style={{ padding: 16, gap: 14 }}>
           <Card style={{ gap: 12 }}>
-            <Pressable disabled={!company} onPress={() => company && router.push({ pathname: '/company/[id]', params: { id: company.id } })}>
+            {/* muallif: kompaniya — kompaniya sahifasi, jismoniy shaxs — uning ochiq profili */}
+            <Pressable disabled={!company && (pr.ownerKind === 'company' || mine)} onPress={() => {
+              if (company) router.push({ pathname: '/company/[id]', params: { id: company.id } });
+              else if (pr.ownerKind === 'person') router.push({ pathname: '/user/[id]', params: { id: pr.ownerId, name: pr.ownerName, verified: pr.ownerVerified ? '1' : '0' } });
+            }}>
               <Row>
                 {pr.ownerKind === 'company' ? <Logo name={pr.ownerName} color={company?.color ?? c.ok} size={44} /> : <Avatar name={pr.ownerName} size={44} uri={mine ? user?.avatar : undefined} fallback={DEFAULT_AVATAR} />}
                 <View style={{ flex: 1 }}>
                   <Row gap={4}><Txt numberOfLines={1} style={styles.handName}>{pr.ownerName}</Txt>{pr.ownerVerified && <Verified />}</Row>
                   <Txt muted style={styles.handSub}>{pr.ownerKind === 'company' ? tr('Kompaniya') : tr('Jismoniy shaxs')} · {ago(pr.createdAt)}</Txt>
                 </View>
-                {company && <Ionicons name="chevron-forward" size={18} color={c.faint} style={flipRTL()} />}
+                {(company || (pr.ownerKind === 'person' && !mine)) && <Ionicons name="chevron-forward" size={18} color={c.faint} style={flipRTL()} />}
               </Row>
             </Pressable>
             <Txt style={styles.handBody}>{pr.summary}</Txt>

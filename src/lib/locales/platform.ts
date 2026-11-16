@@ -1101,6 +1101,12 @@ const platform: Record<string, Row> = {
   "Investitsiya miqdori (USD)": ["Сумма инвестиций (USD)", "Investment amount (USD)", "Маблағи сармоягузорӣ (USD)", "مبلغ الاستثمار (USD)"],
   "Taklifingiz": ["Ваше предложение", "Your proposal", "Пешниҳоди шумо", "عرضك"],
   "O'zingiz haqingizda, nimani taklif qilasiz va hamkorlik qanday bo'lishi…": ["О себе, что вы предлагаете и каким видите сотрудничество…", "About you, what you offer and how you see the partnership…", "Дар бораи худ, чӣ пешниҳод мекунед ва ҳамкорӣ чӣ гуна бошад…", "عنك، وما تعرضه، وكيف ترى الشراكة…"],
+  "Shaxsi tasdiqlangan": ["Личность подтверждена", "Identity verified", "Шахсият тасдиқ шудааст", "تم التحقق من الهوية"],
+  "Shaxsi hali tasdiqlanmagan": ["Личность ещё не подтверждена", "Identity not verified yet", "Шахсият ҳанӯз тасдиқ нашудааст", "لم يتم التحقق من الهوية بعد"],
+  "Loyihalari": ["Проекты", "Projects", "Лоиҳаҳо", "المشاريع"],
+  "E'lonlari": ["Объявления", "Listings", "Эълонҳо", "الإعلانات"],
+  "Hali ochiq loyiha yoki e'lon yo'q": ["Пока нет открытых проектов или объявлений", "No public projects or listings yet", "Ҳоло лоиҳа ё эълони кушода нест", "لا توجد مشاريع أو إعلانات عامة بعد"],
+  "{name} katalogga loyiha yoki e'lon joylasa, shu yerda ko'rinadi": ["Когда {name} разместит проект или объявление в каталоге, они появятся здесь", "When {name} posts a project or listing in the catalog, it will show up here", "Вақте ки {name} дар каталог лоиҳа ё эълон гузорад, дар ин ҷо пайдо мешавад", "عندما ينشر {name} مشروعًا أو إعلانًا في الدليل، سيظهر هنا"],
 };
 
 export default platform;
