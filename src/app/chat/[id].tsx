@@ -77,7 +77,7 @@ export default function ChatScreen() {
   const opened = useRef(false);
   const [text, setText] = useState('');
   // yozish maydoni matnga qarab o'sadi (6 qatorgacha), keyin ichida aylanadi
-  const [inputH, setInputH] = useState(44);
+  const [inputH, setInputH] = useState(INPUT_H);
   const inputRef = useRef<ComponentRef<typeof TextInput>>(null);
   // web: textarea balandligi matnga qarab qayta o'lchanadi. scrollHeight joriy balandlikdan kichraymaydi,
   // shuning uchun avval 0 ga tushirib o'lchaymiz — aks holda qator o'chirilganda maydon kichraymay qoladi
@@ -88,7 +88,7 @@ export default function ChatScreen() {
     el.style.height = '0px';
     const h = el.scrollHeight;
     el.style.height = prev;
-    setInputH(Math.min(150, Math.max(44, Math.ceil(h))));
+    setInputH(Math.min(150, Math.max(INPUT_H, Math.ceil(h))));
   };
   const [menu, setMenu] = useState(false);
   const [meet, setMeet] = useState(false);
@@ -124,7 +124,7 @@ export default function ChatScreen() {
     haptic.tap();
     p.sendMessage(cv.id, file ? (t || file.name) : t, file);
     setText('');
-    setInputH(44);
+    setInputH(INPUT_H);
   };
 
   const attach = async () => {
@@ -232,7 +232,9 @@ export default function ChatScreen() {
               placeholderTextColor={c.faint}
               multiline
               numberOfLines={1}
-              onContentSizeChange={Platform.OS === 'web' ? undefined : e => setInputH(Math.min(150, Math.max(44, Math.ceil(e.nativeEvent.contentSize.height) + 22)))}
+              onContentSizeChange={Platform.OS === 'web' ? undefined : e => setInputH(Math.min(150, Math.max(INPUT_H, Math.ceil(e.nativeEvent.contentSize.height) + 18)))}
+              // telefonda shrift kattalashtirilgan bo'lsa ham maydon yonidagi belgilardan oshib ketmaydi
+              maxFontSizeMultiplier={1.15}
               // web (kompyuter klaviaturasi): Enter — yuborish, Shift+Enter — yangi qator, Telegram Desktop'dagidek.
               // Telefonda Enter yangi qator qo'shadi, yuborish — tugma bilan (Telegram mobil kabi)
               onKeyPress={Platform.OS === 'web' ? e => {
@@ -247,16 +249,16 @@ export default function ChatScreen() {
             />
             {!hasText && (
               <Pressable onPress={attach} hitSlop={6} style={styles.composerBtn} accessibilityLabel={tr('Hujjat biriktirish')}>
-                <Ionicons name="attach" size={27} color={c.muted} style={{ transform: [{ rotate: '45deg' }] }} />
+                <Ionicons name="attach" size={25} color={c.muted} style={{ transform: [{ rotate: '45deg' }] }} />
               </Pressable>
             )}
             {hasText ? (
               <Pressable onPress={() => send()} hitSlop={6} style={({ pressed }) => [styles.composerBtn, { transform: [{ scale: pressed ? 0.88 : 1 }] }]} accessibilityLabel={tr('Yuborish')}>
-                <Ionicons name="send" size={25} color={tg.accent} style={flipRTL()} />
+                <Ionicons name="send" size={23} color={tg.accent} style={flipRTL()} />
               </Pressable>
             ) : (
               <Pressable onPress={() => setMeet(true)} hitSlop={6} style={styles.composerBtn} accessibilityLabel={tr('Onlayn uchrashuv belgilash')}>
-                <Ionicons name="calendar-outline" size={24} color={c.muted} />
+                <Ionicons name="calendar-outline" size={23} color={c.muted} />
               </Pressable>
             )}
           </View>
@@ -442,6 +444,8 @@ function MeetingSheet({ visible, onClose, onCreate }: { visible: boolean; onClos
 }
 
 const TAIL = 9;
+/** Yozish maydoni va uning yonidagi tugmalar balandligi */
+const INPUT_H = 40;
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 6, paddingBottom: 8, borderBottomWidth: StyleSheet.hairlineWidth, zIndex: 2 },
@@ -483,7 +487,8 @@ const styles = StyleSheet.create({
   join: { alignItems: 'center', paddingVertical: 8, borderRadius: 12, marginTop: 2 },
   banner: { marginHorizontal: 10, marginBottom: 8, padding: 12, borderRadius: 18, gap: 10, borderWidth: StyleSheet.hairlineWidth },
   composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 0, paddingStart: 14, paddingEnd: 4, paddingTop: 4, borderTopWidth: StyleSheet.hairlineWidth },
-  composerBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  input: { flex: 1, minWidth: 0, minHeight: 44, maxHeight: 150, paddingHorizontal: 6, paddingTop: 11, paddingBottom: 11, fontSize: 16, fontFamily: F.medium },
+  // maydon bir qatorda belgilar bilan bir balandlikda (INPUT_H), matn ham belgilar o'lchamida
+  composerBtn: { width: INPUT_H, height: INPUT_H, alignItems: 'center', justifyContent: 'center' },
+  input: { flex: 1, minWidth: 0, minHeight: INPUT_H, maxHeight: 150, paddingHorizontal: 4, paddingTop: 9, paddingBottom: 9, fontSize: 15, lineHeight: 20, fontFamily: F.medium },
   locked: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 16, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth },
 });
