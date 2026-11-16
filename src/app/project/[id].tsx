@@ -7,6 +7,7 @@ import { Linking, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ActionBar } from '@/components/action-bar';
+import { CollabRequestSheet } from '@/components/collab-request-sheet';
 import { KeyValue, Logo, ReportSheet, SectorGlyph, SectorIcon, StatusBadge } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
 import { ActionSheet, alpha, Avatar, Badge, Button, IOSSwitch, NavButton, NavGroup, Card, DEFAULT_AVATAR, EmptyState, FitImage, ListItem, Row, Screen, shade, Txt, Verified } from '@/components/ui';
@@ -29,6 +30,7 @@ export default function ProjectScreen() {
   const insets = useSafeAreaInsets();
   const [menu, setMenu] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [asking, setAsking] = useState(false);
   const [coverRatio, setCoverRatio] = useState(16 / 9);
   const pr = p.projects.find(x => x.id === id);
   const mine = pr?.ownerId === (user?.id ?? 'me');
@@ -55,6 +57,9 @@ export default function ProjectScreen() {
   const company = p.companies.find(x => x.id === pr.ownerId);
   const peer = { peerId: pr.ownerId, peerName: pr.ownerName, peerKind: pr.ownerKind === 'company' ? 'company' as const : 'person' as const, peerVerified: pr.ownerVerified };
   const warn = flagged(pr.title, pr.summary, pr.description);
+  // shu egaga yuborilgan, hali javob berilmagan hamkorlik so'rovi (suhbatda u profil egasi bo'lib turadi)
+  const owner = p.ownerOf(pr.ownerId) ?? pr.ownerId;
+  const requestSent = p.conversations.some(cv => cv.kind === 'request' && !cv.incoming && cv.requestStatus === 'pending' && cv.peerId === owner);
 
   const share = () => Share.share({ message: tr('YUMS: {title}\n{summary}\n{link}', { title: pr.title, summary: pr.summary, link: `yumstaxi://project/${pr.id}` }) }).catch(() => {});
   const contact = () => {
@@ -85,7 +90,10 @@ export default function ProjectScreen() {
     </Row>
   ) : (
     <ActionBar
-      secondary={{ title: tr("Hamkorlik so'rovi"), icon: 'people', onPress: () => start(peer, { request: true, subject: tr("«{title}» bo'yicha hamkorlik", { title: pr.title }) }) }}
+      // so'rov — alohida forma va «So'rovlar»dagi alohida so'rov (chat ochilmaydi); «Yozish» — oddiy suhbat
+      secondary={requestSent
+        ? { title: tr("So'rov yuborilgan"), icon: 'checkmark-circle', tint: c.ok, disabled: true }
+        : { title: tr("Hamkorlik so'rovi"), icon: 'people', onPress: () => setAsking(true) }}
       primary={{
         title: pr.contact === 'phone' ? tr("Qo'ng'iroq") : pr.contact === 'email' ? tr('Email yozish') : tr('Yozish'),
         icon: pr.contact === 'phone' ? 'call' : pr.contact === 'email' ? 'mail' : 'chatbubble-ellipses',
@@ -304,6 +312,7 @@ export default function ProjectScreen() {
         ]}
       />
       <ReportSheet visible={reporting} onClose={() => setReporting(false)} kind="project" id={pr.id} title={pr.title} />
+      {!mine && <CollabRequestSheet visible={asking} onClose={() => setAsking(false)} peer={peer} project={pr.title} seeking={pr.seeking} />}
     </View>
   );
 }

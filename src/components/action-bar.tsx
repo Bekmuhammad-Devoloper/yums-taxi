@@ -1,5 +1,6 @@
 // Sahifa pastidagi ikki tugma: chapda ikkinchi darajali amal (belgisi rangli doirachada), o'ngda asosiy amal
-// (sariq gradient). Yozuv doim bir qatorda — sig'masa shrift biroz kichrayadi, «Hamkorlik so'rovi» ikkiga bo'linmaydi.
+// (sariq gradient). Ikkalasi bir xil kenglik va balandlikda, belgi va yozuv o'rtada; uzun yozuv («Hamkorlik
+// so'rovi») ikki qatorga o'tadi, sig'masa shrift biroz kichrayadi.
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -18,19 +19,16 @@ export type Action = {
   tint?: string;
 };
 
-/** Kenglik yozuv uzunligiga qarab: «Hamkorlik so'rovi» kengroq, «Yozish» ixchamroq — ikkalasi ham to'liq ko'rinadi */
-const weight = (title: string) => Math.max(1, Math.min(1.8, title.length / 11));
-
 export function ActionBar({ secondary, primary }: { secondary: Action; primary: Action }) {
   return (
     <View style={styles.row}>
-      <SecondaryAction {...secondary} flex={weight(secondary.title)} />
-      <PrimaryAction {...primary} flex={weight(primary.title)} />
+      <SecondaryAction {...secondary} />
+      <PrimaryAction {...primary} />
     </View>
   );
 }
 
-function SecondaryAction({ title, icon, onPress, disabled, loading, tint, flex }: Action & { flex: number }) {
+function SecondaryAction({ title, icon, onPress, disabled, loading, tint }: Action) {
   const { colors: c } = useStore();
   const color = tint ?? c.violet;
   return (
@@ -42,10 +40,10 @@ function SecondaryAction({ title, icon, onPress, disabled, loading, tint, flex }
       onPress={() => { haptic.tap(); onPress?.(); }}
       style={({ pressed }) => [
         styles.secondary,
-        { flex, backgroundColor: pressed ? c.surface3 : c.surface2, borderColor: c.line, opacity: disabled ? 0.5 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] },
+        { backgroundColor: pressed ? c.surface3 : c.surface2, borderColor: c.line, opacity: disabled ? 0.5 : 1, transform: [{ scale: pressed ? 0.97 : 1 }] },
       ]}>
       <View style={[styles.chip, { backgroundColor: alpha(color, 0.16) }]}>
-        {loading ? <ActivityIndicator size="small" color={color} /> : <Ionicons name={icon} size={19} color={color} />}
+        {loading ? <ActivityIndicator size="small" color={color} /> : <Ionicons name={icon} size={18} color={color} />}
       </View>
       <Text style={[styles.secondaryText, { color: c.text }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85}>
         {title}
@@ -54,7 +52,7 @@ function SecondaryAction({ title, icon, onPress, disabled, loading, tint, flex }
   );
 }
 
-function PrimaryAction({ title, icon, onPress, disabled, loading, flex }: Action & { flex: number }) {
+function PrimaryAction({ title, icon, onPress, disabled, loading }: Action) {
   const { colors: c } = useStore();
   const off = !!disabled;
   return (
@@ -64,10 +62,12 @@ function PrimaryAction({ title, icon, onPress, disabled, loading, flex }: Action
       accessibilityState={{ disabled: off }}
       disabled={off || loading}
       onPress={() => { haptic.tap(); onPress?.(); }}
-      style={({ pressed }) => [styles.primaryWrap, { flex }, !off && styles.glow, { transform: [{ scale: pressed ? 0.97 : 1 }] }]}>
+      style={({ pressed }) => [styles.primaryWrap, !off && styles.glow, { transform: [{ scale: pressed ? 0.97 : 1 }] }]}>
       {off ? (
         <View style={[styles.primary, { backgroundColor: c.surface3 }]}>
-          <Ionicons name={icon} size={20} color={c.faint} />
+          <View style={[styles.primaryIcon, { backgroundColor: 'transparent' }]}>
+            <Ionicons name={icon} size={18} color={c.faint} />
+          </View>
           <Text style={[styles.primaryText, { color: c.faint }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85}>{title}</Text>
         </View>
       ) : (
@@ -86,23 +86,28 @@ function PrimaryAction({ title, icon, onPress, disabled, loading, flex }: Action
   );
 }
 
+// ikkala tugma uchun bir xil o'lchamlar
 const HEIGHT = 56;
 const RADIUS = 18;
+const ICON = 32;
+const GAP = 9;
+const PAD = 12;
+const FONT = 15.5;
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 10 },
   secondary: {
-    minWidth: 0, height: HEIGHT, flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingStart: 10, paddingEnd: 12, borderRadius: RADIUS, borderWidth: StyleSheet.hairlineWidth,
+    flex: 1, minWidth: 0, height: HEIGHT, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: GAP,
+    paddingHorizontal: PAD, borderRadius: RADIUS, borderWidth: StyleSheet.hairlineWidth,
   },
-  chip: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  secondaryText: { flex: 1, minWidth: 0, fontFamily: F.heavy, fontSize: 14.5, lineHeight: 18, letterSpacing: -0.2 },
-  primaryWrap: { minWidth: 0, borderRadius: RADIUS },
+  chip: { width: ICON, height: ICON, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  secondaryText: { flexShrink: 1, minWidth: 0, fontFamily: F.heavy, fontSize: FONT, lineHeight: 18.5, letterSpacing: -0.2, textAlign: 'center' },
+  primaryWrap: { flex: 1, minWidth: 0, borderRadius: RADIUS },
   glow: { shadowColor: '#FFB800', shadowOpacity: 0.4, shadowRadius: 12, shadowOffset: { width: 0, height: 5 } },
   primary: {
-    height: HEIGHT, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9,
-    paddingHorizontal: 14, borderRadius: RADIUS, overflow: 'hidden',
+    height: HEIGHT, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: GAP,
+    paddingHorizontal: PAD, borderRadius: RADIUS, overflow: 'hidden',
   },
-  primaryIcon: { width: 30, height: 30, borderRadius: 10, backgroundColor: 'rgba(14,21,37,0.1)', alignItems: 'center', justifyContent: 'center' },
-  primaryText: { flexShrink: 1, fontFamily: F.heavy, fontSize: 16, lineHeight: 19, letterSpacing: -0.2, textAlign: 'center' },
+  primaryIcon: { width: ICON, height: ICON, borderRadius: 10, backgroundColor: 'rgba(14,21,37,0.1)', alignItems: 'center', justifyContent: 'center' },
+  primaryText: { flexShrink: 1, minWidth: 0, fontFamily: F.heavy, fontSize: FONT, lineHeight: 18.5, letterSpacing: -0.2, textAlign: 'center' },
 });

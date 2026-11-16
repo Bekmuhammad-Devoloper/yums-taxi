@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 
 import { ActionBar } from '@/components/action-bar';
+import { CollabRequestSheet } from '@/components/collab-request-sheet';
 import { FavButton, KeyValue, Logo, Place, ProjectCard, ReportSheet } from '@/components/platform-ui';
 import { ProfileReviews } from '@/components/profile-reviews';
 import { toast } from '@/components/toast';
@@ -21,7 +22,8 @@ export default function CompanyScreen() {
   const p = usePlatform();
   const start = useStartChat();
   const [reporting, setReporting] = useState(false);
-  const co = p.companies.find(x => x.id === id);
+  const [asking, setAsking] = useState(false);
+  const co =p.companies.find(x => x.id === id);
 
   if (!co || p.isBlocked('company', co.id)) {
     return <Screen title={tr('Kompaniya')}><EmptyState icon="business-outline" title={tr('Kompaniya topilmadi')} sub={tr("Profil o'chirilgan yoki moderator tomonidan cheklangan")} /></Screen>;
@@ -30,6 +32,8 @@ export default function CompanyScreen() {
   const sec = sectorOf(co.sector);
   const projects = p.publicProjects.filter(x => x.ownerId === co.id);
   const peer = { peerId: co.id, peerName: co.name, peerKind: 'company' as const, peerVerified: co.verified };
+  const owner = p.ownerOf(co.id) ?? co.id;
+  const requestSent = p.conversations.some(cv => cv.kind === 'request' && !cv.incoming && cv.requestStatus === 'pending' && cv.peerId === owner);
 
   return (
     <Screen
@@ -38,7 +42,10 @@ export default function CompanyScreen() {
       right={<Row gap={8}><View style={[styles.fav, { backgroundColor: c.surface }]}><FavButton k={'company:' + co.id} /></View><IconButton name="flag-outline" size={42} onPress={() => setReporting(true)} /></Row>}
       footer={
         <ActionBar
-          secondary={{ title: tr("Hamkorlik so'rovi"), icon: 'people', onPress: () => start(peer, { request: true, subject: tr('B2B hamkorlik') }) }}
+          // so'rov — alohida forma (chat ochilmaydi); «Yozish» — oddiy suhbat
+          secondary={requestSent
+            ? { title: tr("So'rov yuborilgan"), icon: 'checkmark-circle', tint: c.ok, disabled: true }
+            : { title: tr("Hamkorlik so'rovi"), icon: 'people', onPress: () => setAsking(true) }}
           primary={{ title: tr('Yozish'), icon: 'chatbubble-ellipses', onPress: () => start(peer) }}
         />
       }>
@@ -102,6 +109,7 @@ export default function CompanyScreen() {
       <ProfileReviews profileId={co.id} ownerId={p.ownerOf(co.id)} onChanged={() => { p.refresh().catch(() => {}); }} />
       {p.ownerOf(co.id) === user?.id && <Button title={tr('Profilni tahrirlash')} kind="ghost" icon="create-outline" onPress={() => router.push({ pathname: '/directory-edit', params: { type: 'company' } })} />}
       <ReportSheet visible={reporting} onClose={() => setReporting(false)} kind="company" id={co.id} title={co.name} />
+      <CollabRequestSheet visible={asking} onClose={() => setAsking(false)} peer={peer} />
       <Txt v="tiny" faint style={{ textAlign: 'center' }} onPress={() => router.push('/legal')}>{tr("Ma'lumotlar kompaniya tomonidan taqdim etilgan · Qoidalar")}</Txt>
     </Screen>
   );

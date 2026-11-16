@@ -1085,6 +1085,22 @@ const platform: Record<string, Row> = {
   "Yaxshi": ["Хорошо", "OK", "Хуб", "حسنًا"],
   "Taklif yuborildi": ["Предложение отправлено", "Offer sent", "Пешниҳод фиристода шуд", "تم إرسال العرض"],
   "{name} taklifingizni ko'rib chiqadi. Qabul qilsa yoki rad etsa, bildirishnoma keladi; takliflaringiz «Xabarlar → So'rovlar»da turadi.": ["{name} рассмотрит ваше предложение. Когда примет или отклонит — придёт уведомление; ваши предложения — в «Сообщения → Запросы».", "{name} will review your offer. You'll be notified when it's accepted or declined; your offers are under «Messages → Requests».", "{name} пешниҳоди шуморо баррасӣ мекунад. Ҳангоми қабул ё рад огоҳинома меояд; пешниҳодҳо дар «Паёмҳо → Дархостҳо».", "سيراجع {name} عرضك. ستصلك إشعارات عند القبول أو الرفض؛ عروضك في «الرسائل ← الطلبات»."],
+  "Investitsiya kiritaman": ["Вложу инвестиции", "I'll invest", "Сармоягузорӣ мекунам", "سأستثمر"],
+  "Hamkor bo'laman": ["Стану партнёром", "I'll be a partner", "Шарик мешавам", "سأكون شريكًا"],
+  "Mutaxassis sifatida": ["Как специалист", "As a specialist", "Ҳамчун мутахассис", "بصفتي متخصصًا"],
+  "Mijoz sifatida": ["Как клиент", "As a client", "Ҳамчун мизоҷ", "بصفتي عميلًا"],
+  "Yetkazib beruvchi sifatida": ["Как поставщик", "As a supplier", "Ҳамчун таъминкунанда", "بصفتي مورّدًا"],
+  "Hamkorlik so'rovi: «{title}»": ["Запрос о сотрудничестве: «{title}»", "Partnership request: «{title}»", "Дархости ҳамкорӣ: «{title}»", "طلب شراكة: «{title}»"],
+  "Taklif": ["Предложение", "Offer", "Пешниҳод", "العرض"],
+  "Miqdor": ["Сумма", "Amount", "Маблағ", "المبلغ"],
+  "So'rov yuborildi": ["Запрос отправлен", "Request sent", "Дархост фиристода шуд", "تم إرسال الطلب"],
+  "{name} so'rovingizni ko'rib chiqadi. Qabul qilsa yoki rad etsa, bildirishnoma keladi; so'rovlaringiz «Xabarlar → So'rovlar»da turadi.": ["{name} рассмотрит ваш запрос. Когда он примет или отклонит его, придёт уведомление; ваши запросы — в «Сообщения → Запросы».", "{name} will review your request. You'll be notified when it's accepted or declined; your requests are under «Messages → Requests».", "{name} дархости шуморо баррасӣ мекунад. Ҳангоми қабул ё рад огоҳнома меояд; дархостҳои шумо дар «Паёмҳо → Дархостҳо».", "سيراجع {name} طلبك. ستصلك إشعار عند قبوله أو رفضه؛ طلباتك في «الرسائل ← الطلبات»."],
+  "So'rov yuborish": ["Отправить запрос", "Send request", "Фиристодани дархост", "إرسال الطلب"],
+  "{name} so'rovingizni «So'rovlar»da ko'radi va qabul qilsa, yozishma boshlanadi.": ["{name} увидит запрос в «Запросах»; если примет — начнётся переписка.", "{name} sees your request under «Requests»; if accepted, the conversation starts.", "{name} дархости шуморо дар «Дархостҳо» мебинад ва агар қабул кунад, мукотиба оғоз мешавад.", "سيرى {name} طلبك في «الطلبات»، وإذا قبله تبدأ المحادثة."],
+  "Nima taklif qilasiz?": ["Что вы предлагаете?", "What are you offering?", "Шумо чӣ пешниҳод мекунед?", "ماذا تعرض؟"],
+  "Investitsiya miqdori (USD)": ["Сумма инвестиций (USD)", "Investment amount (USD)", "Маблағи сармоягузорӣ (USD)", "مبلغ الاستثمار (USD)"],
+  "Taklifingiz": ["Ваше предложение", "Your proposal", "Пешниҳоди шумо", "عرضك"],
+  "O'zingiz haqingizda, nimani taklif qilasiz va hamkorlik qanday bo'lishi…": ["О себе, что вы предлагаете и каким видите сотрудничество…", "About you, what you offer and how you see the partnership…", "Дар бораи худ, чӣ пешниҳод мекунед ва ҳамкорӣ чӣ гуна бошад…", "عنك، وما تعرضه، وكيف ترى الشراكة…"],
 };
 
 export default platform;
