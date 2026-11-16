@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Linking, StyleSheet, View } from 'react-native';
 
+import { ClickButton } from '@/components/click-mark';
 import { toast } from '@/components/toast';
 import { Button, Chip, Field, Row, Sheet, Txt } from '@/components/ui';
 import { errorText } from '@/lib/api';
@@ -19,19 +20,30 @@ const POLL_LIMIT_MS = 30 * 60_000;
 
 const newKey = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 
-type Props = { visible: boolean; onClose: () => void; kind: WalletKind; cards: Card[]; onDone: () => void; onAddCard?: () => void };
+type Props = {
+  visible: boolean; onClose: () => void; kind: WalletKind; cards: Card[]; onDone: () => void; onAddCard?: () => void;
+  /** Aniq summa (masalan, tarif narxi) — tanlov va maydon ko'rsatilmaydi */
+  fixedAmount?: number;
+  /** To'lov o'tgach (Click yoki karta) — masalan, tarifni shu zahoti faollashtirish */
+  onPaid?: () => void;
+  title?: string;
+};
 
 /** Balansni to'ldirish: Click ilovasi orqali yoki saqlangan kartadan */
-export function TopupSheet({ visible, onClose, kind, cards, onDone, onAddCard }: Props) {
+export function TopupSheet({ visible, onClose, kind, cards, onDone, onAddCard, fixedAmount, onPaid, title }: Props) {
   const { colors: c, settings } = useStore();
   // server Click ulanmaganini aytsa — ishlamaydigan tugma ko'rsatilmaydi (eski server bu belgini bermaydi — unda bor deb hisoblanadi)
   const clickOn = settings?.clickTopup !== false;
   const cardsOn = settings?.cardPayments !== false;
-  const [amount, setAmount] = useState(PRESETS[1]);
+  const [chosen, setAmount] = useState(PRESETS[1]);
+  const amount = fixedAmount ? Math.max(MIN_AMOUNT, Math.ceil(fixedAmount)) : chosen;
   const [busy, setBusy] = useState(false);
   const [waitingFor, setWaitingFor] = useState<string | null>(null);
   // Javob yo'qolsa, shu kalit bilan takrorlash pulni ikki marta yechmaydi
   const cardKey = useRef(newKey());
+  // onPaid har chizishda yangi funksiya — kuzatuv qayta boshlanmasligi uchun ref orqali chaqiriladi
+  const paid = useRef(onPaid);
+  useEffect(() => { paid.current = onPaid; });
 
   useEffect(() => {
     if (!waitingFor) return;
@@ -44,7 +56,11 @@ export function TopupSheet({ visible, onClose, kind, cards, onDone, onAddCard }:
       if (stopped || status === 'PENDING') return;
       setWaitingFor(null);
       onDone();
-      if (status === 'CAPTURED') { toast(tr('Balans to\'ldirildi'), 'checkmark-circle'); onClose(); }
+      if (status === 'CAPTURED') {
+        toast(tr('Balans to\'ldirildi'), 'checkmark-circle');
+        onClose();
+        paid.current?.();
+      }
       else toast(tr("To'lov amalga oshmadi"), 'alert-circle');
     };
     const timer = setInterval(check, POLL_MS);
@@ -75,6 +91,7 @@ export function TopupSheet({ visible, onClose, kind, cards, onDone, onAddCard }:
       toast(tr('Balans to\'ldirildi'), 'checkmark-circle');
       onDone();
       onClose();
+      paid.current?.();
     } catch (error) {
       toast(errorText(error), 'alert-circle');
     } finally {
@@ -92,17 +109,26 @@ export function TopupSheet({ visible, onClose, kind, cards, onDone, onAddCard }:
   const valid = Number.isInteger(amount) && amount >= MIN_AMOUNT;
 
   return (
-    <Sheet visible={visible} onClose={close} title={tr("Balansni to'ldirish")}>
+    <Sheet visible={visible} onClose={close} title={title ?? tr("Balansni to'ldirish")}>
       <View style={{ gap: 12 }}>
-        <Row gap={8} style={{ flexWrap: 'wrap' }}>
-          {PRESETS.map(sum => <Chip key={sum} label={som(sum)} active={sum === amount} onPress={() => setAmount(sum)} />)}
-        </Row>
-        <Field label={tr("Summa (so'm)")} keyboardType="number-pad" value={String(amount || '')} onChangeText={v => setAmount(Number(v.replace(/\D/g, '')))} />
+        {fixedAmount ? (
+          <View style={[styles.fixed, { backgroundColor: c.surface2 }]}>
+            <Txt v="small" muted>{tr("To'lanadigan summa")}</Txt>
+            <Txt v="h1">{som(amount)}</Txt>
+          </View>
+        ) : (
+          <>
+            <Row gap={8} style={{ flexWrap: 'wrap' }}>
+              {PRESETS.map(sum => <Chip key={sum} label={som(sum)} active={sum === amount} onPress={() => setAmount(sum)} />)}
+            </Row>
+            <Field label={tr("Summa (so'm)")} keyboardType="number-pad" value={String(amount || '')} onChangeText={v => setAmount(Number(v.replace(/\D/g, '')))} />
+          </>
+        )}
         {waitingFor ? (
           <Txt v="small" muted>{tr("Click'da to'lovni yakunlang, natija shu yerda chiqadi")}</Txt>
         ) : null}
         {clickOn ? (
-          <Button title={tr('Click orqali to\'lash')} icon="wallet-outline" loading={busy} disabled={!valid || !!waitingFor} onPress={payInClick} />
+          <ClickButton title={tr('Click orqali to\'lash')} onPress={payInClick} busy={busy} disabled={!valid || !!waitingFor} />
         ) : (
           // Click hali ulanmagan: sababini va hozir nima qilish mumkinligini aytamiz
           <View style={[styles.note, { backgroundColor: c.surface2, borderColor: c.line }]}>
@@ -131,6 +157,7 @@ export function TopupSheet({ visible, onClose, kind, cards, onDone, onAddCard }:
 }
 
 const styles = StyleSheet.create({
+  fixed: { padding: 14, borderRadius: 16, gap: 2 },
   note: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, padding: 14, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth },
   noteIco: { width: 36, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });

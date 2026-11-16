@@ -452,6 +452,10 @@ const common: Record<string, Row> = {
   "Joylashuv taxminiy (±{m} m). Pinni aniq joyga suring": ["Местоположение примерное (±{m} м). Передвиньте пин на точное место", "Location is approximate (±{m} m). Drag the pin to the exact spot", "Ҷойгиршавӣ тахминӣ аст (±{m} м). Пинро ба ҷои дақиқ кашед", "الموقع تقريبي (±{m} م). اسحب الدبوس إلى المكان الدقيق"],
   "Bir bosishda chaqirish": ["Вызов в одно касание", "One-tap ride", "Даъват бо як зер", "طلب بنقرة واحدة"],
   "Hisob turi": ["Тип аккаунта", "Account type", "Навъи ҳисоб", "نوع الحساب"],
+  "Click ilovasi orqali · {sum}": ["Через приложение Click · {sum}", "Via the Click app · {sum}", "Тавассути барномаи Click · {sum}", "عبر تطبيق Click · {sum}"],
+  "Click ilovasi ochiladi. To'lov o'tgach tarif shu zahoti faollashadi.": ["Откроется приложение Click. После оплаты тариф включится сразу.", "The Click app opens. Once paid, the plan turns on right away.", "Барномаи Click кушода мешавад. Пас аз пардохт тариф фавран фаъол мешавад.", "سيُفتح تطبيق Click. بعد الدفع تُفعَّل الباقة فورًا."],
+  "Balansda {sum} yetishmayapti. To'ldirsangiz, tarif shu zahoti faollashadi.": ["На балансе не хватает {sum}. Пополните — и тариф включится сразу.", "Your balance is {sum} short. Top it up and the plan turns on right away.", "Дар баланс {sum} намерасад. Пур кунед — тариф фавран фаъол мешавад.", "ينقص رصيدك {sum}. اشحنه وستُفعَّل الباقة فورًا."],
+  "To'lanadigan summa": ["Сумма к оплате", "Amount to pay", "Маблағи пардохт", "المبلغ المستحق"],
 };
 
 export default common;

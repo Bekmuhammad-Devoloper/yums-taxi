@@ -1,11 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useState, type ReactNode } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ImageSlot } from '@/components/image-slot';
+import { ClickButton, ClickMark } from '@/components/click-mark';
 import { toast } from '@/components/toast';
+import { TopupSheet } from '@/components/topup-sheet';
 import { Badge, Button, Card, Chip, Field, ListItem, Row, Screen, SectionHeader, Segmented, Sheet, Txt } from '@/components/ui';
 import { fmtDay } from '@/lib/format';
 import { som } from '@/lib/geo';
@@ -17,7 +19,11 @@ import { tr } from '@/lib/i18n';
 
 export default function Plans() {
   const { boost } = useLocalSearchParams<{ boost?: string }>();
-  const { colors: c, balance, refreshWallet } = useStore();
+  const { colors: c, balance, refreshWallet, settings, cards } = useStore();
+  const clickOn = settings?.clickTopup !== false;
+  const [method, setMethod] = useState<'balance' | 'click'>('balance');
+  // 'click' — butun summa Click orqali; 'short' — yetishmagan qismi (Click yoki karta); to'lov o'tgach tarif darhol faollashadi
+  const [topup, setTopup] = useState<'click' | 'short' | null>(null);
   const p = usePlatform();
   const [period, setPeriod] = useState<'month' | 'year'>('month');
   const [buying, setBuying] = useState<Plan | 'boost' | null>(null);
@@ -39,7 +45,9 @@ export default function Plans() {
   const plan = buying && buying !== 'boost' ? plans.find(x => x.id === buying) : undefined;
   const amount = buying === 'boost' ? boostUsd : plan ? (period === 'year' ? plan.yearly : plan.price) : 0;
   const amountSom = buying === 'boost' ? boostSom : plan ? (period === 'year' ? plan.yearlySom : plan.priceSom) : 0;
-  const shortOf = buying === 'boost' && p.boostCredits > 0 ? 0 : Math.max(0, amountSom - balance);
+  const free = buying === 'boost' && p.boostCredits > 0;
+  const shortOf = free ? 0 : Math.max(0, amountSom - balance);
+  const viaClick = clickOn && method === 'click' && !free && amountSom > 0;
 
   const pay = async () => {
     if (busy) return;
@@ -148,23 +156,47 @@ export default function Plans() {
         <Txt v="small" muted style={{ lineHeight: 19 }}>{tr("YUMS Market orqali tuzilgan bitimlardan 3% komissiya — faqat qonuniy to'lov va shartnoma asosida. Loyiha va e'lon joylashtirish har doim bepul.")}</Txt>
       </Card>
 
-      <Sheet visible={!!buying} onClose={() => setBuying(null)} title={tr("To'lov")} footer={
-        shortOf > 0
-          ? <Button title={tr("Balansni to'ldirish")} icon="wallet" onPress={() => { setBuying(null); router.push('/payment'); }} />
-          : <Button title={buying === 'boost' && p.boostCredits > 0 ? tr('TOP kreditini ishlatish') : tr("${amount} to'lash", { amount })} icon="lock-closed" disabled={busy} onPress={() => { pay().catch(() => {}); }} />
+      <Sheet visible={!!buying && !topup} onClose={() => setBuying(null)} title={tr("To'lov")} footer={
+        viaClick
+          ? <ClickButton title={tr("Click orqali to'lash")} onPress={() => setTopup('click')} busy={busy} />
+          : shortOf > 0
+          ? <Button title={tr("Balansni to'ldirish")} icon="wallet" onPress={() => setTopup('short')} />
+          : <Button title={free ? tr('TOP kreditini ishlatish') : tr("${amount} to'lash", { amount })} icon="lock-closed" disabled={busy} onPress={() => { pay().catch(() => {}); }} />
       }>
         <Card style={{ backgroundColor: c.surface2, gap: 4 }}>
           <Txt v="small" muted>{buying === 'boost' ? tr('TOPga chiqarish · {days} kun', { days: boostDays }) : `${plan?.name} · ${tr('{n} oy', { n: period === 'year' ? 12 : 1 })}`}</Txt>
           <Txt v="h1">{buying === 'boost' && p.boostCredits > 0 ? tr('Bepul') : `$${amount}`}</Txt>
           {!!amountSom && !(buying === 'boost' && p.boostCredits > 0) && <Txt v="small" muted>{tr('≈ {sum} (joriy kurs bo\'yicha)', { sum: som(amountSom) })}</Txt>}
         </Card>
-        <ListItem icon="wallet-outline" title={tr('YUMS balansi')} sub={som(balance)} />
-        {shortOf > 0
-          ? <Txt v="small" style={{ color: c.danger }}>{tr("Balansda {sum} yetishmayapti. Kartadan to'ldirib, keyin to'lang.", { sum: som(shortOf) })}</Txt>
-          : <Txt v="tiny" faint>{buying === 'boost' && p.boostCredits > 0
+        {!free && (
+          <View style={{ gap: 8 }}>
+            <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>{tr("To'lov usuli")}</Txt>
+            <PayMethod on={!viaClick} onPress={() => setMethod('balance')} title={tr('YUMS balansi')} sub={som(balance)}
+              icon={<View style={[styles.payIco, { backgroundColor: c.surface2 }]}><Ionicons name="wallet" size={20} color={c.text} /></View>} />
+            {clickOn && amountSom > 0 && (
+              <PayMethod on={viaClick} onPress={() => setMethod('click')} title="Click" sub={tr('Click ilovasi orqali · {sum}', { sum: som(amountSom) })}
+                icon={<View style={[styles.payIco, styles.payIcoClick, { borderColor: c.line }]}><ClickMark size={40} round={12} /></View>} />
+            )}
+          </View>
+        )}
+        {viaClick
+          ? <Txt v="tiny" faint>{tr("Click ilovasi ochiladi. To'lov o'tgach tarif shu zahoti faollashadi.")}</Txt>
+          : shortOf > 0
+          ? <Txt v="small" style={{ color: c.danger }}>{tr("Balansda {sum} yetishmayapti. To'ldirsangiz, tarif shu zahoti faollashadi.", { sum: som(shortOf) })}</Txt>
+          : <Txt v="tiny" faint>{free
             ? tr('Tarifingizdagi bepul TOP kreditlaridan biri ishlatiladi.')
             : tr("To'lov YUMS balansingizdan yechiladi. Tarif muddati tugagach avtomatik uzaytirilmaydi.")}</Txt>}
       </Sheet>
+      <TopupSheet
+        visible={!!topup}
+        onClose={() => setTopup(null)}
+        kind="passenger"
+        cards={topup === 'short' ? cards.filter(card => card.status === 'ACTIVE') : []}
+        onDone={() => { refreshWallet().catch(() => {}); }}
+        fixedAmount={topup === 'click' ? amountSom : shortOf}
+        title={topup === 'click' ? tr("Click orqali to'lash") : tr("Balansni to'ldirish")}
+        onPaid={() => { setTopup(null); pay().catch(() => {}); }}
+      />
 
       <Sheet visible={adOpen} onClose={() => setAdOpen(false)} title={tr('Reklama kampaniyasi')} footer={
         <Button title={tr('Moderatsiyaga yuborish')} icon="send" disabled={busy || adTitle.trim().length < 4} onPress={() => {
@@ -192,7 +224,32 @@ export default function Plans() {
   );
 }
 
+/** To'lov usuli qatori: belgi, nom, izoh va o'ngda tanlov doirasi */
+function PayMethod({ on, onPress, title, sub, icon }: { on: boolean; onPress: () => void; title: string; sub: string; icon: ReactNode }) {
+  const { colors: c } = useStore();
+  return (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityState={{ checked: on }}
+      onPress={() => { haptic.tap(); onPress(); }}
+      style={({ pressed }) => [styles.method, { backgroundColor: on ? c.brandSoft : c.surface, borderColor: on ? c.brand : c.line, opacity: pressed ? 0.9 : 1 }]}>
+      {icon}
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Txt v="h3" numberOfLines={1}>{title}</Txt>
+        <Txt v="small" muted numberOfLines={1}>{sub}</Txt>
+      </View>
+      <View style={[styles.radio, { borderColor: on ? c.brand : c.faint, backgroundColor: on ? c.brand : 'transparent' }]}>
+        {on && <Ionicons name="checkmark" size={14} color={c.brandText} />}
+      </View>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
+  method: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, borderWidth: 1.5 },
+  payIco: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  payIcoClick: { backgroundColor: '#FFFFFF', borderWidth: StyleSheet.hairlineWidth },
+  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
   adThumb: { width: 64, height: 32, borderRadius: 8 },
   planIco: { width: 34, height: 34, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
   ad: { padding: 18, borderRadius: radius.l, gap: 6 },

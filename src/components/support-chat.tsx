@@ -86,7 +86,13 @@ export function SupportChat({ topics, orderId, greeting, draft }: { topics: stri
         subtitle={current ? tr('Murojaat · {subject}', { subject: current.subject }) : tr('Operator 24/7 javob beradi')}
         scroll={false}
         right={current ? <Pressable onPress={finish} hitSlop={8} accessibilityLabel={tr('Murojaatni yopish')}><Ionicons name="checkmark-done" size={22} color={c.muted} /></Pressable> : undefined}>
-        <ScrollView ref={scroll} onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: true })} contentContainerStyle={{ padding: 16, gap: 10 }}>
+        {/* Telegram'dagidek: xabarlar pastdan boshlanadi va yuqoriga o'sib boradi */}
+        <ScrollView
+          ref={scroll}
+          onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: true })}
+          onLayout={() => scroll.current?.scrollToEnd({ animated: false })}
+          contentContainerStyle={{ padding: 16, gap: 10, flexGrow: 1, justifyContent: 'flex-end' }}
+          keyboardShouldPersistTaps="handled">
           <Row gap={8} style={{ alignItems: 'flex-end' }}>
             <PersonAvatar name="YUMS" size={30} />
             <View style={[styles.bubble, { backgroundColor: c.surface, borderBottomLeftRadius: 6, borderColor: c.line, borderWidth: StyleSheet.hairlineWidth }]}>
