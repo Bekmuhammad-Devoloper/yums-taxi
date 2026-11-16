@@ -3,10 +3,11 @@ import { Redirect, router } from 'expo-router';
 import { Tabs, type BottomTabBarProps } from 'expo-router/tabs';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { IconName } from '@/components/ui';
 import { isRTL, type TKey } from '@/lib/i18n';
+import { useReduceMotion } from '@/lib/motion';
 import { usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { F, shadow } from '@/lib/theme';
@@ -25,17 +26,6 @@ const PILL_H = 34;
 const BAR_TOP = 8;
 const slotOf = (i: number) => (i < 2 ? i : i + 1);
 
-/** Telefonda «harakatni kamaytirish» yoqilgan bo'lsa — kapsula sakramaydi, joyiga darhol o'tadi */
-function useReduceMotion(): boolean {
-  const [reduce, setReduce] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    AccessibilityInfo.isReduceMotionEnabled().catch(() => false).then(v => { if (alive) setReduce(!!v); });
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', v => setReduce(!!v));
-    return () => { alive = false; sub?.remove(); };
-  }, []);
-  return reduce;
-}
 
 /** Tanlangan bo'lim belgisi: tanlanganda bir lahza kichrayib, prujinadek joyiga qaytadi */
 function TabIcon({ on, name, reduce, children }: { on: boolean; name: IconName; reduce: boolean; children?: ReactNode }) {

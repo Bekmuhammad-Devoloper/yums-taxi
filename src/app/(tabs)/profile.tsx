@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AvatarEditor } from '@/components/avatar-editor';
 import { Place, ProjectCard } from '@/components/platform-ui';
+import { RotatingName } from '@/components/rotating-name';
 import { Badge, Button, Card, Divider, IconTile, ListItem, Row, SectionHeader, Stat, Txt } from '@/components/ui';
 import { PLANS } from '@/lib/platform-data';
 import { countryOf, short, usePlatform } from '@/lib/platform';
@@ -45,8 +46,8 @@ export default function Profile() {
         <Row>
           <AvatarEditor size={64} />
           <View style={{ flex: 1, gap: 2 }}>
-            {/* uzun ism-familiya «…» bilan kesilmaydi — ikki qatorgacha to'liq ko'rinadi */}
-            <Txt v="h2" numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75}>{displayName}</Txt>
+            {/* shaxs: ism va familiya bitta qatorda navbat bilan; kompaniya nomi — ikki qatorgacha to'liq */}
+            {company ? <Txt v="h2" numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75}>{displayName}</Txt> : <RotatingName name={displayName} />}
             <Place code={k.code} before={company ? tr('Kompaniya · {name} ·', { name: user.name }) : tr('Jismoniy shaxs ·')} />
             <Txt v="small" muted numberOfLines={1}>{user.email || user.phone}</Txt>
           </View>
