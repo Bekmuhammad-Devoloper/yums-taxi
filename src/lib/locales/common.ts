@@ -461,6 +461,11 @@ const common: Record<string, Row> = {
   "Operator": ["Оператор", "Operator", "Оператор", "المشغّل"],
   "YUMS AI yozmoqda…": ["YUMS AI печатает…", "YUMS AI is typing…", "YUMS AI менависад…", "YUMS AI يكتب…"],
   "Operator tez orada shu chatga ulanadi": ["Оператор скоро подключится к этому чату", "An operator will join this chat soon", "Оператор ба зудӣ ба ин чат пайваст мешавад", "سينضم مشغّل إلى هذه المحادثة قريبًا"],
+  "{n} ta safar": ["{n} поездок", "{n} rides", "{n} сафар", "{n} رحلات"],
+  "Hali safar yo'q": ["Поездок пока нет", "No rides yet", "Ҳоло сафар нест", "لا رحلات بعد"],
+  "SOS va ishonchli kontaktlar": ["SOS и доверенные контакты", "SOS and trusted contacts", "SOS ва тамосҳои боэътимод", "SOS وجهات اتصال موثوقة"],
+  "Yordam va sozlamalar": ["Помощь и настройки", "Help and settings", "Ёрӣ ва танзимот", "المساعدة والإعدادات"],
+  "Til, mavzu va bildirishnomalar": ["Язык, тема и уведомления", "Language, theme and notifications", "Забон, мавзӯъ ва огоҳиномаҳо", "اللغة والمظهر والإشعارات"],
 };
 
 export default common;
