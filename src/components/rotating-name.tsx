@@ -1,6 +1,7 @@
 // Ism-familiya bitta qatorda navbat bilan: avval ism, ~2.5 soniyadan keyin familiya, keyin yana ism.
-// Almashganda eski so'z yuqoriga chiqib yo'qoladi, yangisi pastdan chiqadi. Bitta so'zli nomda va
-// «harakatni kamaytirish» yoqilganda to'liq nom ikki qatorgacha oddiy ko'rinadi.
+// Almashganda eski so'z yuqoriga chiqib yo'qoladi, yangisi pastdan chiqadi. Bitta so'zli nom bir qatorda
+// (sig'masa shrift kichrayadi — so'z o'rtasidan bo'linmaydi); «harakatni kamaytirish» yoqilganda to'liq nom
+// ikki qatorgacha oddiy ko'rinadi. Telefonda shrift kattalashtirilgan bo'lsa ham kartochkadan oshmaydi.
 import { useEffect, useMemo, useState } from 'react';
 import { Animated, Platform, View } from 'react-native';
 
@@ -10,6 +11,7 @@ import { useReduceMotion } from '@/lib/motion';
 const ND = Platform.OS !== 'web';
 const HOLD_MS = 2600;
 const SLIDE = 14;
+const MAX_SCALE = 1.2;
 
 export function RotatingName({ name }: { name: string }) {
   const parts = useMemo(() => name.trim().split(/\s+/).filter(Boolean), [name]);
@@ -36,7 +38,11 @@ export function RotatingName({ name }: { name: string }) {
   }, [rotate, parts.length, shift]);
 
   if (!rotate) {
-    return <Txt v="h2" numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.75}>{name}</Txt>;
+    return (
+      <Txt v="h2" numberOfLines={parts.length > 1 ? 2 : 1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={MAX_SCALE}>
+        {name}
+      </Txt>
+    );
   }
 
   return (
@@ -46,7 +52,7 @@ export function RotatingName({ name }: { name: string }) {
           opacity: shift.interpolate({ inputRange: [-1, 0, 1], outputRange: [0, 1, 0] }),
           transform: [{ translateY: shift.interpolate({ inputRange: [-1, 0, 1], outputRange: [SLIDE, 0, -SLIDE] }) }],
         }}>
-        <Txt v="h2" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{parts[index % parts.length]}</Txt>
+        <Txt v="h2" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={MAX_SCALE}>{parts[index % parts.length]}</Txt>
       </Animated.View>
     </View>
   );

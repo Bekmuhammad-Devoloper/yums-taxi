@@ -21,6 +21,9 @@ const ART = {
   settings: require('@/assets/menu/settings.webp'),
 };
 
+// telefonda shrift kattalashtirilgan bo'lsa ham kartochkalar buzilmaydi
+const MAX_SCALE = 1.2;
+
 /** +998901234567 → +998 90 123 45 67 (boshqa raqamlar o'z holicha) */
 const prettyPhone = (phone?: string) => {
   const m = phone?.match(/^\+998(\d{2})(\d{3})(\d{2})(\d{2})$/);
@@ -34,24 +37,23 @@ export default function Menu() {
 
   return (
     <Screen title="YUMS Taxi" subtitle={tr("Safarlar, to'lovlar va sozlamalar")}>
-      {/* Profil: rasm, ism-familiya (navbat bilan), telefon va reyting */}
+      {/* Profil: rasm, ism-familiya (navbat bilan), telefon va reyting — reyting ism ostida turadi,
+          kenglik ism va raqamga qoladi */}
       <Card style={styles.profile}>
         <View style={[styles.avatarRing, { borderColor: c.brand }]}>
           <Avatar name={user?.name ?? '?'} size={58} uri={user?.avatar} fallback={DEFAULT_AVATAR} />
         </View>
-        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
           <RotatingName name={user?.name ?? ''} />
           <View style={styles.phoneRow}>
             <Ionicons name="call" size={13} color={c.muted} />
-            <Text style={[styles.phone, { color: c.muted }]} numberOfLines={1}>{prettyPhone(user?.phone)}</Text>
+            <Text style={[styles.phone, { color: c.muted }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} maxFontSizeMultiplier={MAX_SCALE}>{prettyPhone(user?.phone)}</Text>
           </View>
-        </View>
-        <View style={[styles.rating, { backgroundColor: c.brandSoft }]}>
-          <View style={styles.ratingTop}>
-            <Ionicons name="star" size={15} color="#F5A524" />
-            <Text style={[styles.ratingValue, { color: c.text }]}>{(user?.rating ?? 5).toFixed(1)}</Text>
+          <View style={[styles.rating, { backgroundColor: c.brandSoft }]}>
+            <Ionicons name="star" size={13} color="#F5A524" />
+            <Text style={[styles.ratingValue, { color: c.text }]} maxFontSizeMultiplier={MAX_SCALE}>{(user?.rating ?? 5).toFixed(1)}</Text>
+            <Text style={[styles.ratingLabel, { color: c.muted }]} maxFontSizeMultiplier={MAX_SCALE}>{tr('reyting')}</Text>
           </View>
-          <Text style={[styles.ratingLabel, { color: c.muted }]}>{tr('reyting')}</Text>
         </View>
       </Card>
 
@@ -61,12 +63,12 @@ export default function Menu() {
           <LinearGradient colors={['#FFE27A', '#FFC800']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.balance}>
             <View style={styles.tileHead}>
               <View style={styles.tileIconDark}><Ionicons name="wallet" size={16} color="#FFC800" /></View>
-              <Text style={styles.balanceLabel}>{tr('YUMS balans')}</Text>
+              <Text style={styles.balanceLabel} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} maxFontSizeMultiplier={MAX_SCALE}>{tr('YUMS balans')}</Text>
             </View>
-            <Text style={styles.balanceValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{som(balance)}</Text>
+            <Text style={styles.balanceValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={MAX_SCALE}>{som(balance)}</Text>
             <View style={styles.cashback}>
               <Ionicons name="gift" size={12} color="#0E1525" />
-              <Text style={styles.cashbackText}>{tr('Har safardan 3% keshbek')}</Text>
+              <Text style={styles.cashbackText} numberOfLines={2} maxFontSizeMultiplier={MAX_SCALE}>{tr('Har safardan 3% keshbek')}</Text>
             </View>
           </LinearGradient>
         </Pressable>
@@ -74,12 +76,12 @@ export default function Menu() {
           <View style={[styles.trips, { backgroundColor: c.surface, borderColor: c.line }]}>
             <View style={styles.tileHead}>
               <View style={[styles.tileIcon, { backgroundColor: c.accentSoft }]}><Ionicons name="car-sport" size={16} color={c.accent} /></View>
-              <Text style={[styles.tripsLabel, { color: c.muted }]}>{tr('Safarlar')}</Text>
+              <Text style={[styles.tripsLabel, { color: c.muted }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} maxFontSizeMultiplier={MAX_SCALE}>{tr('Safarlar')}</Text>
             </View>
-            <Text style={[styles.tripsValue, { color: c.text }]}>{done.length}</Text>
+            <Text style={[styles.tripsValue, { color: c.text }]} numberOfLines={1} maxFontSizeMultiplier={MAX_SCALE}>{done.length}</Text>
             <View style={styles.kmRow}>
               <Ionicons name="navigate" size={12} color={c.faint} />
-              <Text style={[styles.km, { color: c.muted }]}>{tr("{v2} km yo'l bosildi", { v2: km.toFixed(0) })}</Text>
+              <Text style={[styles.km, { color: c.muted }]} numberOfLines={2} maxFontSizeMultiplier={MAX_SCALE}>{tr("{v2} km yo'l bosildi", { v2: km.toFixed(0) })}</Text>
               <Ionicons name="chevron-forward" size={14} color={c.faint} style={flipRTL()} />
             </View>
           </View>
@@ -115,22 +117,22 @@ const styles = StyleSheet.create({
   profile: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatarRing: { padding: 2, borderRadius: 26, borderWidth: 2 },
   phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  phone: { fontFamily: F.semi, fontSize: 13.5, letterSpacing: 0.2, fontVariant: ['tabular-nums'] },
-  rating: { alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, gap: 1 },
-  ratingTop: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  ratingValue: { fontFamily: F.display, fontSize: 18 },
-  ratingLabel: { fontFamily: F.semi, fontSize: 11 },
+  phone: { flexShrink: 1, fontFamily: F.semi, fontSize: 13.5, letterSpacing: 0.2, fontVariant: ['tabular-nums'] },
+  rating: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 9, marginTop: 2 },
+  ratingValue: { fontFamily: F.bold, fontSize: 13 },
+  ratingLabel: { fontFamily: F.semi, fontSize: 12 },
   stats: { flexDirection: 'row', gap: 10 },
   balance: { flex: 1, borderRadius: radius.l, padding: 14, gap: 6, minHeight: 128 },
   trips: { flex: 1, borderRadius: radius.l, padding: 14, gap: 6, minHeight: 128, borderWidth: StyleSheet.hairlineWidth },
-  tileHead: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tileHead: { flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 },
   tileIcon: { width: 28, height: 28, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   tileIconDark: { width: 28, height: 28, borderRadius: 10, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0E1525' },
-  balanceLabel: { color: 'rgba(14,21,37,0.72)', fontFamily: F.bold, fontSize: 13 },
+  balanceLabel: { flexShrink: 1, color: 'rgba(14,21,37,0.72)', fontFamily: F.bold, fontSize: 13 },
   balanceValue: { color: '#0E1525', fontFamily: F.display, fontSize: 22, letterSpacing: -0.5 },
-  cashback: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.45)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
-  cashbackText: { color: '#0E1525', fontFamily: F.semi, fontSize: 11.5 },
-  tripsLabel: { fontFamily: F.bold, fontSize: 13 },
+  // yozuv uzun bo'lsa kartochka ichida ikkinchi qatorga o'tadi, chetidan chiqmaydi
+  cashback: { flexDirection: 'row', alignItems: 'center', gap: 5, alignSelf: 'flex-start', maxWidth: '100%', backgroundColor: 'rgba(255,255,255,0.45)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10 },
+  cashbackText: { flexShrink: 1, color: '#0E1525', fontFamily: F.semi, fontSize: 11.5, lineHeight: 15 },
+  tripsLabel: { flexShrink: 1, fontFamily: F.bold, fontSize: 13 },
   tripsValue: { fontFamily: F.display, fontSize: 30, letterSpacing: -0.8, lineHeight: 34 },
   kmRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   km: { flex: 1, fontFamily: F.semi, fontSize: 12 },
