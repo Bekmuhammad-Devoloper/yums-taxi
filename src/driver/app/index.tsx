@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -55,7 +55,14 @@ function useNow(active = true, every = 1000) {
   return now;
 }
 
-export default function DriverHome() {
+/** Hali haydovchi profili yo'q — ro'yxatdan o'tishga (ilova shartnoma yoki boshqa sahifada ochilib qolmaydi) */
+export default function DriverIndex() {
+  const { profile } = useDriver();
+  if (!profile) return <Redirect href={'/register' as never} />;
+  return <DriverHome />;
+}
+
+function DriverHome() {
   const { colors: c } = useStore();
   const d = useDriver();
   const insets = useSafeAreaInsets();

@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { useState } from 'react';
 import { LayoutAnimation, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -30,7 +30,6 @@ const LINKS: Record<ReqLink, (v: string) => string> = {
 export default function Contract() {
   const { colors: c, user, lang } = useStore();
   const d = useDriver();
-  const { from } = useLocalSearchParams<{ from?: string }>();
   const account = user?.id ?? user?.phone;
   const accepted = useContractAcceptance(account);
   // rus va tojik tilida o'qiydiganlarga kirill yozuvi qulayroq
@@ -57,7 +56,9 @@ export default function Contract() {
       await acceptContract(account);
       haptic.success();
       toast(tr('Rozilik qayd etildi'));
-      if (from === 'register' && router.canGoBack()) router.back();
+      // rozilikdan keyin doim davom etadi: kelgan sahifaga yoki (to'g'ridan ochilgan bo'lsa) keyingi qadamga
+      if (router.canGoBack()) router.back();
+      else router.replace((d.profile ? '/' : '/register') as never);
     } finally {
       setBusy(false);
     }

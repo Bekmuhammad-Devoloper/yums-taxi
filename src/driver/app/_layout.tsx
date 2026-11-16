@@ -60,8 +60,11 @@ function Root() {
       <View {...dirProps(lang)} style={{ flex: 1, backgroundColor: colors.bg }}>
         {/* til almashganda ekranlar qayta chiziladi (barcha matnlar yangi tilda) */}
         <Stack key={lang} screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg }, animation: 'slide_from_right' }}>
-          <Stack.Protected guard={!!user && !!d.profile}>
+          {/* bosh sahifa — kirgan har kimga: haydovchi profili bo'lmasa o'zi ro'yxatdan o'tishga yo'naltiradi */}
+          <Stack.Protected guard={!!user}>
             <Stack.Screen name="index" options={{ animation: 'fade' }} />
+          </Stack.Protected>
+          <Stack.Protected guard={!!user && !!d.profile}>
             <Stack.Screen name="menu" options={{ animation: 'slide_from_left' }} />
             <Stack.Screen name="earnings" />
             <Stack.Screen name="quality" />
@@ -77,8 +80,11 @@ function Root() {
           <Stack.Protected guard={!user}>
             <Stack.Screen name="login" options={{ animation: 'fade', gestureEnabled: false }} />
           </Stack.Protected>
-          {/* shartnoma ro'yxatdan o'tishdan oldin ham, keyin ham ochiladi */}
-          <Stack.Screen name="contract" options={{ animation: 'slide_from_bottom' }} />
+          {/* shartnoma ro'yxatdan o'tishdan oldin ham, keyin ham ochiladi — lekin faqat kirgan foydalanuvchiga va
+              faqat bosib ochilganda: himoyasiz qolsa, router uni boshlang'ich sahifa qilib olardi */}
+          <Stack.Protected guard={!!user}>
+            <Stack.Screen name="contract" options={{ animation: 'slide_from_bottom' }} />
+          </Stack.Protected>
         </Stack>
         <ToastHost />
         <UpdatePrompt />
