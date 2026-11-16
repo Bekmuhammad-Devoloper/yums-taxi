@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as DocumentPicker from 'expo-document-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ActionBar } from '@/components/action-bar';
 import { ImageSlot } from '@/components/image-slot';
@@ -176,10 +176,23 @@ export default function EditProject() {
 
       <SectionTitle>{tr('Aloqa usuli')}</SectionTitle>
       <Card style={{ gap: 12 }}>
-        <View style={styles.wrap}>
-          {([['chat', tx('YUMS chat'), 'chatbubbles-outline'], ['email', tx('Email'), 'mail-outline'], ['phone', tx('Telefon'), 'call-outline']] as const).map(([v, l, i]) => (
-            <Chip key={v} label={tr(l)} icon={i} active={contact === v} onPress={() => setContact(v)} />
-          ))}
+        {/* uch usul bitta qatorda, teng bo'lib: belgi tepada, nom pastda (sig'masa biroz kichrayadi) */}
+        <View style={styles.methods} accessibilityRole="radiogroup">
+          {([['chat', tx('YUMS chat'), 'chatbubbles-outline', 'chatbubbles'], ['email', tx('Email'), 'mail-outline', 'mail'], ['phone', tx('Telefon'), 'call-outline', 'call']] as const).map(([v, l, i, iOn]) => {
+            const on = contact === v;
+            return (
+              <Pressable
+                key={v}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: on }}
+                accessibilityLabel={tr(l)}
+                onPress={() => { haptic.tap(); setContact(v); }}
+                style={({ pressed }) => [styles.method, { backgroundColor: on ? c.ink : c.surface2, borderColor: on ? c.ink : c.line, opacity: pressed ? 0.85 : 1 }]}>
+                <Ionicons name={on ? iOn : i} size={21} color={on ? c.bg : c.text} />
+                <Text style={[styles.methodText, { color: on ? c.bg : c.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{tr(l)}</Text>
+              </Pressable>
+            );
+          })}
         </View>
         {contact !== 'chat' && (
           <Field value={contactValue} onChangeText={setContactValue} placeholder={contact === 'email' ? tr('name@company.com') : '+998 90 123 45 67'} keyboardType={contact === 'email' ? 'email-address' : 'phone-pad'} autoCapitalize="none" error={err('contact')} />
@@ -230,6 +243,9 @@ export default function EditProject() {
 
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  methods: { flexDirection: 'row', gap: 8 },
+  method: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: 12, paddingHorizontal: 6, borderRadius: 16, borderWidth: 1 },
+  methodText: { fontFamily: F.bold, fontSize: 14 },
   note: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14 },
   file: { padding: 12, borderRadius: 14 },
   drop: { alignItems: 'center', gap: 4, paddingVertical: 20, borderRadius: 16, borderWidth: 1.5, borderStyle: 'dashed' },

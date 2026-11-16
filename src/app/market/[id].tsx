@@ -5,6 +5,7 @@ import { Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-nati
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CartControl, MarketCard, MarketVisual, PriceLine, SALE, STAR, deliveryShort, discountOf } from '@/components/market-ui';
+import { marketForm } from '@/lib/market-forms';
 import { Logo, ReportSheet, SectorGlyph, StatusBadge } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
 import { ActionSheet, Card, EmptyState, Flag, NavButton, NavGroup, Row, Screen, Txt, Verified, alpha, type IconName } from '@/components/ui';
@@ -34,6 +35,7 @@ export default function MarketItemScreen() {
   const k = countryOf(m.country);
   const sec = sectorOf(m.sector);
   const kind = MARKET_KINDS.find(x => x.id === m.kind)!;
+  const form = marketForm(m.kind);
   const off = discountOf(m);
   const inCart = p.cartQty(m.id);
   const fav = p.isFav('market:' + m.id);
@@ -94,8 +96,9 @@ export default function MarketItemScreen() {
 
         {/* Yetkazish va shartlar */}
         <Card style={{ gap: 0, padding: 6 }}>
-          <InfoRow icon={m.kind === 'goods' ? 'cube-outline' : m.kind === 'digital' ? 'flash-outline' : 'briefcase-outline'} title={deliveryShort(m)} sub={m.kind === 'goods' ? tr('Yetkazib berish') : m.kind === 'digital' ? tr("To'lovdan so'ng havola beriladi") : tr('Muddat sotuvchi bilan kelishiladi')} />
-          {m.minOrder ? <InfoRow icon="layers-outline" title={m.minOrder} sub={tr('Minimal buyurtma')} /> : null}
+          {/* har bir tur o'z shartlari bilan: yetkazib berish / olish usuli / ish formati va h.k. */}
+          <InfoRow icon={form.delivery.icon} title={deliveryShort(m)} sub={form.delivery.label} />
+          {m.minOrder ? <InfoRow icon={form.minOrder.icon} title={tr(m.minOrder)} sub={form.minOrder.label} /> : null}
           <InfoRow icon="location-outline" title={k.name} sub={tr('Sotuvchi mamlakati')} flag={k.code} />
           <InfoRow icon="shield-checkmark-outline" title={tr('Xavfsiz bitim')} sub={tr("Shartnoma va litsenziyalangan to'lov hamkori orqali")} tint={c.ok} last />
         </Card>

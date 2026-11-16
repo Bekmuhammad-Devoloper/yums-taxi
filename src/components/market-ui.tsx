@@ -24,7 +24,7 @@ export const discountOf = (m: Pick<MarketItem, 'price' | 'oldPrice'>) =>
 
 /** Yetkazish haqida qisqa yozuv */
 export const deliveryShort = (m: Pick<MarketItem, 'kind' | 'delivery'>) =>
-  m.kind === 'digital' ? tr('Raqamli · darhol') : m.kind === 'service' ? tr("Xizmat · kelishuv bo'yicha") : (m.delivery ?? tr('Yetkazish kelishiladi'));
+  m.delivery ? tr(m.delivery) : m.kind === 'digital' ? tr('Raqamli · darhol') : m.kind === 'service' ? tr("Xizmat · kelishuv bo'yicha") : tr('Yetkazish kelishiladi');
 
 /** E'lon rasmi; rasm bo'lmasa soha rangidagi fon va 3D belgi. Ota-ona o'lchamini to'ldiradi */
 export function MarketVisual({ m, icon = 40, plain }: { m: Pick<MarketItem, 'image' | 'sector' | 'title'>; icon?: number; plain?: boolean }) {

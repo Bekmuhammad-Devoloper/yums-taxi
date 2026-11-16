@@ -4,14 +4,23 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { ImageSlot } from '@/components/image-slot';
-import { KindTiles, SectorStrip } from '@/components/listing-ui';
+import { KindTiles, OptionRow, SectorStrip } from '@/components/listing-ui';
 import { PickerSheet, SelectField } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { Button, Card, Field, Flag, Row, Screen, SectionTitle, Txt } from '@/components/ui';
+import { Button, Card, Field, Flag, Screen, SectionTitle, Txt } from '@/components/ui';
+import { marketForm } from '@/lib/market-forms';
 import { COUNTRIES, MARKET_KINDS, type MarketKind } from '@/lib/platform-data';
 import { countryOf, flagged, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
+import { F } from '@/lib/theme';
 import { tr } from '@/lib/i18n';
+
+/** Turga xos maydonlar: har bir tur o'z qiymatlarini saqlaydi — tur almashtirilsa, kiritilgani yo'qolmaydi */
+type Extra = { unit: string; delivery: string; minOrder: string };
+const startExtra = (kind: MarketKind): Extra => {
+  const f = marketForm(kind);
+  return { unit: f.unit.initial, delivery: f.delivery.initial ?? '', minOrder: f.minOrder.initial ?? '' };
+};
 
 export default function NewMarketItem() {
   const { colors: c, user } = useStore();
@@ -20,15 +29,17 @@ export default function NewMarketItem() {
   const [kind, setKind] = useState<MarketKind>(() => MARKET_KINDS.find(m => m.id === params.kind)?.id ?? 'goods');
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
-  const [unit, setUnit] = useState('');
   const [desc, setDesc] = useState('');
-  const [delivery, setDelivery] = useState('');
-  const [minOrder, setMinOrder] = useState('');
+  const [extras, setExtras] = useState<Record<MarketKind, Extra>>(() => ({ goods: startExtra('goods'), digital: startExtra('digital'), service: startExtra('service') }));
   const [sector, setSector] = useState('ecommerce');
   const [country, setCountry] = useState(user?.country ?? 'UZ');
   const [image, setImage] = useState<string>();
   const [picker, setPicker] = useState<'country' | null>(null);
   const [tried, setTried] = useState(false);
+
+  const form = marketForm(kind);
+  const extra = extras[kind];
+  const setExtra = (patch: Partial<Extra>) => setExtras(x => ({ ...x, [kind]: { ...x[kind], ...patch } }));
 
   const priceNum = Number(price.replace(',', '.'));
   const errors = {
@@ -42,8 +53,8 @@ export default function NewMarketItem() {
     setTried(true);
     if (Object.values(errors).some(Boolean)) { toast(tr("Maydonlarni to'ldiring"), 'alert-circle'); return; }
     p.addMarketItem({
-      title: title.trim(), kind, price: priceNum, unit: unit.trim() || undefined, desc: desc.trim(), delivery: delivery.trim() || undefined,
-      minOrder: minOrder.trim() || undefined, sector, country, image,
+      title: title.trim(), kind, price: priceNum, unit: extra.unit || undefined, desc: desc.trim(), delivery: extra.delivery.trim() || undefined,
+      minOrder: extra.minOrder.trim() || undefined, sector, country, image,
     }).then(id => {
       if (!id) return;
       haptic.success();
@@ -54,6 +65,18 @@ export default function NewMarketItem() {
   };
 
   const k = countryOf(country);
+  // tanlov yoki matn maydoni — turga qarab
+  const slot = (s: typeof form.delivery, value: string, onChange: (v: string) => void) => (
+    <View style={{ gap: 8 }}>
+      <View style={styles.slotHead}>
+        <Ionicons name={s.icon} size={16} color={c.muted} />
+        <Txt v="small" muted style={{ fontFamily: F.bold }}>{s.label}</Txt>
+      </View>
+      {s.choices
+        ? <OptionRow choices={s.choices} value={value} onChange={onChange} />
+        : <Field value={value} onChangeText={onChange} placeholder={s.hint} maxLength={s === form.minOrder ? 60 : 120} />}
+    </View>
+  );
 
   return (
     <Screen title={tr("Yangi e'lon")} subtitle="YUMS Market" footer={<Button title={tr('Moderatsiyaga yuborish')} icon="send" onPress={submit} />}>
@@ -63,24 +86,35 @@ export default function NewMarketItem() {
       <SectionTitle>{tr('Soha')}</SectionTitle>
       <SectorStrip value={sector} onChange={setSector} />
 
+      <SectionTitle>{tr("Asosiy ma'lumot")}</SectionTitle>
       <Card style={{ gap: 14 }}>
-        <Field label={tr('Nomi')} value={title} onChangeText={setTitle} maxLength={80} placeholder={tr("Masalan: Quritilgan o'rik")} error={tried ? errors.title : undefined} />
-        <Row gap={10} style={{ alignItems: 'flex-start' }}>
-          <Field label={tr('Narx (USD)')} prefix="$" value={price} onChangeText={v => setPrice(v.replace(/[^\d.,]/g, ''))} keyboardType="decimal-pad" placeholder="0" style={{ flex: 1 }} error={tried ? errors.price : undefined} />
-          <Field label={tr('Birlik')} value={unit} onChangeText={setUnit} placeholder={kind === 'service' ? tr('soat') : tr('dona')} style={{ flex: 1 }} />
-        </Row>
-        <Field label={tr('Tavsif')} value={desc} onChangeText={setDesc} multiline placeholder={tr('Sifat, sertifikatlar, shartlar…')} error={tried ? errors.desc : undefined} inputStyle={{ minHeight: 100 }} />
-        <SelectField label={tr('Mamlakat')} value={k.name} left={<Flag code={k.code} size={22} />} placeholder={tr('Mamlakat')} onPress={() => setPicker('country')} />
-        {kind === 'goods' && (
+        <Field label={tr('Nomi')} value={title} onChangeText={setTitle} maxLength={80} placeholder={form.titleHint} error={tried ? errors.title : undefined} />
+        <Field label={form.priceLabel} prefix="$" value={price} onChangeText={v => setPrice(v.replace(/[^\d.,]/g, ''))} keyboardType="decimal-pad" placeholder="0" error={tried ? errors.price : undefined} />
+        <View style={{ gap: 8 }}>
+          <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>{form.unit.label}</Txt>
+          <OptionRow choices={form.unit.choices} value={extra.unit} onChange={v => setExtra({ unit: v })} />
+        </View>
+        <Field label={tr('Tavsif')} value={desc} onChangeText={setDesc} multiline placeholder={form.descHint} error={tried ? errors.desc : undefined} inputStyle={{ minHeight: 100 }} />
+      </Card>
+
+      <SectionTitle>{form.section}</SectionTitle>
+      <Card style={{ gap: 16 }}>
+        {kind === 'digital' ? (
           <>
-            <Field label={tr('Yetkazib berish')} value={delivery} onChangeText={setDelivery} placeholder={tr('Masalan: DHL, 5–9 kun')} />
-            <Field label={tr('Minimal buyurtma')} value={minOrder} onChangeText={setMinOrder} placeholder={tr('Masalan: 100 kg')} />
+            {slot(form.minOrder, extra.minOrder, v => setExtra({ minOrder: v }))}
+            {slot(form.delivery, extra.delivery, v => setExtra({ delivery: v }))}
+          </>
+        ) : (
+          <>
+            {slot(form.delivery, extra.delivery, v => setExtra({ delivery: v }))}
+            {slot(form.minOrder, extra.minOrder, v => setExtra({ minOrder: v }))}
           </>
         )}
+        <SelectField label={kind === 'goods' ? tr("Qayerdan jo'natiladi") : tr('Mamlakat')} value={k.name} left={<Flag code={k.code} size={22} />} placeholder={tr('Mamlakat')} onPress={() => setPicker('country')} />
       </Card>
 
       <Card>
-        <ImageSlot kind="product" label={tr('Mahsulot rasmi')} value={image} onChange={setImage} />
+        <ImageSlot kind="product" label={form.imageLabel} value={image} onChange={setImage} />
         <Txt v="tiny" faint>{tr("Rasm bo'lmasa, e'lon soha belgisi bilan ko'rsatiladi.")}</Txt>
       </Card>
 
@@ -101,4 +135,5 @@ export default function NewMarketItem() {
 
 const styles = StyleSheet.create({
   note: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14 },
+  slotHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginLeft: 2 },
 });

@@ -7,7 +7,8 @@ import { useRef, useState, type ComponentRef } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PickerSheet } from '@/components/platform-ui';
-import { Card, Txt, alpha } from '@/components/ui';
+import { Card, Chip, Txt, alpha } from '@/components/ui';
+import type { Choice } from '@/lib/market-forms';
 import { sectorOf } from '@/lib/platform';
 import { MARKET_KINDS, SECTORS, type MarketKind } from '@/lib/platform-data';
 import { SECTOR_ART } from '@/lib/sector-art';
@@ -99,7 +100,8 @@ export function SectorStrip({ value, onChange }: { value: string; onChange: (id:
               onPress={() => { haptic.tap(); onChange(id); }}
               style={({ pressed }) => [styles.sector, { opacity: pressed ? 0.75 : 1 }]}>
               <View style={[styles.sectorImg, { backgroundColor: on ? alpha(c.brand, dark ? 0.12 : 0.16) : dark ? c.surface : '#FFFFFF', borderColor: on ? c.brand : c.line }]}>
-                {art ? <Image source={art} style={styles.sectorArt} contentFit="contain" /> : <Ionicons name={s.icon} size={28} color={s.color} />}
+                {/* recyclingKey: Android tartib o'zgarganda boshqa sohaning rasmini ko'rsatib qo'ymasin */}
+                {art ? <Image source={art} recyclingKey={id} style={styles.sectorArt} contentFit="contain" /> : <Ionicons name={s.icon} size={28} color={s.color} />}
                 {on && (
                   <View style={[styles.check, { backgroundColor: c.brand, borderColor: c.bg }]}>
                     <Ionicons name="checkmark" size={11} color={ON_BRAND} />
@@ -158,6 +160,40 @@ export function StartHero({ kicker, title, sub, cta, art, onPress }: { kicker: s
   );
 }
 
+/**
+ * Bitta tanlov: uchtagacha variant — bitta qatorda teng bo'laklar (belgi tepada, nom pastda, sig'masa
+ * biroz kichrayadi); ko'proq bo'lsa — qatorga sig'maganda pastga o'tadigan chiplar.
+ */
+export function OptionRow({ choices, value, onChange }: { choices: Choice[]; value?: string; onChange: (value: string) => void }) {
+  const { colors: c } = useStore();
+  if (choices.length > 3) {
+    return (
+      <View style={styles.optionWrap}>
+        {choices.map(o => <Chip key={o.value} label={o.label} icon={o.icon} active={o.value === value} onPress={() => onChange(o.value)} />)}
+      </View>
+    );
+  }
+  return (
+    <View style={styles.options} accessibilityRole="radiogroup">
+      {choices.map(o => {
+        const on = o.value === value;
+        return (
+          <Pressable
+            key={o.value}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: on }}
+            accessibilityLabel={o.label}
+            onPress={() => { haptic.tap(); onChange(o.value); }}
+            style={({ pressed }) => [styles.option, { backgroundColor: on ? c.ink : c.surface2, borderColor: on ? c.ink : c.line, opacity: pressed ? 0.85 : 1 }]}>
+            {o.icon ? <Ionicons name={o.icon} size={19} color={on ? c.bg : c.text} /> : null}
+            <Text style={[styles.optionText, { color: on ? c.bg : c.text }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8}>{o.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 /** Raqamlangan qadamlar */
 export function HowItWorks({ steps }: { steps: string[] }) {
   const { colors: c } = useStore();
@@ -185,6 +221,10 @@ const styles = StyleSheet.create({
   heroCtaText: { color: '#FFFFFF', fontFamily: F.bold, fontSize: 13 },
   heroArt: { width: 96, height: 96 },
   step: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  options: { flexDirection: 'row', gap: 8 },
+  option: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 5, paddingVertical: 11, paddingHorizontal: 6, borderRadius: 14, borderWidth: 1 },
+  optionText: { fontFamily: F.bold, fontSize: 13.5, lineHeight: 17, textAlign: 'center' },
+  optionWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   stepNo: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   stepNoText: { fontFamily: F.heavy, fontSize: 13 },
   kinds: { gap: 8 },
