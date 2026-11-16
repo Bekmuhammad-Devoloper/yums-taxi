@@ -150,26 +150,29 @@ export default function ProjectScreen() {
             {heroLine(false)}
           </View>
         ) : (
-          // Banner yuklanmagan: soha rangidagi gradient, yumshoq yorug' doiralar va sohaning 3D belgisi
-          <View style={[styles.hero, { backgroundColor: sec.color, paddingTop: insets.top + 8 }]}>
-            <LinearGradient colors={[sec.color, shade(sec.color, 0.22), shade(sec.color, 0.6)]} locations={[0, 0.45, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-            <View style={[styles.glow, styles.glowTop]} />
-            <View style={[styles.glow, styles.glowBottom]} />
-            <Ionicons name={sec.icon} size={170} color="rgba(255,255,255,0.07)" style={styles.heroWatermark} />
+          // Banner yuklanmagan: rasm turadigan joyning o'zida (chetlardan ichkarida, burchaklari yumaloq) soha
+          // rangidagi kartochka — yumshoq yorug' doiralar, sohaning 3D belgisi va loyiha nomi
+          <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 16, gap: 12 }}>
             {heroButtons}
-            <View style={styles.heroBody}>
-              <View style={{ flex: 1, minWidth: 0 }}>{heroLine(true)}</View>
-              {art ? (
-                <View style={styles.heroArtWrap}>
-                  <View style={styles.heroArtHalo} />
-                  <Image source={art} style={styles.heroArt} contentFit="contain" accessibilityLabel={sec.name} />
-                </View>
-              ) : null}
+            <View style={[styles.heroCard, { backgroundColor: sec.color }]}>
+              <LinearGradient colors={[sec.color, shade(sec.color, 0.22), shade(sec.color, 0.6)]} locations={[0, 0.45, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+              <View style={[styles.glow, styles.glowTop]} />
+              <View style={[styles.glow, styles.glowBottom]} />
+              <Ionicons name={sec.icon} size={150} color="rgba(255,255,255,0.07)" style={styles.heroWatermark} />
+              <View style={styles.heroBody}>
+                <View style={{ flex: 1, minWidth: 0 }}>{heroLine(true)}</View>
+                {art ? (
+                  <View style={styles.heroArtWrap}>
+                    <View style={styles.heroArtHalo} />
+                    <Image source={art} recyclingKey={sec.id} style={styles.heroArt} contentFit="contain" accessibilityLabel={sec.name} />
+                  </View>
+                ) : null}
+              </View>
             </View>
           </View>
         )}
 
-        <View style={{ padding: 16, gap: 14, marginTop: cover ? 0 : -18 }}>
+        <View style={{ padding: 16, gap: 14 }}>
           <Card style={{ gap: 12 }}>
             <Pressable disabled={!company} onPress={() => company && router.push({ pathname: '/company/[id]', params: { id: company.id } })}>
               <Row>
@@ -312,8 +315,8 @@ const titleSize = (title: string) => {
 };
 
 const styles = StyleSheet.create({
-  hero: { paddingHorizontal: 16, paddingBottom: 40, overflow: 'hidden' },
-  heroBody: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 24 },
+  heroCard: { borderRadius: radius.l, overflow: 'hidden', paddingVertical: 22, paddingStart: 18, paddingEnd: 10, minHeight: 190, justifyContent: 'center' },
+  heroBody: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   glow: { position: 'absolute', borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.12)' },
   glowTop: { width: 260, height: 260, top: -120, right: -70 },
   glowBottom: { width: 200, height: 200, bottom: -110, left: -60, backgroundColor: 'rgba(255,255,255,0.07)' },

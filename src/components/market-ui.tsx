@@ -31,7 +31,7 @@ export function MarketVisual({ m, icon = 40, plain }: { m: Pick<MarketItem, 'ima
   const s = sectorOf(m.sector);
   if (m.image) return <Image source={{ uri: m.image }} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel={m.title} />;
   const art = SECTOR_ART[s.id]
-    ? <Image source={SECTOR_ART[s.id]} style={{ width: icon * 1.6, height: icon * 1.6 }} contentFit="contain" accessibilityLabel={m.title} />
+    ? <Image source={SECTOR_ART[s.id]} recyclingKey={s.id} style={{ width: icon * 1.6, height: icon * 1.6 }} contentFit="contain" accessibilityLabel={m.title} />
     : <Ionicons name={s.icon} size={icon} color={s.color} />;
   if (plain) return <View style={[StyleSheet.absoluteFill, styles.center]}>{art}</View>;
   return (

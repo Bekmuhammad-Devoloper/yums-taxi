@@ -109,7 +109,7 @@ export function ListItem({ icon, art, title, sub, onPress, right, iconBg, iconCo
   const c = useColors();
   return (
     <Pressable onPress={() => { haptic.tap(); onPress?.(); }} style={({ pressed }) => [styles.item, { backgroundColor: pressed ? c.surface2 : 'transparent' }]}>
-      {art ? <Image source={art} style={styles.itemIcon} contentFit="contain" /> : (
+      {art ? <Image source={art} recyclingKey={String(art)} style={styles.itemIcon} contentFit="contain" /> : (
         <View style={[styles.itemIcon, { backgroundColor: iconBg ?? (danger ? c.dangerSoft : c.surface2) }]}>
           <Ionicons name={icon} size={20} color={iconColor ?? (danger ? c.danger : c.text)} />
         </View>
@@ -242,8 +242,10 @@ export function Flag({ code, size = 24 }: { code: string; size?: number }) {
   const h = Math.round(size * (2 / 3));
   if (!src) return <Ionicons name="globe-outline" size={h + 2} color={c.muted} />;
   return (
+    // recyclingKey: Android qayta ishlatilgan rasm ko'rinishida boshqa mamlakat bayrog'ini ko'rsatib qo'ymasin
     <Image
       source={src}
+      recyclingKey={code}
       style={{ width: size, height: h, borderRadius: Math.max(2, size / 9), borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(0,0,0,0.18)' }}
       contentFit="cover"
       accessibilityLabel={code}

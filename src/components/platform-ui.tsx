@@ -35,7 +35,7 @@ function ArtTile({ art, color, size, scale = 0.8 }: { art: number; color: string
   return (
     <View style={{ width: size, height: size, borderRadius: size * 0.32, overflow: 'hidden', borderWidth: StyleSheet.hairlineWidth * 2, borderColor: alpha(color, 0.22) }}>
       <LinearGradient colors={[alpha(color, 0.16), alpha(color, 0.05)]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Image source={art} style={{ width: size * scale, height: size * scale }} contentFit="contain" />
+        <Image source={art} recyclingKey={String(art)} style={{ width: size * scale, height: size * scale }} contentFit="contain" />
       </LinearGradient>
     </View>
   );
@@ -65,7 +65,7 @@ export function SectorIcon({ id, size = 44 }: { id: string; size?: number }) {
 export function SectorGlyph({ id, size = 22 }: { id: string; size?: number }) {
   const s = sectorOf(id);
   const art = SECTOR_ART[s.id];
-  return art ? <Image source={art} style={{ width: size, height: size }} contentFit="contain" /> : <Ionicons name={s.icon} size={size * 0.8} color={s.color} />;
+  return art ? <Image source={art} recyclingKey={id} style={{ width: size, height: size }} contentFit="contain" /> : <Ionicons name={s.icon} size={size * 0.8} color={s.color} />;
 }
 
 /** Bo'lim belgisi: 3D rasm bo'lsa — rangli shisha katakda, aks holda chiziqli ikonka */
@@ -431,7 +431,7 @@ export function PickerSheet({ visible, onClose, title, options, selected, onChan
           const on = selected.includes(o.id);
           return (
             <Pressable key={o.id} onPress={() => pick(o.id)} style={[styles.option, { backgroundColor: on ? c.brandSoft : 'transparent' }]}>
-              {o.flag ? <Flag code={o.flag} size={28} /> : o.art ? <Image source={o.art} style={{ width: 30, height: 30 }} contentFit="contain" /> : o.emoji ? <Text style={{ fontSize: 22 }}>{o.emoji}</Text> : o.icon ? <Ionicons name={o.icon} size={20} color={c.text} /> : null}
+              {o.flag ? <Flag code={o.flag} size={28} /> : o.art ? <Image source={o.art} recyclingKey={o.id} style={{ width: 30, height: 30 }} contentFit="contain" /> : o.emoji ? <Text style={{ fontSize: 22 }}>{o.emoji}</Text> : o.icon ? <Ionicons name={o.icon} size={20} color={c.text} /> : null}
               <View style={{ flex: 1 }}>
                 <Txt style={{ fontFamily: on ? F.heavy : F.semi }}>{o.label}</Txt>
                 {o.sub ? <Txt v="tiny" faint numberOfLines={1}>{o.sub}</Txt> : null}
