@@ -5,19 +5,43 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { IOSSwitch, Card, ListItem, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { LangRow } from '@/components/lang-picker';
-import { haptic, useStore, type ThemePref } from '@/lib/store';
+import { haptic, useStore, type ThemePref, type User } from '@/lib/store';
 import { F } from '@/lib/theme';
 import { tr } from '@/lib/i18n';
 
+type NotifyKey = 'messages' | 'requests' | 'moderation' | 'ride' | 'promo';
+/** Har tugma — profildagi qaysi maydon */
+const FIELD = {
+  messages: 'notifyMessages',
+  requests: 'notifyRequests',
+  moderation: 'notifyModeration',
+  ride: 'notifyTrip',
+  promo: 'notifyPromo',
+} as const satisfies Record<NotifyKey, keyof User>;
+
 export default function Settings() {
-  const { colors: c, theme, setTheme, t } = useStore();
-  const [notify, setNotify] = useState({ messages: true, requests: true, moderation: true, ride: true, promo: false });
+  const { colors: c, theme, setTheme, t, user, updateUser } = useStore();
+  // Bildirishnoma sozlamalari profilda (serverda) saqlanadi — qayta kirilganda ham, boshqa telefonda ham
+  // o'sha holatda; server o'chirilgan turni umuman yubormaydi. Bosilganda darhol almashadi, saqlanmasa qaytadi.
+  const saved: Record<NotifyKey, boolean> = {
+    messages: user?.notifyMessages ?? true,
+    requests: user?.notifyRequests ?? true,
+    moderation: user?.notifyModeration ?? true,
+    ride: user?.notifyTrip ?? true,
+    promo: user?.notifyPromo ?? false,
+  };
+  const [pending, setPending] = useState<Partial<Record<NotifyKey, boolean>>>({});
+  const notify = { ...saved, ...pending };
+  const flip = (k: NotifyKey, v: boolean) => {
+    setPending(p => ({ ...p, [k]: v }));
+    updateUser({ [FIELD[k]]: v }).finally(() => setPending(({ [k]: _done, ...rest }) => rest));
+  };
   const themes: { id: ThemePref; label: string; icon: 'phone-portrait-outline' | 'sunny-outline' | 'moon-outline' }[] = [
     { id: 'system', label: t('settings.system'), icon: 'phone-portrait-outline' },
     { id: 'light', label: t('settings.light'), icon: 'sunny-outline' },
     { id: 'dark', label: t('settings.dark'), icon: 'moon-outline' },
   ];
-  const toggles: { k: keyof typeof notify; title: string; sub: string }[] = [
+  const toggles: { k: NotifyKey; title: string; sub: string }[] = [
     { k: 'messages', title: tr('Yangi xabarlar'), sub: tr('YUMS Connect suhbatlari') },
     { k: 'requests', title: tr("Hamkorlik so'rovlari"), sub: tr('Investor, hamkor va mijozlardan') },
     { k: 'moderation', title: tr('Moderatsiya natijalari'), sub: tr("Loyiha va e'lonlar holati") },
@@ -45,15 +69,19 @@ export default function Settings() {
       </Card>
       <Txt v="tiny" faint style={{ marginTop: -6, marginLeft: 4 }}>{tr("Foydalanuvchilar joylashtirgan kontent muallif tilida ko'rsatiladi.")}</Txt>
 
-      <SectionTitle>{t('settings.notifications')}</SectionTitle>
-      <Card style={{ gap: 14 }}>
-        {toggles.map(x => (
-          <Row key={x.k}>
-            <View style={{ flex: 1 }}><Txt v="h3">{x.title}</Txt><Txt v="small" muted>{x.sub}</Txt></View>
-            <IOSSwitch value={notify[x.k]} onChange={v => setNotify(n => ({ ...n, [x.k]: v }))} />
-          </Row>
-        ))}
-      </Card>
+      {user && (
+        <>
+          <SectionTitle>{t('settings.notifications')}</SectionTitle>
+          <Card style={{ gap: 14 }}>
+            {toggles.map(x => (
+              <Row key={x.k}>
+                <View style={{ flex: 1 }}><Txt v="h3">{x.title}</Txt><Txt v="small" muted>{x.sub}</Txt></View>
+                <IOSSwitch value={notify[x.k]} onChange={v => flip(x.k, v)} />
+              </Row>
+            ))}
+          </Card>
+        </>
+      )}
 
       <SectionTitle>{t('settings.account')}</SectionTitle>
       <Card style={{ padding: 6 }}>

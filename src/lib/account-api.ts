@@ -20,6 +20,9 @@ type Profile = {
   registryVerified: boolean;
   notifyTrip: boolean;
   notifyPromo: boolean;
+  notifyMessages: boolean;
+  notifyRequests: boolean;
+  notifyModeration: boolean;
   twoFactor: boolean;
   roles: string[];
   createdAt: string;
@@ -60,6 +63,9 @@ export const toUser = (p: Profile): User => ({
   registryVerified: p.registryVerified,
   notifyTrip: p.notifyTrip,
   notifyPromo: p.notifyPromo,
+  notifyMessages: p.notifyMessages,
+  notifyRequests: p.notifyRequests,
+  notifyModeration: p.notifyModeration,
   twoFactor: p.twoFactor,
   role: roleOf(p.roles ?? []),
   roles: p.roles ?? [],
@@ -105,6 +111,9 @@ export type ProfilePatch = Partial<{
   avatar: string | null;
   notifyTrip: boolean;
   notifyPromo: boolean;
+  notifyMessages: boolean;
+  notifyRequests: boolean;
+  notifyModeration: boolean;
 }>;
 
 /** Faqat yuborilgan maydonlar o'zgaradi; null — tozalaydi */

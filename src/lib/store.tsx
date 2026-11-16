@@ -48,6 +48,12 @@ export type User = {
   registryVerified?: boolean;
   notifyTrip?: boolean;
   notifyPromo?: boolean;
+  /** Yangi xabarlar va uchrashuv takliflari */
+  notifyMessages?: boolean;
+  /** Hamkorlik so'rovlari va ularga javoblar */
+  notifyRequests?: boolean;
+  /** Loyiha, e'lon va reklama moderatsiyasi natijalari */
+  notifyModeration?: boolean;
   /** Kirishda ikkinchi kod ham so'raladi */
   twoFactor?: boolean;
 };
@@ -190,6 +196,9 @@ function toPatch(p: Partial<User>): ProfilePatch {
   if ('avatar' in p) out.avatar = p.avatar ?? null;
   if ('notifyTrip' in p && p.notifyTrip !== undefined) out.notifyTrip = p.notifyTrip;
   if ('notifyPromo' in p && p.notifyPromo !== undefined) out.notifyPromo = p.notifyPromo;
+  if ('notifyMessages' in p && p.notifyMessages !== undefined) out.notifyMessages = p.notifyMessages;
+  if ('notifyRequests' in p && p.notifyRequests !== undefined) out.notifyRequests = p.notifyRequests;
+  if ('notifyModeration' in p && p.notifyModeration !== undefined) out.notifyModeration = p.notifyModeration;
   return out;
 }
 
