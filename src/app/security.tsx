@@ -1,11 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Share, StyleSheet, View } from 'react-native';
+import { Platform, Share, StyleSheet, View } from 'react-native';
 
 import { toast } from '@/components/toast';
 import { IOSSwitch, Badge, Card, ListItem, Row, Screen, SectionTitle, Txt } from '@/components/ui';
 import { confirm } from '@/lib/confirm';
+import { deviceName, modelLabel, osLabel, prettyDevice } from '@/lib/device';
 import { ago, usePlatform } from '@/lib/platform';
 import { errorText } from '@/lib/api';
 import { useStore, type Role } from '@/lib/store';
@@ -49,11 +50,15 @@ export default function Security() {
           </View>
           <IOSSwitch value={p.twoFactor} onChange={v => { p.setTwoFactor(v).then(ok => { if (ok) toast(v ? tr('Ikki bosqichli himoya yoqildi') : tr("Ikki bosqichli himoya o'chirildi"), 'lock-closed'); }); }} />
         </Row>
+        {/* telefonning o'z nomi: sozlamalardagi nom, bo'lmasa — ishlab chiqaruvchi va model */}
         <Row>
-          <Ionicons name="phone-portrait-outline" size={20} color={c.muted} />
-          <View style={{ flex: 1 }}>
-            <Txt v="h3">{tr('Joriy qurilma')}</Txt>
-            <Txt v="small" muted>{tr('Faol sessiya · {phone}', { phone: user?.phone || user?.email })}</Txt>
+          <View style={[styles.deviceIco, { backgroundColor: c.surface2 }]}>
+            <Ionicons name={Platform.OS === 'web' ? 'desktop-outline' : 'phone-portrait-outline'} size={20} color={c.text} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Txt v="h3" numberOfLines={1}>{deviceName() ?? tr('Joriy qurilma')}</Txt>
+            {Platform.OS !== 'web' ? <Txt v="small" muted numberOfLines={1}>{[modelLabel() !== deviceName() ? modelLabel() : null, osLabel()].filter(Boolean).join(' · ')}</Txt> : null}
+            <Txt v="tiny" faint numberOfLines={1}>{tr('Faol sessiya · {phone}', { phone: user?.phone || user?.email })}</Txt>
           </View>
           <Badge label={tr('Hozir')} tone="ok" />
         </Row>
@@ -67,7 +72,7 @@ export default function Security() {
             <Ionicons name={e.ok ? 'checkmark-circle' : 'warning'} size={18} color={e.ok ? c.ok : c.danger} />
             <View style={{ flex: 1 }}>
               <Txt v="small" style={{ fontFamily: F.bold }}>{e.event}</Txt>
-              <Txt v="tiny" faint>{e.device} · {ago(e.at)}</Txt>
+              <Txt v="tiny" faint numberOfLines={1}>{prettyDevice(e.device)} · {ago(e.at)}</Txt>
             </View>
           </Row>
         ))}
@@ -104,5 +109,6 @@ export default function Security() {
 }
 
 const styles = StyleSheet.create({
+  deviceIco: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   monitor: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 18 },
 });

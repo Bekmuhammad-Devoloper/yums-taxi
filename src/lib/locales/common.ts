@@ -466,6 +466,9 @@ const common: Record<string, Row> = {
   "SOS va ishonchli kontaktlar": ["SOS и доверенные контакты", "SOS and trusted contacts", "SOS ва тамосҳои боэътимод", "SOS وجهات اتصال موثوقة"],
   "Yordam va sozlamalar": ["Помощь и настройки", "Help and settings", "Ёрӣ ва танзимот", "المساعدة والإعدادات"],
   "Til, mavzu va bildirishnomalar": ["Язык, тема и уведомления", "Language, theme and notifications", "Забон, мавзӯъ ва огоҳиномаҳо", "اللغة والمظهر والإشعارات"],
+  "Noma'lum qurilma": ["Неизвестное устройство", "Unknown device", "Дастгоҳи номаълум", "جهاز غير معروف"],
+  "Android ilova": ["Приложение Android", "Android app", "Барномаи Android", "تطبيق Android"],
+  "iPhone ilova": ["Приложение iPhone", "iPhone app", "Барномаи iPhone", "تطبيق iPhone"],
 };
 
 export default common;

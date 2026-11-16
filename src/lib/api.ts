@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { USER_AGENT } from './device';
 
 /**
  * Server manzili. Ishlab chiqishda EXPO_PUBLIC_API_URL xosti `auto` bo'lsa (masalan `http://auto:3000/api/v1`),
@@ -101,6 +102,8 @@ async function send(method: string, path: string, body: unknown, token?: string,
         Accept: 'application/json',
         ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        // kirishlar tarixida «okhttp» emas, telefon nomi ko'rinsin
+        ...(USER_AGENT ? { 'User-Agent': USER_AGENT } : {}),
         ...extra,
       },
       body: body === undefined ? undefined : JSON.stringify(body),
