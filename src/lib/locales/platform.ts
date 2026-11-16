@@ -1081,6 +1081,10 @@ const platform: Record<string, Row> = {
   "Byudjet (USD)": ["Бюджет (USD)", "Budget (USD)", "Буҷет (USD)", "الميزانية (USD)"],
   "Masalan: 2 hafta": ["Например: 2 недели", "E.g. 2 weeks", "Масалан: 2 ҳафта", "مثال: أسبوعان"],
   "Nima qilish kerak, natija qanday bo'lishi, talablar…": ["Что нужно сделать, какой результат, требования…", "What needs doing, the expected result, requirements…", "Чӣ бояд кард, натиҷа чӣ гуна бошад, талабот…", "ما المطلوب، والنتيجة المتوقعة، والمتطلبات…"],
+  "Taklif yuborilgan": ["Предложение отправлено", "Offer sent", "Пешниҳод фиристода шуд", "تم إرسال العرض"],
+  "Yaxshi": ["Хорошо", "OK", "Хуб", "حسنًا"],
+  "Taklif yuborildi": ["Предложение отправлено", "Offer sent", "Пешниҳод фиристода шуд", "تم إرسال العرض"],
+  "{name} taklifingizni ko'rib chiqadi. Qabul qilsa yoki rad etsa, bildirishnoma keladi; takliflaringiz «Xabarlar → So'rovlar»da turadi.": ["{name} рассмотрит ваше предложение. Когда примет или отклонит — придёт уведомление; ваши предложения — в «Сообщения → Запросы».", "{name} will review your offer. You'll be notified when it's accepted or declined; your offers are under «Messages → Requests».", "{name} пешниҳоди шуморо баррасӣ мекунад. Ҳангоми қабул ё рад огоҳинома меояд; пешниҳодҳо дар «Паёмҳо → Дархостҳо».", "سيراجع {name} عرضك. ستصلك إشعارات عند القبول أو الرفض؛ عروضك في «الرسائل ← الطلبات»."],
 };
 
 export default platform;

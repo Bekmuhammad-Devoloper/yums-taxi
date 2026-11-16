@@ -25,6 +25,9 @@ export default function SpecialistScreen() {
 
   if (!sp || p.isBlocked('specialist', sp.id)) return <Screen title={tr('Mutaxassis')}><EmptyState icon="person-outline" title={tr('Profil topilmadi')} /></Screen>;
   const peer = { peerId: sp.id, peerName: sp.name, peerKind: 'specialist' as const, peerVerified: sp.verified };
+  // shu mutaxassisga yuborilgan, hali javob berilmagan taklif (suhbatda u profil egasi bo'lib turadi)
+  const owner = p.ownerOf(sp.id) ?? sp.id;
+  const offerSent = p.conversations.some(cv => cv.kind === 'request' && !cv.incoming && cv.requestStatus === 'pending' && cv.peerId === owner);
 
   return (
     <Screen
@@ -35,7 +38,9 @@ export default function SpecialistScreen() {
         <ActionBar
           secondary={{ title: tr('Yozish'), icon: 'chatbubble-ellipses', tint: c.accent, onPress: () => start(peer) }}
           // taklif — alohida forma va «So'rovlar»dagi alohida so'rov; «Yozish» — oddiy suhbat
-          primary={{ title: tr('Ishga taklif qilish'), icon: 'briefcase', disabled: !sp.available, onPress: () => setOffering(true) }}
+          primary={offerSent
+            ? { title: tr('Taklif yuborilgan'), icon: 'checkmark-circle', disabled: true }
+            : { title: tr('Ishga taklif qilish'), icon: 'briefcase', disabled: !sp.available, onPress: () => setOffering(true) }}
         />
       }>
       <SpecialistIdCard sp={sp} />

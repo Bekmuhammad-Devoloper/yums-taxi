@@ -1,8 +1,8 @@
 // «Ishga taklif qilish»: oddiy yozishmadan alohida — vazifa, ish formati, byudjet, muddat va tavsif bilan
 // rasmiy taklif. Mutaxassisga so'rov bo'lib boradi («So'rovlar»da turadi, u qabul qiladi yoki rad etadi);
-// birinchi xabar — shu tafsilotlar. «Yozish» esa oddiy suhbatni ochadi.
+// birinchi xabar — shu tafsilotlar. Yuborilgach chat ochilmaydi: shu oynada «Taklif yuborildi» ko'rinadi.
+// «Yozish» esa oddiy suhbatni ochadi.
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -26,6 +26,7 @@ export function JobOfferSheet({ visible, onClose, peer, rate }: { visible: boole
   const [about, setAbout] = useState('');
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [sent, setSent] = useState(false);
 
   const errors = {
     title: title.trim().length < 3 ? tr('Vazifani qisqa yozing') : undefined,
@@ -49,15 +50,36 @@ export function JobOfferSheet({ visible, onClose, peer, rate }: { visible: boole
       const id = await openChat(peer, { request: true, subject: tr('Ishga taklif: {title}', { title: title.trim() }).slice(0, 120), text: text.slice(0, 2000) });
       if (!id) return;
       haptic.success();
-      onClose();
-      router.push({ pathname: '/chat/[id]', params: { id } });
+      setSent(true);
     } finally {
       setBusy(false);
     }
   };
 
+  // yopilganda forma tozalanadi — keyingi taklif noldan yoziladi
+  const close = () => {
+    onClose();
+    if (sent) { setSent(false); setTitle(''); setBudget(''); setTerm(''); setAbout(''); setTried(false); }
+  };
+
+  if (sent) {
+    return (
+      <Sheet visible={visible} onClose={close} footer={<Button title={tr('Yaxshi')} onPress={close} />}>
+        <View style={styles.done}>
+          <View style={[styles.doneIcon, { backgroundColor: c.okSoft }]}>
+            <Ionicons name="checkmark-circle" size={44} color={c.ok} />
+          </View>
+          <Txt v="h2" style={{ textAlign: 'center' }}>{tr('Taklif yuborildi')}</Txt>
+          <Txt v="small" muted style={{ textAlign: 'center', lineHeight: 20 }}>
+            {tr("{name} taklifingizni ko'rib chiqadi. Qabul qilsa yoki rad etsa, bildirishnoma keladi; takliflaringiz «Xabarlar → So'rovlar»da turadi.", { name: peer.peerName })}
+          </Txt>
+        </View>
+      </Sheet>
+    );
+  }
+
   return (
-    <Sheet visible={visible} onClose={onClose} title={tr('Ishga taklif')}
+    <Sheet visible={visible} onClose={close} title={tr('Ishga taklif')}
       footer={<Button title={tr('Taklif yuborish')} icon="send" loading={busy} onPress={() => { send().catch(() => {}); }} />}>
       <View style={[styles.note, { backgroundColor: c.surface2 }]}>
         <Ionicons name="briefcase" size={18} color={c.accent} />
@@ -85,4 +107,6 @@ export function JobOfferSheet({ visible, onClose, peer, rate }: { visible: boole
 const styles = StyleSheet.create({
   note: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 14 },
   row: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
+  done: { alignItems: 'center', gap: 10, paddingVertical: 12 },
+  doneIcon: { width: 84, height: 84, borderRadius: 42, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
 });
