@@ -88,8 +88,12 @@ export default function ChatScreen() {
     el.style.height = '0px';
     const h = el.scrollHeight;
     el.style.height = prev;
-    setInputH(Math.min(150, Math.max(INPUT_H, Math.ceil(h))));
+    fitTo(h);
   };
+  // Matn balandligi (ichki bo'shliqlar bilan — Android/iOS'ning contentSize'i ham, web'ning scrollHeight'i ham
+  // ularni o'z ichiga oladi). Bitta qator — shrift kattalashtirilgan bo'lsa ham — aniq INPUT_H: maydon yonidagi
+  // belgilar bilan bir balandlikda; ikkinchi qatordan boshlab o'sadi
+  const fitTo = (h: number) => setInputH(h < INPUT_H + 12 ? INPUT_H : Math.min(150, Math.ceil(h)));
   const [menu, setMenu] = useState(false);
   const [meet, setMeet] = useState(false);
   const [reporting, setReporting] = useState(false);
@@ -114,7 +118,10 @@ export default function ChatScreen() {
   const reportKind: ReportTarget = cv.peerKind === 'company' ? 'company' : cv.peerKind === 'specialist' ? 'specialist' : cv.peerKind === 'investor' ? 'investor' : 'user';
   const profileHref = cv.peerKind === 'company' && p.companies.some(x => x.id === cv.peerId)
     ? { pathname: '/company/[id]' as const, params: { id: cv.peerId } }
-    : cv.peerKind === 'specialist' ? { pathname: '/specialist/[id]' as const, params: { id: cv.peerId } } : null;
+    : cv.peerKind === 'specialist' ? { pathname: '/specialist/[id]' as const, params: { id: cv.peerId } }
+    // oddiy foydalanuvchi — uning ochiq profili (loyihalari, e'lonlari)
+    : cv.peerKind === 'person' ? { pathname: '/user/[id]' as const, params: { id: cv.peerId, name: cv.peerName, verified: cv.peerVerified ? '1' : '0', conv: cv.id } }
+    : null;
   const hasText = !!text.trim();
   const tg = chatPalette(dark);
 
@@ -232,7 +239,7 @@ export default function ChatScreen() {
               placeholderTextColor={c.faint}
               multiline
               numberOfLines={1}
-              onContentSizeChange={Platform.OS === 'web' ? undefined : e => setInputH(Math.min(150, Math.max(INPUT_H, Math.ceil(e.nativeEvent.contentSize.height) + 18)))}
+              onContentSizeChange={Platform.OS === 'web' ? undefined : e => fitTo(e.nativeEvent.contentSize.height)}
               // telefonda shrift kattalashtirilgan bo'lsa ham maydon yonidagi belgilardan oshib ketmaydi
               maxFontSizeMultiplier={1.15}
               // web (kompyuter klaviaturasi): Enter — yuborish, Shift+Enter — yangi qator, Telegram Desktop'dagidek.
