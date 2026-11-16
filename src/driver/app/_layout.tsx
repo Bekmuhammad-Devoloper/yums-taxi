@@ -12,6 +12,7 @@ import { useEffect } from 'react';
 import { Platform, View } from 'react-native';
 
 import { ToastHost } from '@/components/toast';
+import { UpdatePrompt } from '@/components/update-prompt';
 import { DriverProvider, useDriver } from '@/driver/lib/driver-store';
 import { dirProps } from '@/lib/i18n';
 import { StoreProvider, useStore } from '@/lib/store';
@@ -80,6 +81,7 @@ function Root() {
           <Stack.Screen name="contract" options={{ animation: 'slide_from_bottom' }} />
         </Stack>
         <ToastHost />
+        <UpdatePrompt />
       </View>
     </ThemeProvider>
   );

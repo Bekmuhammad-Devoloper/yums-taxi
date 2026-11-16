@@ -469,6 +469,16 @@ const common: Record<string, Row> = {
   "Noma'lum qurilma": ["Неизвестное устройство", "Unknown device", "Дастгоҳи номаълум", "جهاز غير معروف"],
   "Android ilova": ["Приложение Android", "Android app", "Барномаи Android", "تطبيق Android"],
   "iPhone ilova": ["Приложение iPhone", "iPhone app", "Барномаи iPhone", "تطبيق iPhone"],
+  "Yuklab olingan faylni ochib, «O'rnatish»ni bosing": ["Откройте скачанный файл и нажмите «Установить»", "Open the downloaded file and tap «Install»", "Файли боргиришударо кушоед ва «Насб»-ро пахш кунед", "افتح الملف الذي تم تنزيله واضغط «تثبيت»"],
+  "Yangi versiya": ["Новая версия", "New version", "Версияи нав", "إصدار جديد"],
+  "Ilovani yangilash kerak": ["Нужно обновить приложение", "The app needs an update", "Барномаро навсозӣ кардан лозим", "يجب تحديث التطبيق"],
+  "Ilovani yangilang": ["Обновите приложение", "Update the app", "Барномаро навсозӣ кунед", "حدّث التطبيق"],
+  "Bu versiya endi qo'llab-quvvatlanmaydi. Davom etish uchun yangi versiyani o'rnating.": ["Эта версия больше не поддерживается. Чтобы продолжить, установите новую версию.", "This version is no longer supported. Install the new version to continue.", "Ин версия дигар дастгирӣ намешавад. Барои идома версияи навро насб кунед.", "لم يعد هذا الإصدار مدعومًا. ثبّت الإصدار الجديد للمتابعة."],
+  "YUMS'ning yangi versiyasi chiqdi: yangi imkoniyatlar va tuzatishlar. Yangilash bir daqiqa oladi, ma'lumotlaringiz saqlanib qoladi.": ["Вышла новая версия YUMS: новые возможности и исправления. Обновление займёт минуту, ваши данные сохранятся.", "A new version of YUMS is out: new features and fixes. Updating takes a minute and your data stays.", "Версияи нави YUMS баромад: имкониятҳо ва ислоҳоти нав. Навсозӣ як дақиқа мегирад, маълумоти шумо нигоҳ дошта мешавад.", "صدر إصدار جديد من YUMS: ميزات وإصلاحات جديدة. يستغرق التحديث دقيقة وتبقى بياناتك محفوظة."],
+  "Sizda: #{v}": ["У вас: #{v}", "Yours: #{v}", "Дар шумо: #{v}", "لديك: #{v}"],
+  "Yangi: #{v}": ["Новая: #{v}", "New: #{v}", "Нав: #{v}", "الجديد: #{v}"],
+  "Yangilash": ["Обновить", "Update", "Навсозӣ", "تحديث"],
+  "Keyinroq": ["Позже", "Later", "Баъдтар", "لاحقًا"],
 };
 
 export default common;

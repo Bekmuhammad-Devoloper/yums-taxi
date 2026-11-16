@@ -38,6 +38,10 @@ jobs:
     env:
       APP_VARIANT: ${{ matrix.variant == 'driver' && 'driver' || '' }}
       EXPO_PUBLIC_API_URL: https://api.yums.uz/api/v1
+      # Yig'ilish raqami: ilova o'zidan yangisi chiqqanini shu bilan biladi (Android versionCode ham shu)
+      APP_BUILD: ${{ github.run_number }}
+      # Yangilanish tekshiruvi version.json va yangi APK'ni shu yerdan oladi
+      EXPO_PUBLIC_APK_RELEASE_URL: https://github.com/${{ github.repository }}/releases/download/apk
       GOOGLE_MAPS_ANDROID_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_KEY }}
     steps:
       - uses: actions/checkout@v4
@@ -99,3 +103,21 @@ jobs:
           gh release view apk >/dev/null 2>&1 || gh release create apk --prerelease --target "$GITHUB_SHA" --title "YUMS APK" --notes "$notes" || true
           gh release upload apk "${{ matrix.file }}" --clobber
           gh release edit apk --notes "$notes" || true
+
+  # Ikkala APK ham yuklangach — eng so'nggi yig'ilish raqami. Eski ilovalar shu faylni o'qib «Ilovani
+  # yangilang» deb so'raydi. MIN_APP_BUILD (repo o'zgaruvchisi) dan eski ilovalarda yangilash majburiy.
+  version:
+    name: Yangilanish xabari
+    needs: apk
+    runs-on: ubuntu-latest
+    steps:
+      - name: version.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          MIN_BUILD: ${{ vars.MIN_APP_BUILD || 0 }}
+        run: |
+          printf '{"build":%s,"commit":"%s","builtAt":"%s","minBuild":%s}\n' \
+            "${{ github.run_number }}" "${GITHUB_SHA::7}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$MIN_BUILD" > version.json
+          cat version.json
+          gh release upload apk version.json --clobber

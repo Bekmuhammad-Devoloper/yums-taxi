@@ -13,6 +13,7 @@ import { useEffect } from 'react';
 import { Platform, View } from 'react-native';
 
 import { ToastHost } from '@/components/toast';
+import { UpdatePrompt } from '@/components/update-prompt';
 import { dirProps } from '@/lib/i18n';
 import { PlatformProvider } from '@/lib/platform';
 import { StoreProvider, useStore } from '@/lib/store';
@@ -58,6 +59,7 @@ function Root() {
           <Stack.Screen name="market/new" options={{ animation: 'slide_from_bottom' }} />
         </Stack>
         <ToastHost />
+        <UpdatePrompt />
       </View>
     </ThemeProvider>
   );

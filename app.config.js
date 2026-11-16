@@ -25,7 +25,16 @@ const withMaps = android => {
   return hasPush ? { ...out, googleServicesFile: PUSH_FILE } : out;
 };
 
-module.exports = ({ config }) => {
+// Yig'ilish raqami (GitHub Actions run raqami): ilova yangilanishni shu raqam bilan solishtiradi, Android esa
+// versionCode sifatida ishlatadi — har yangi APK eskisining ustiga yangilanish bo'lib o'rnatiladi.
+const BUILD = Number(process.env.APP_BUILD) || 0;
+const withBuild = cfg => (BUILD > 0
+  ? { ...cfg, android: { ...cfg.android, versionCode: BUILD }, extra: { ...cfg.extra, build: BUILD } }
+  : cfg);
+
+module.exports = ({ config }) => withBuild(configFor(config));
+
+function configFor(config) {
   if (VARIANT === 'driver') {
     return {
       ...config,
@@ -44,4 +53,4 @@ module.exports = ({ config }) => {
     };
   }
   return { ...config, android: withMaps(config.android) };
-};
+}
