@@ -2,7 +2,8 @@
 import { api } from './api';
 
 export type TicketStatus = 'OPEN' | 'ANSWERED' | 'CLOSED';
-export type TicketMessage = { id: string; author: 'USER' | 'STAFF'; body: string; createdAt: string };
+/** AI — YUMS AI yordamchisi (Gemini) operatordan oldin javob beradi */
+export type TicketMessage = { id: string; author: 'USER' | 'STAFF' | 'AI'; body: string; createdAt: string };
 export type Ticket = { id: string; subject: string; status: TicketStatus; orderId?: string; lastMessageAt: string; createdAt: string };
 export type TicketDetail = Ticket & { messages: TicketMessage[] };
 

@@ -456,6 +456,11 @@ const common: Record<string, Row> = {
   "Click ilovasi ochiladi. To'lov o'tgach tarif shu zahoti faollashadi.": ["Откроется приложение Click. После оплаты тариф включится сразу.", "The Click app opens. Once paid, the plan turns on right away.", "Барномаи Click кушода мешавад. Пас аз пардохт тариф фавран фаъол мешавад.", "سيُفتح تطبيق Click. بعد الدفع تُفعَّل الباقة فورًا."],
   "Balansda {sum} yetishmayapti. To'ldirsangiz, tarif shu zahoti faollashadi.": ["На балансе не хватает {sum}. Пополните — и тариф включится сразу.", "Your balance is {sum} short. Top it up and the plan turns on right away.", "Дар баланс {sum} намерасад. Пур кунед — тариф фавран фаъол мешавад.", "ينقص رصيدك {sum}. اشحنه وستُفعَّل الباقة فورًا."],
   "To'lanadigan summa": ["Сумма к оплате", "Amount to pay", "Маблағи пардохт", "المبلغ المستحق"],
+  "YUMS AI darhol javob beradi · operator 24/7": ["YUMS AI отвечает сразу · оператор 24/7", "YUMS AI answers right away · operator 24/7", "YUMS AI фавран ҷавоб медиҳад · оператор 24/7", "يجيب YUMS AI فورًا · المشغّل على مدار الساعة"],
+  "Men YUMS AI yordamchisiman — savolingizga darhol javob beraman. Kerak bo'lsa, operator shu chatga ulanadi.": ["Я помощник YUMS AI — отвечу на ваш вопрос сразу. Если нужно, к этому чату подключится оператор.", "I'm the YUMS AI assistant — I'll answer your question right away. If needed, an operator joins this chat.", "Ман ёрдамчии YUMS AI ҳастам — ба саволатон фавран ҷавоб медиҳам. Агар лозим бошад, оператор ба ин чат пайваст мешавад.", "أنا مساعد YUMS AI — سأجيب عن سؤالك فورًا. وعند الحاجة ينضم مشغّل إلى هذه المحادثة."],
+  "Operator": ["Оператор", "Operator", "Оператор", "المشغّل"],
+  "YUMS AI yozmoqda…": ["YUMS AI печатает…", "YUMS AI is typing…", "YUMS AI менависад…", "YUMS AI يكتب…"],
+  "Operator tez orada shu chatga ulanadi": ["Оператор скоро подключится к этому чату", "An operator will join this chat soon", "Оператор ба зудӣ ба ин чат пайваст мешавад", "سينضم مشغّل إلى هذه المحادثة قريبًا"],
 };
 
 export default common;

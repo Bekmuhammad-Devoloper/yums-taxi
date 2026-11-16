@@ -203,6 +203,8 @@ export type PublicSettings = {
   clickTopup?: boolean;
   /** Kartani saqlash va undan to'lash mumkin */
   cardPayments?: boolean;
+  /** Qo'llab-quvvatlashda YUMS AI yordamchisi birinchi javob beradi */
+  supportAi?: boolean;
 };
 export const publicSettings = () => api<PublicSettings>('GET', '/settings/public');
 
