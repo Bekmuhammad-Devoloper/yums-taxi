@@ -5,6 +5,7 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ImageSlot } from '@/components/image-slot';
+import { SERVICE_LOOK } from '@/lib/service-look';
 import { ClickButton, ClickMark } from '@/components/click-mark';
 import { toast } from '@/components/toast';
 import { TopupSheet } from '@/components/topup-sheet';
@@ -147,7 +148,7 @@ export default function Plans() {
       <SectionHeader title={tr('Professional xizmatlar')} />
       <Card style={{ padding: 6 }}>
         {PRO_SERVICES.map(s => (
-          <ListItem key={s.id} icon={s.icon} title={s.title} sub={`${s.price} · ${s.desc}`} onPress={() => router.push({ pathname: '/support-chat', params: { subject: s.title } })} />
+          <ListItem key={s.id} icon={s.icon} art={SERVICE_LOOK[s.id]?.art} title={s.title} sub={`${s.price} · ${s.desc}`} onPress={() => router.push({ pathname: '/service/[id]', params: { id: s.id } })} />
         ))}
       </Card>
 

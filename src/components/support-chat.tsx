@@ -22,7 +22,8 @@ const hhmm = (iso: string) => { const d = new Date(iso); return `${String(d.getH
  * murojaat qisqa oraliqda qayta o'qiladi.
  */
 /** draft — oldindan to'ldirilgan matn (masalan, «Professional xizmatlar»dan kelganda xizmat nomi) */
-export function SupportChat({ topics, orderId, greeting, draft }: { topics: string[]; orderId?: string; greeting: string; draft?: string }) {
+/** ticketId — aynan shu murojaatni ochish (masalan, xizmat buyurtmasidan keyin) */
+export function SupportChat({ topics, orderId, greeting, draft, ticketId: openId }: { topics: string[]; orderId?: string; greeting: string; draft?: string; ticketId?: string }) {
   const { colors: c } = useStore();
   const insets = useSafeAreaInsets();
   const keyboard = useKeyboardOpen();
@@ -40,8 +41,8 @@ export function SupportChat({ topics, orderId, greeting, draft }: { topics: stri
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- holat server javobi kelgach yangilanadi
-    reload().catch(() => {}).finally(() => setLoading(false));
-  }, [reload]);
+    reload(openId).catch(() => {}).finally(() => setLoading(false));
+  }, [reload, openId]);
 
   const ticketId = current?.id;
   useEffect(() => {
