@@ -16,7 +16,7 @@ import { F, radius, shadow } from '@/lib/theme';
 import { tr } from '@/lib/i18n';
 
 import { toast } from './toast';
-import { Avatar, Badge, BrandMark, Button, Card, DEFAULT_PERSON, FitImage, Flag, IconTile, Row, Sheet, Txt, Verified, alpha, shade, type IconName } from './ui';
+import { Badge, BrandMark, Button, Card, DEFAULT_PERSON, FitImage, Flag, IconTile, PersonAvatar, Row, Sheet, Txt, Verified, alpha, shade, type IconName } from './ui';
 
 /* ---------- Kichik bo'laklar ---------- */
 
@@ -320,7 +320,8 @@ export function PeerAvatar({ conv, size = 50 }: { conv: Conversation; size?: num
   if (conv.peerKind === 'company' || conv.peerKind === 'investor') return <Logo name={conv.peerName} color={conv.peerKind === 'investor' ? c.violet : c.ok} size={size} />;
   const sp = conv.peerKind === 'specialist' ? specialists.find(x => x.name === conv.peerName) : undefined;
   if (sp) return <SpecialistAvatar sp={sp} size={size} />;
-  return <Avatar name={conv.peerName} size={size} bg={c.accent} />;
+  // oddiy foydalanuvchi: rasmi bo'lmasa — bosh harflar emas, ismiga mos standart rasm
+  return <PersonAvatar name={conv.peerName} size={size} />;
 }
 
 /* ---------- Reklama ---------- */

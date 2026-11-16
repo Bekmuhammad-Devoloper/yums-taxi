@@ -10,7 +10,7 @@ import { ActionBar } from '@/components/action-bar';
 import { CollabRequestSheet } from '@/components/collab-request-sheet';
 import { KeyValue, Logo, ReportSheet, SectorGlyph, SectorIcon, StatusBadge } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
-import { ActionSheet, alpha, Avatar, Badge, Button, IOSSwitch, NavButton, NavGroup, Card, DEFAULT_AVATAR, EmptyState, FitImage, ListItem, Row, Screen, shade, Txt, Verified } from '@/components/ui';
+import { ActionSheet, alpha, Badge, Button, IOSSwitch, NavButton, NavGroup, Card, EmptyState, FitImage, ListItem, PersonAvatar, Row, Screen, shade, Txt, Verified } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
 import { confirm } from '@/lib/confirm';
 import { coverOf } from '@/lib/covers';
@@ -188,7 +188,7 @@ export default function ProjectScreen() {
               else if (pr.ownerKind === 'person') router.push({ pathname: '/user/[id]', params: { id: pr.ownerId, name: pr.ownerName, verified: pr.ownerVerified ? '1' : '0' } });
             }}>
               <Row>
-                {pr.ownerKind === 'company' ? <Logo name={pr.ownerName} color={company?.color ?? c.ok} size={44} /> : <Avatar name={pr.ownerName} size={44} uri={mine ? user?.avatar : undefined} fallback={DEFAULT_AVATAR} />}
+                {pr.ownerKind === 'company' ? <Logo name={pr.ownerName} color={company?.color ?? c.ok} size={44} /> : <PersonAvatar name={pr.ownerName} size={44} photo={mine ? user?.avatar : undefined} />}
                 <View style={{ flex: 1 }}>
                   <Row gap={4}><Txt numberOfLines={1} style={styles.handName}>{pr.ownerName}</Txt>{pr.ownerVerified && <Verified />}</Row>
                   <Txt muted style={styles.handSub}>{pr.ownerKind === 'company' ? tr('Kompaniya') : tr('Jismoniy shaxs')} · {ago(pr.createdAt)}</Txt>

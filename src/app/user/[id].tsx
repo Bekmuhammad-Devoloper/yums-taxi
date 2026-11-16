@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { MarketCard, Place, ProjectCard, ReportSheet } from '@/components/platform-ui';
-import { Avatar, Badge, Button, Card, EmptyState, IconButton, Row, Screen, SectionHeader, Txt, Verified } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, IconButton, PersonAvatar, Row, Screen, SectionHeader, Txt, Verified } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
 import { tr } from '@/lib/i18n';
 import { usePlatform } from '@/lib/platform';
@@ -46,7 +46,7 @@ export default function UserScreen() {
       footer={!mine ? <Button title={tr('Yozish')} icon="chatbubble-ellipses" onPress={write} /> : undefined}>
       <Card style={styles.hero}>
         <View style={{ alignItems: 'center' }}>
-          <Avatar name={fullName} size={84} bg={c.accent} uri={mine ? user?.avatar : undefined} />
+          <PersonAvatar name={fullName} size={84} photo={mine ? user?.avatar : undefined} />
         </View>
         <View style={{ alignItems: 'center', gap: 4 }}>
           <Row gap={5} style={{ justifyContent: 'center' }}>
