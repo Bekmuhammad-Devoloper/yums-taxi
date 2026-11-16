@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { ActionBar } from '@/components/action-bar';
 import { SpecialistIdCard } from '@/components/id-card';
 import { FavButton, KeyValue, ReportSheet } from '@/components/platform-ui';
+import { JobOfferSheet } from '@/components/job-offer-sheet';
 import { ProfileReviews } from '@/components/profile-reviews';
 import { Badge, Button, Card, EmptyState, IconButton, Row, Screen, Txt } from '@/components/ui';
 import { useStartChat } from '@/lib/actions';
@@ -19,6 +20,7 @@ export default function SpecialistScreen() {
   const p = usePlatform();
   const start = useStartChat();
   const [reporting, setReporting] = useState(false);
+  const [offering, setOffering] = useState(false);
   const sp = p.specialists.find(x => x.id === id);
 
   if (!sp || p.isBlocked('specialist', sp.id)) return <Screen title={tr('Mutaxassis')}><EmptyState icon="person-outline" title={tr('Profil topilmadi')} /></Screen>;
@@ -32,7 +34,8 @@ export default function SpecialistScreen() {
       footer={
         <ActionBar
           secondary={{ title: tr('Yozish'), icon: 'chatbubble-ellipses', tint: c.accent, onPress: () => start(peer) }}
-          primary={{ title: tr('Ishga taklif qilish'), icon: 'briefcase', disabled: !sp.available, onPress: () => start(peer, { request: true, subject: tr('Loyihaga taklif') }) }}
+          // taklif — alohida forma va «So'rovlar»dagi alohida so'rov; «Yozish» — oddiy suhbat
+          primary={{ title: tr('Ishga taklif qilish'), icon: 'briefcase', disabled: !sp.available, onPress: () => setOffering(true) }}
         />
       }>
       <SpecialistIdCard sp={sp} />
@@ -60,6 +63,7 @@ export default function SpecialistScreen() {
 
       <ProfileReviews profileId={sp.id} ownerId={p.ownerOf(sp.id)} onChanged={() => { p.refresh().catch(() => {}); }} />
       {p.ownerOf(sp.id) === user?.id && <Button title={tr('Profilni tahrirlash')} kind="ghost" icon="create-outline" onPress={() => router.push({ pathname: '/directory-edit', params: { type: 'specialist' } })} />}
+      <JobOfferSheet visible={offering} onClose={() => setOffering(false)} peer={peer} rate={sp.rate} />
       <ReportSheet visible={reporting} onClose={() => setReporting(false)} kind="specialist" id={sp.id} title={sp.name} />
     </Screen>
   );

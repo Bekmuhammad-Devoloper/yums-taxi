@@ -1069,6 +1069,18 @@ const platform: Record<string, Row> = {
   "Buyurtma yuboring": ["Отправьте заказ", "Send the order", "Фармоишро фиристед", "أرسل الطلب"],
   "Menejer bir soat ichida yozadi va narxni tasdiqlaydi": ["Менеджер напишет в течение часа и подтвердит цену", "A manager writes within an hour and confirms the price", "Менеҷер дар давоми як соат менависад ва нархро тасдиқ мекунад", "سيكتب المدير خلال ساعة ويؤكد السعر"],
   "Natijani shu chatda olasiz": ["Результат получите в этом чате", "You get the result in this chat", "Натиҷаро дар ҳамин чат мегиред", "ستحصل على النتيجة في هذه المحادثة"],
+  "Loyiha bo'yicha": ["За проект", "Per project", "Барои лоиҳа", "لكل مشروع"],
+  "Doimiy ish": ["Постоянная работа", "Full-time", "Кори доимӣ", "عمل دائم"],
+  "Vazifani qisqa yozing": ["Кратко опишите задачу", "Describe the task briefly", "Вазифаро мухтасар нависед", "صف المهمة باختصار"],
+  "Ishga taklif: {title}": ["Предложение работы: {title}", "Job offer: {title}", "Пешниҳоди кор: {title}", "عرض عمل: {title}"],
+  "Ishga taklif": ["Предложение работы", "Job offer", "Пешниҳоди кор", "عرض عمل"],
+  "{name} taklifni «So'rovlar»da ko'radi va qabul qilsa, yozishma boshlanadi.": ["{name} увидит предложение в «Запросах»; если примет — начнётся переписка.", "{name} sees the offer under «Requests»; if accepted, the conversation starts.", "{name} пешниҳодро дар «Дархостҳо» мебинад ва агар қабул кунад, мукотиба оғоз мешавад.", "سيرى {name} العرض في «الطلبات»، وإذا قبله تبدأ المحادثة."],
+  "Vazifa yoki lavozim": ["Задача или должность", "Task or position", "Вазифа ё вазифа (лавозим)", "المهمة أو المنصب"],
+  "Masalan: AWS infratuzilmasini sozlash": ["Например: настройка инфраструктуры AWS", "E.g. set up AWS infrastructure", "Масалан: танзими инфрасохтори AWS", "مثال: إعداد بنية AWS"],
+  "Stavka (USD/soat)": ["Ставка (USD/час)", "Rate (USD/hour)", "Нарх (USD/соат)", "الأجر (USD/ساعة)"],
+  "Byudjet (USD)": ["Бюджет (USD)", "Budget (USD)", "Буҷет (USD)", "الميزانية (USD)"],
+  "Masalan: 2 hafta": ["Например: 2 недели", "E.g. 2 weeks", "Масалан: 2 ҳафта", "مثال: أسبوعان"],
+  "Nima qilish kerak, natija qanday bo'lishi, talablar…": ["Что нужно сделать, какой результат, требования…", "What needs doing, the expected result, requirements…", "Чӣ бояд кард, натиҷа чӣ гуна бошад, талабот…", "ما المطلوب، والنتيجة المتوقعة، والمتطلبات…"],
 };
 
 export default platform;
