@@ -85,7 +85,11 @@ async function detect(l: VoiceLang) {
     ]);
     if (!list) return null;
     const all = list.filter(v => v.language.toLowerCase().replace('_', '-').startsWith(l));
-    const best = all.find(v => FEMALE.test(v.name) || FEMALE.test(v.identifier)) ?? all[0];
+    // Android ro'yxatida yuklab olinmagan («…-network») ovozlar ham bor: ular tanlansa telefon jimgina standart
+    // (ko'pincha ruscha) ovozga o'tib ketadi. Shuning uchun avval o'rnatilgan, keyin ayol, keyin sifatli ovoz
+    const score = (v: Speech.Voice) =>
+      (/network/i.test(v.identifier) ? 0 : 4) + (FEMALE.test(v.name) || FEMALE.test(v.identifier) ? 2 : 0) + (v.quality === Speech.VoiceQuality.Enhanced ? 1 : 0);
+    const best = [...all].sort((a, b) => score(b) - score(a))[0];
     systemVoice[l] = best?.identifier ?? null;
   } catch {
     systemVoice[l] = null;

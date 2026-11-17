@@ -143,6 +143,8 @@ Kliplarni yaratish — `scripts/voice/generate.py` (python3, numpy, ffmpeg; ffmp
 # Kvota tugasa o'zi kutib qayta urinadi; --resume to'xtagan joydan davom ettiradi
 export GEMINI_API_KEY=...
 python3 scripts/voice/generate.py --lang uz,tg,en,ar --engine gemini --resume
+# Windows'da: kalitni yashirin so'raydi va hech qayerga yozmaydi
+powershell -ExecutionPolicy Bypass -File scripts/voice/make-voices.ps1
 
 # Microsoft Azure neyron ovozlari (tijoriy foydalanishga ruxsat; bepul tarif yetadi; tojikcha ovoz yo'q)
 # uz: uz-UZ-MadinaNeural, ru: ru-RU-SvetlanaNeural — ikkalasi ham ayol ovozi
