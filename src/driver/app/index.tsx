@@ -10,7 +10,7 @@ import TaxiMap, { TRAFFIC_AVAILABLE, type MapHandle } from '@/components/taxi-ma
 import { toast } from '@/components/toast';
 import { ActionSheet, PersonAvatar, Row, Sheet, Txt, alpha } from '@/components/ui';
 import { SlideButton } from '@/driver/components/slide-button';
-import { nearestHot, surgeAt, ZONE_COLOR } from '@/driver/lib/demand';
+import { nearestHot, nearestUsual, surgeAt, USUAL_COLOR, ZONE_COLOR } from '@/driver/lib/demand';
 import { DOC_KINDS } from '@/driver/lib/docs';
 import { useDriver, waitFeeOf, type Offer, type Trip } from '@/driver/lib/driver-store';
 import { fmtDist, guide, maneuverText, nextManeuver, remainingPath, type ManeuverKind } from '@/driver/lib/nav';
@@ -106,7 +106,6 @@ function DriverHome() {
   const ahead = navPath ? remainingPath(navPath, pos) : undefined;
   const showZones = demand && !trip && !offer && !summary;
   const liveZones = d.zones.filter(z => z.kind === 'live').length;
-  const usualZones = d.zones.length - liveZones;
   // talab xaritasi yoqilganda hududlar ko'rinadigan masshtabga keladi
   const showDemand = () => {
     const next = !demand;
@@ -122,7 +121,36 @@ function DriverHome() {
     setTraffic(v => !v);
   };
   const hot = d.online && showZones ? nearestHot(d.zones, pos) : null;
+  const usual = showZones ? nearestUsual(d.zones, pos) : null;
   const hereSurge = surgeAt(d.zones, pos);
+  // pastki ishora: asosiy gap, izoh, belgi va rang (tone yo'q — kulrang)
+  const hotNow = hereSurge > 1 || !!hot || liveZones > 0;
+  const hint: { title: string; sub: string; icon: 'flame' | 'time' | 'leaf-outline'; tone?: string } = hereSurge > 1
+    ? { title: tr('Siz yuqori talab hududidasiz'), sub: tr('Narx ×{surge} — shu yerda kuting', { surge: hereSurge.toFixed(1) }), icon: 'flame', tone: ZONE_COLOR[hereSurge >= 1.8 ? 3 : hereSurge >= 1.4 ? 2 : 1] }
+    : hot
+    ? {
+      title: hot.zone.surge > 1 ? tr('Talab ×{surge}', { surge: hot.zone.surge.toFixed(1) }) : tr('Gavjum hudud yaqinda'),
+      sub: tr("{km} km · bosing — xaritada ko'rsatiladi", { km: hot.km.toFixed(1) }), icon: 'flame', tone: ZONE_COLOR[hot.zone.level],
+    }
+    : hotNow
+    ? { title: tr('Jonli talab · {n} ta hudud', { n: liveZones }), sub: tr("To'q sariq joylarda buyurtma tezroq keladi"), icon: 'flame', tone: ZONE_COLOR[2] }
+    : usual
+    ? {
+      title: tr('Hozir talab past'),
+      sub: usual.zone.title
+        ? tr('Odatda gavjum: {title} · {km} km', { title: usual.zone.title, km: usual.km.toFixed(1) })
+        : tr('Odatda gavjum joylar binafsha rangda · {km} km', { km: usual.km.toFixed(1) }),
+      icon: 'time', tone: USUAL_COLOR,
+    }
+    : { title: tr("Hozircha gavjum hudud yo'q"), sub: tr("Talab paydo bo'lsa, xaritada ko'rinadi"), icon: 'leaf-outline' };
+  // ishora bosilganda: eng yaqin gavjum joyga, bo'lmasa barcha jonli hududlarga, bo'lmasa odatda gavjum joyga
+  const goToDemand = () => {
+    if (hereSurge > 1) return;
+    setFollow(false);
+    if (hot) map.current?.center(hot.zone.center, false);
+    else if (liveZones) map.current?.fit([pos, ...d.zones.filter(z => z.kind === 'live').map(z => z.center)]);
+    else if (usual) map.current?.center(usual.zone.center, false);
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -168,39 +196,17 @@ function DriverHome() {
 
       <StatusBanner top={insets.top + (trip ? 158 : 70)} />
 
-      {/* Talab haqida maslahat */}
-      {hot && !trip && !offer && !summary && (
-        <Pressable
-          onPress={() => { setFollow(false); map.current?.center(hot.zone.center, false); }}
-          style={[styles.hint, { bottom: sheetH + 30, backgroundColor: c.surface }]}>
-          <View style={[styles.hintDot, { backgroundColor: ZONE_COLOR[hereSurge > 1 ? (hereSurge >= 1.8 ? 3 : hereSurge >= 1.4 ? 2 : 1) : hot.zone.level] }]}>
-            <Ionicons name="flame" size={13} color="#fff" />
+      {/* Talab haqida ishora: ikki qatorda — asosiy gap va izoh (kesilmaydi); bosilsa xarita o'sha joyga boradi */}
+      {showZones && (
+        <Pressable onPress={goToDemand} style={[styles.hint, { bottom: sheetH + 30, backgroundColor: c.surface }]} accessibilityRole="button" accessibilityLabel={`${hint.title}. ${hint.sub}`}>
+          <View style={[styles.hintDot, { backgroundColor: hint.tone ?? c.surface3 }]}>
+            <Ionicons name={hint.icon} size={15} color={hint.tone ? '#fff' : c.text} />
           </View>
-          <Txt v="small" style={{ fontFamily: F.bold }}>
-            {hereSurge > 1
-              ? tr('Siz yuqori talab hududidasiz · ×{surge}', { surge: hereSurge.toFixed(1) })
-              : hot.zone.surge > 1
-              ? tr('Talab ×{surge} · {km} km', { surge: hot.zone.surge.toFixed(1), km: hot.km.toFixed(1) })
-              : tr('Gavjum hudud · {km} km', { km: hot.km.toFixed(1) })}
-          </Txt>
-        </Pressable>
-      )}
-
-      {showZones && !hot && (
-        <Pressable
-          onPress={() => { if (d.zones.length) { setFollow(false); map.current?.fit([pos, ...d.zones.map(z => z.center)]); } }}
-          style={[styles.hint, { bottom: sheetH + 30, backgroundColor: c.surface }]}
-          accessibilityLabel={tr('Talab xaritasi')}>
-          <View style={[styles.hintDot, { backgroundColor: liveZones ? ZONE_COLOR[2] : c.surface3 }]}>
-            <Ionicons name={liveZones ? 'flame' : 'time-outline'} size={14} color={liveZones ? '#fff' : c.text} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Txt v="small" numberOfLines={1} maxFontSizeMultiplier={1.2} style={{ fontFamily: F.bold }}>{hint.title}</Txt>
+            <Txt v="tiny" muted numberOfLines={1} maxFontSizeMultiplier={1.2}>{hint.sub}</Txt>
           </View>
-          <Txt v="small" numberOfLines={1} style={{ flex: 1, fontFamily: F.bold }}>
-            {liveZones
-              ? tr('Jonli talab · {n} ta hudud', { n: liveZones })
-              : usualZones
-              ? tr('Hozir talab past · odatda gavjum joylar')
-              : tr("Hozircha gavjum hudud yo'q")}
-          </Txt>
+          {hereSurge <= 1 && d.zones.length > 0 && <Ionicons name="chevron-forward" size={16} color={c.faint} />}
         </Pressable>
       )}
 
@@ -802,8 +808,8 @@ const styles = StyleSheet.create({
   statusText: { flex: 1, color: '#fff', fontFamily: F.bold, fontSize: 13.5 },
   statusAction: { color: '#fff', fontFamily: F.heavy, fontSize: 13, textDecorationLine: 'underline' },
   nextChip: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 14 },
-  hint: { position: 'absolute', left: 14, right: 74, height: 44, borderRadius: 22, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, ...shadow },
-  hintDot: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  hint: { position: 'absolute', left: 14, right: 74, minHeight: 50, borderRadius: 25, flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 7, paddingStart: 8, paddingEnd: 12, ...shadow },
+  hintDot: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center' },
   locate: { position: 'absolute', right: 14, width: 46, height: 46, borderRadius: 23, alignItems: 'center', justifyContent: 'center', ...shadow },
   sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 16, paddingTop: 10, shadowOpacity: 0.14, shadowRadius: 20, shadowOffset: { width: 0, height: -6 }, elevation: 16 },
   grab: { width: 40, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 12 },

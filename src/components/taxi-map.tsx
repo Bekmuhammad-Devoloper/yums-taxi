@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { useImperativeHandle, useMemo, useRef, type Ref } from 'react';
+import { useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import MapView, { Circle, Marker, Polygon, Polyline, type Region } from 'react-native-maps';
 
@@ -56,12 +56,64 @@ export const TRAFFIC_AVAILABLE = true;
 const ZONE_FILL: Record<1 | 2 | 3, string> = { 1: '#FFD23F', 2: '#FF9A1F', 3: '#FF4D2E' };
 const USUAL_COLOR = '#8B7CF6';
 
+type Zone = NonNullable<TaxiMapProps['zones']>[number];
+
+/** Halqani markaz atrofida k marta kichraytirish (issiqlik dog'ining ichki qatlamlari uchun) */
+const scaleRing = (ring: LatLng[], c: LatLng, k: number) =>
+  ring.map(p => ({ latitude: c.latitude + (p.latitude - c.latitude) * k, longitude: c.longitude + (p.longitude - c.longitude) * k }));
+
+// Jonli talab — issiqlik dog'i: uch qatlam ustma-ust, markazga qarab quyuqlashadi (daraja qancha yuqori — shuncha to'q)
+const HEAT_ALPHA: Record<1 | 2 | 3, [string, string, string]> = { 1: ['14', '20', '30'], 2: ['1C', '2C', '45'], 3: ['26', '3A', '5A'] };
+
+function heatRings(z: Zone): { key: string; coords: LatLng[]; fill: string; stroke: string }[] {
+  if (z.kind === 'usual') {
+    // odatda gavjum joy: och binafsha dog' — jonli talabdan ajralib tursin, ko'zni charchatmasin
+    return [
+      { key: `${z.id}:0`, coords: z.ring, fill: USUAL_COLOR + '14', stroke: USUAL_COLOR + '59' },
+      { key: `${z.id}:1`, coords: scaleRing(z.ring, z.center, 0.5), fill: USUAL_COLOR + '1A', stroke: 'transparent' },
+    ];
+  }
+  const color = ZONE_FILL[z.level];
+  const [outer, mid, core] = HEAT_ALPHA[z.level];
+  return [
+    { key: `${z.id}:0`, coords: z.ring, fill: color + outer, stroke: color + '4D' },
+    { key: `${z.id}:1`, coords: scaleRing(z.ring, z.center, 0.64), fill: color + mid, stroke: 'transparent' },
+    { key: `${z.id}:2`, coords: scaleRing(z.ring, z.center, 0.32), fill: color + core, stroke: 'transparent' },
+  ];
+}
+
+/**
+ * Hudud markazidagi belgi: jonli talabda — «🔥 ×1.4», odatda gavjum joyda — kichik soat. Android belgining
+ * rasmini bir marta oladi: ikonka va matn chizilib ulgurishi uchun dastlab kuzatib turiladi, keyin qotiriladi
+ * (aks holda bo'sh rangli to'rtburchak qolardi).
+ */
+function ZoneBadge({ zone }: { zone: Zone }) {
+  const [track, setTrack] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setTrack(false), 900);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <Marker coordinate={zone.center} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={track}>
+      {zone.kind === 'usual' ? (
+        <View style={styles.usualDot}><Ionicons name="time" size={13} color="#fff" /></View>
+      ) : (
+        <View style={[styles.surge, { backgroundColor: ZONE_FILL[zone.level] }]}>
+          <Ionicons name="flame" size={12} color="#1A1205" />
+          {zone.surge > 1 && <Text style={styles.surgeText}>×{zone.surge.toFixed(1)}</Text>}
+        </View>
+      )}
+    </Marker>
+  );
+}
+
 const DELTA = { latitudeDelta: 0.012, longitudeDelta: 0.012 };
 
 export default function TaxiMap(props: TaxiMapProps) {
   const { ref, initial, pickup, destination, route, driverPath, driverPos, showPickup, showNearby, searching, bottomPad, topPad, onCenterChange, onDragStart, locationGranted, fleet, driverHeading, zones, radar, traffic } = props;
   const { colors: c, dark } = useStore();
   const map = useRef<MapView>(null);
+  const heat = useMemo(() => (zones ?? []).flatMap(heatRings), [zones]);
 
   useImperativeHandle(ref, () => ({
     // navigator rejimidan keyin xarita shimolga qaytadi va qiyalik olinadi
@@ -111,21 +163,11 @@ export default function TaxiMap(props: TaxiMapProps) {
       mapPadding={{ top: topPad, right: 0, bottom: bottomPad, left: 0 }}
       onPanDrag={onDragStart}
       onRegionChangeComplete={(r: Region) => onCenterChange?.({ latitude: r.latitude, longitude: r.longitude })}>
-      {zones?.map(z => (z.kind === 'usual' ? (
-        // odatda gavjum joy: shtrixli chegara, och to'ldirish — jonli talabdan ajralib tursin
-        <Polygon key={z.id} coordinates={z.ring} fillColor={USUAL_COLOR + '22'} strokeColor={USUAL_COLOR + 'CC'} strokeWidth={1.5} lineDashPattern={[6, 6]} tappable={false} />
-      ) : (
-        <Polygon key={z.id} coordinates={z.ring} fillColor={ZONE_FILL[z.level] + (z.level === 3 ? '55' : z.level === 2 ? '44' : '33')} strokeColor={ZONE_FILL[z.level] + '99'} strokeWidth={1} tappable={false} />
-      )))}
-      {zones?.filter(z => z.kind !== 'usual' && z.level >= 2).map(z => (
-        <Marker key={'l' + z.id} coordinate={z.center} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-          <View style={[styles.surge, { backgroundColor: ZONE_FILL[z.level] }]}><Text style={styles.surgeText}>{z.surge > 1 ? `×${z.surge.toFixed(1)}` : '🔥'}</Text></View>
-        </Marker>
+      {heat.map(h => (
+        <Polygon key={h.key} coordinates={h.coords} fillColor={h.fill} strokeColor={h.stroke} strokeWidth={h.stroke === 'transparent' ? 0 : 1} tappable={false} />
       ))}
-      {zones?.filter(z => z.kind === 'usual' && z.title).map(z => (
-        <Marker key={'u' + z.id} coordinate={z.center} anchor={{ x: 0.5, y: 0.5 }} tracksViewChanges={false}>
-          <View style={styles.usual}><Text style={styles.usualText} numberOfLines={1}>{z.title}</Text></View>
-        </Marker>
+      {zones?.filter(z => z.kind === 'usual' || z.level >= 2).map(z => (
+        <ZoneBadge key={`b${z.id}:${z.surge}`} zone={z} />
       ))}
       {showNearby && fleet?.map(f => (
         <Marker key={f.id} coordinate={f.pos} anchor={{ x: 0.5, y: 0.5 }} flat rotation={f.heading} tracksViewChanges={false}>
@@ -183,8 +225,10 @@ const styles = StyleSheet.create({
   meWrap: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center' },
   meGlow: { position: 'absolute', width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,200,0,0.16)' },
   meGlowCore: { position: 'absolute', width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,200,0,0.28)' },
-  surge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8 },
-  surgeText: { color: '#1A1205', fontSize: 11, fontWeight: '800' },
-  usual: { maxWidth: 140, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8, backgroundColor: 'rgba(139,124,246,0.92)' },
-  usualText: { color: '#fff', fontSize: 10.5, fontWeight: '700' },
+  surge: {
+    flexDirection: 'row', alignItems: 'center', gap: 2, height: 24, minWidth: 24, paddingHorizontal: 6, borderRadius: 12,
+    borderWidth: 2, borderColor: '#fff', justifyContent: 'center',
+  },
+  surgeText: { color: '#1A1205', fontSize: 11.5, fontWeight: '800' },
+  usualDot: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#fff', backgroundColor: USUAL_COLOR, alignItems: 'center', justifyContent: 'center' },
 });

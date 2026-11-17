@@ -42,4 +42,16 @@ export function nearestHot(zones: DemandZone[], p: LatLng) {
   return best;
 }
 
+/** Eng yaqin «odatda gavjum» joy (jonli talab kam bo'lganda pastki ishorada nomi ko'rsatiladi) */
+export function nearestUsual(zones: DemandZone[], p: LatLng) {
+  let best: { zone: DemandZone; km: number } | null = null;
+  for (const z of zones) {
+    if (z.kind !== 'usual') continue;
+    const km = distanceKm(z.center, p);
+    if (!best || km < best.km) best = { zone: z, km };
+  }
+  return best;
+}
+
 export const ZONE_COLOR: Record<1 | 2 | 3, string> = { 1: '#FFD23F', 2: '#FF9A1F', 3: '#FF4D2E' };
+export const USUAL_COLOR = '#8B7CF6';

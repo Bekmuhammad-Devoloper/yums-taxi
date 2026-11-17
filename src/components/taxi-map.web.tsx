@@ -243,8 +243,8 @@ svg.ym-car{overflow:visible}
 .ym-scan:before,.ym-scan:after{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid rgba(18,166,106,.55);background:radial-gradient(circle,rgba(18,166,106,0) 40%,rgba(18,166,106,.16) 100%);animation:ym-scan 2.4s ease-out infinite}
 .ym-scan:after{animation-delay:1.2s}
 @keyframes ym-scan{from{transform:scale(.12);opacity:1}to{transform:scale(1);opacity:0}}
-.ym-surge{font:800 11px/20px Onest_800ExtraBold,system-ui,sans-serif;color:#1A1205;text-align:center;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
-.ym-usual{display:inline-block;max-width:150px;padding:0 7px;font:700 10.5px/18px Onest_700Bold,system-ui,sans-serif;color:#fff;background:rgba(139,124,246,.92);border-radius:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 1px 4px rgba(0,0,0,.2);transform:translateX(-50%)}
+.ym-surge{display:inline-flex;align-items:center;justify-content:center;gap:2px;height:24px;min-width:24px;padding:0 6px;box-sizing:border-box;font:800 11.5px/1 Onest_800ExtraBold,system-ui,sans-serif;color:#1A1205;border:2px solid #fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.2);transform:translateX(-50%);white-space:nowrap}
+.ym-usual{display:flex;align-items:center;justify-content:center;width:24px;height:24px;box-sizing:border-box;background:#8B7CF6;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .ym-flow{stroke-dasharray:2 14;animation:ym-flow 1s linear infinite}
 @keyframes ym-flow{to{stroke-dashoffset:-16}}
 @keyframes ym-pulse{from{transform:scale(.5);opacity:1}to{transform:scale(1.4);opacity:0}}
@@ -264,11 +264,14 @@ const FLAG_SVG = '<svg width="14" height="14" viewBox="0 0 24 24"><path fill="#0
 const ZONE_FILL: Record<1 | 2 | 3, string> = { 1: '#FFD23F', 2: '#FF9A1F', 3: '#FF4D2E' };
 const USUAL_COLOR = '#8B7CF6';
 // koeffitsient 1 dan katta bo'lsa — «×1.4», aks holda faqat gavjumlik belgisi
+// Ionicons «flame» va «time» shakllari (telefondagi belgilar bilan bir xil)
+const FLAME_SVG = '<svg viewBox="0 0 512 512" width="12" height="12"><path fill="#1A1205" d="M394.23 197.56a300.43 300.43 0 00-53.37-90C301.2 61.65 249.05 32 208 32a16 16 0 00-15.48 20c13.87 53-14.88 97.07-45.31 143.72C122 234.36 96 274.27 96 320c0 88.22 71.78 160 160 160s160-71.78 160-160c0-43.3-7.32-84.49-21.77-122.44z"/></svg>';
+const CLOCK_SVG = '<svg viewBox="0 0 512 512" width="13" height="13"><path fill="#fff" d="M256 48C141.13 48 48 141.13 48 256s93.13 208 208 208 208-93.13 208-208S370.87 48 256 48zm96 240h-96a16 16 0 01-16-16V128a16 16 0 0132 0v128h80a16 16 0 010 32z"/></svg>';
 const zoneLabel = (surge: number, level: 1 | 2 | 3) =>
-  L.divIcon({ className: 'ym-icon', html: `<div class="ym-surge" style="background:${ZONE_FILL[level]}">${surge > 1 ? `×${surge.toFixed(1)}` : '🔥'}</div>`, iconSize: [40, 20], iconAnchor: [20, 10] });
+  L.divIcon({ className: 'ym-icon', html: `<div class="ym-surge" style="background:${ZONE_FILL[level]}">${FLAME_SVG}${surge > 1 ? `<span>×${surge.toFixed(1)}</span>` : ''}</div>`, iconSize: [0, 24], iconAnchor: [0, 12] });
 const escapeHtml = (t: string) => t.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch] ?? ch);
 const usualLabel = (title: string) =>
-  L.divIcon({ className: 'ym-icon', html: `<div class="ym-usual">${escapeHtml(title)}</div>`, iconSize: [0, 18], iconAnchor: [0, 9] });
+  L.divIcon({ className: 'ym-icon', html: `<div class="ym-usual" title="${escapeHtml(title)}">${CLOCK_SVG}</div>`, iconSize: [24, 24], iconAnchor: [12, 12] });
 
 const pickupIcon = (radar: boolean) =>
   L.divIcon({ className: 'ym-icon', html: `<div class="ym-pick${radar ? ' ym-radar' : ''}"></div>`, iconSize: [22, 22], iconAnchor: [11, 11] });
@@ -582,14 +585,28 @@ export default function TaxiMap(props: TaxiMapProps) {
     l.zones?.remove();
     l.zones = undefined;
     if (!zones?.length) return;
-    const items: L.Layer[] = zones.map(z => (z.kind === 'usual'
-      // odatda gavjum joy: shtrixli chegara, och to'ldirish — jonli talabdan ajralib tursin
-      ? L.polygon(z.ring.map(ll), { pane: 'ym-zones', color: USUAL_COLOR, weight: 1.5, opacity: 0.85, dashArray: '6 6', fillColor: USUAL_COLOR, fillOpacity: 0.12, interactive: false })
-      : L.polygon(z.ring.map(ll), {
-        pane: 'ym-zones', color: ZONE_FILL[z.level], weight: 1, opacity: 0.55, fillColor: ZONE_FILL[z.level], fillOpacity: z.level === 3 ? 0.34 : z.level === 2 ? 0.26 : 0.17, interactive: false,
-      })));
+    // telefondagi bilan bir xil: jonli talab — markazga qarab quyuqlashadigan uch qatlamli dog',
+    // odatda gavjum joy — och binafsha dog' va soat belgisi (nomi pastki ishorada)
+    const scale = (ring: LatLng[], c: LatLng, k: number) =>
+      ring.map(p => ll({ latitude: c.latitude + (p.latitude - c.latitude) * k, longitude: c.longitude + (p.longitude - c.longitude) * k }));
+    const items: L.Layer[] = zones.flatMap(z => {
+      const base = { pane: 'ym-zones', interactive: false } as const;
+      if (z.kind === 'usual') {
+        return [
+          L.polygon(z.ring.map(ll), { ...base, color: USUAL_COLOR, weight: 1, opacity: 0.35, fillColor: USUAL_COLOR, fillOpacity: 0.08 }),
+          L.polygon(scale(z.ring, z.center, 0.5), { ...base, stroke: false, fillColor: USUAL_COLOR, fillOpacity: 0.1 }),
+        ];
+      }
+      const color = ZONE_FILL[z.level];
+      const [outer, mid, core] = z.level === 3 ? [0.15, 0.23, 0.35] : z.level === 2 ? [0.11, 0.17, 0.27] : [0.08, 0.125, 0.19];
+      return [
+        L.polygon(z.ring.map(ll), { ...base, color, weight: 1, opacity: 0.3, fillColor: color, fillOpacity: outer }),
+        L.polygon(scale(z.ring, z.center, 0.64), { ...base, stroke: false, fillColor: color, fillOpacity: mid }),
+        L.polygon(scale(z.ring, z.center, 0.32), { ...base, stroke: false, fillColor: color, fillOpacity: core }),
+      ];
+    });
     zones.filter(z => z.kind !== 'usual' && z.level >= 2).forEach(z => items.push(L.marker(ll(z.center), { icon: zoneLabel(z.surge, z.level), pane: 'ym-zone-labels', interactive: false, keyboard: false })));
-    zones.filter(z => z.kind === 'usual' && z.title).forEach(z => items.push(L.marker(ll(z.center), { icon: usualLabel(z.title ?? ''), pane: 'ym-zone-labels', interactive: false, keyboard: false })));
+    zones.filter(z => z.kind === 'usual').forEach(z => items.push(L.marker(ll(z.center), { icon: usualLabel(z.title ?? ''), pane: 'ym-zone-labels', interactive: false, keyboard: false })));
     l.zones = L.layerGroup(items).addTo(m);
   }, [zones]);
 

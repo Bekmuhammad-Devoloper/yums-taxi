@@ -524,6 +524,16 @@ const driver: Record<string, Row> = {
   "Hamkorlik shartnomasi bilan tanishdim va roziman": ["Я ознакомился(ась) с договором о сотрудничестве и согласен(на)", "I have read and accept the partnership agreement", "Бо шартномаи ҳамкорӣ шинос шудам ва розӣ ҳастам", "اطلعت على اتفاقية الشراكة وأوافق عليها"],
   "Rozilik bildirilgan · matnni qayta ko'rish": ["Согласие дано · посмотреть текст", "Accepted · view the text again", "Розигӣ дода шуд · аз нав дидани матн", "تمت الموافقة · عرض النص مجددًا"],
   "Komissiya, balans, bonuslar va majburiyatlar — o'qish uchun bosing": ["Комиссия, баланс, бонусы и обязательства — нажмите, чтобы прочитать", "Commission, balance, bonuses and obligations — tap to read", "Комиссия, баланс, бонусҳо ва ӯҳдадориҳо — барои хондан пахш кунед", "العمولة والرصيد والمكافآت والالتزامات — اضغط للقراءة"],
+  "Siz yuqori talab hududidasiz": ["Вы в зоне высокого спроса", "You're in a high-demand zone", "Шумо дар минтақаи талаботи баланд ҳастед", "أنت في منطقة طلب مرتفع"],
+  "Narx ×{surge} — shu yerda kuting": ["Цена ×{surge} — ждите здесь", "Fare ×{surge} — wait here", "Нарх ×{surge} — дар ҳамин ҷо интизор шавед", "السعر ×{surge} — انتظر هنا"],
+  "Talab ×{surge}": ["Спрос ×{surge}", "Demand ×{surge}", "Талабот ×{surge}", "الطلب ×{surge}"],
+  "Gavjum hudud yaqinda": ["Оживлённая зона рядом", "Busy zone nearby", "Минтақаи серодам наздик аст", "منطقة مزدحمة قريبة"],
+  "{km} km · bosing — xaritada ko'rsatiladi": ["{km} км · нажмите — покажем на карте", "{km} km · tap to see it on the map", "{km} км · пахш кунед — дар харита нишон дода мешавад", "{km} كم · اضغط لعرضها على الخريطة"],
+  "To'q sariq joylarda buyurtma tezroq keladi": ["В оранжевых зонах заказы приходят быстрее", "Orders come faster in the orange zones", "Дар минтақаҳои норанҷӣ фармоишҳо зудтар меоянд", "تصل الطلبات أسرع في المناطق البرتقالية"],
+  "Hozir talab past": ["Сейчас спрос низкий", "Demand is low right now", "Ҳоло талабот паст аст", "الطلب منخفض الآن"],
+  "Odatda gavjum: {title} · {km} km": ["Обычно оживлённо: {title} · {km} км", "Usually busy: {title} · {km} km", "Одатан серодам: {title} · {km} км", "مزدحمة عادةً: {title} · {km} كم"],
+  "Odatda gavjum joylar binafsha rangda · {km} km": ["Обычно оживлённые места — фиолетовые · {km} км", "Usually busy places are purple · {km} km", "Ҷойҳои одатан серодам бунафш ранг · {km} км", "الأماكن المزدحمة عادةً باللون البنفسجي · {km} كم"],
+  "Talab paydo bo'lsa, xaritada ko'rinadi": ["Когда появится спрос, он будет на карте", "Demand will show on the map when it appears", "Вақте талабот пайдо шавад, дар харита намоён мешавад", "سيظهر الطلب على الخريطة عند وجوده"],
 };
 
 export default driver;
