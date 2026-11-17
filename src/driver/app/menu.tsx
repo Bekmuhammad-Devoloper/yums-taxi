@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { alpha, Card, Divider, ListItem, PersonAvatar, Row, Screen, Txt } from '@/components/ui';
+import { Card, Divider, ListItem, PersonAvatar, Row, Screen, Txt } from '@/components/ui';
 import { CARD_ART, CardBg, useCardInk } from '@/driver/components/card-bg';
 import { useContractAcceptance } from '@/driver/lib/contract';
 import { DOC_KINDS } from '@/driver/lib/docs';
@@ -22,6 +22,7 @@ const ART = {
   quality: require('@/assets/menu/quality.webp'),
   car: require('@/assets/menu/car.webp'),
   documents: require('@/assets/menu/documents.webp'),
+  contract: require('@/assets/menu/contract.webp'),
   settings: require('@/assets/menu/settings.webp'),
   support: require('@/assets/menu/support.webp'),
   safety: require('@/assets/menu/safety.webp'),
@@ -84,7 +85,7 @@ export default function Menu() {
         <ListItem icon="document-text" art={ART.documents} title={tr('Hujjatlar')} sub={tr('{length} / {length2} tasdiqlangan · guvohnoma, tex. pasport', { length: DOC_KINDS.filter(k => d.docs[k].status === 'approved').length, length2: DOC_KINDS.length })} onPress={() => go('/documents')} />
         <Divider style={{ marginLeft: 62 }} />
         <ListItem
-          icon="reader" iconBg={alpha('#FFC800', 0.2)} iconColor={c.brandDeep}
+          icon="reader" art={ART.contract}
           title={tr('Hamkorlik shartnomasi')}
           sub={contract === null ? tr('Yangi tahrir · tanishib chiqing') : tr('Komissiya, bonuslar, rekvizitlar')}
           onPress={() => go('/contract')}
