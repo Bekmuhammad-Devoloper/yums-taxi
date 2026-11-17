@@ -36,6 +36,17 @@ const preview = (cv: Conversation): { text: string; icon?: 'calendar-outline' | 
   return { text: who + m.text };
 };
 
+/**
+ * So'rov formasidan kelgan xabar: «sarlavha\nTaklif: …\nMiqdor: …\n\nmatn». Sarlavha mavzuda allaqachon bor —
+ * tashlanadi, tafsilotlar bir qatorga yig'iladi, ostida yozuvchining o'z matni. Oddiy matn o'z holicha qoladi.
+ */
+const requestPreview = (text: string) => {
+  const blank = text.indexOf('\n\n');
+  if (blank < 0) return text;
+  const details = text.slice(0, blank).split('\n').slice(1).filter(Boolean).join(' · ');
+  return [details, text.slice(blank + 2).trim()].filter(Boolean).join('\n');
+};
+
 export default function Connect() {
   const { colors: c, t } = useStore();
   const p = usePlatform();
@@ -166,18 +177,38 @@ export default function Connect() {
 
       <ScrollView style={{ width: pageW }} contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled">
         {requests.length ? requests.map(cv => {
-          const status = cv.requestStatus === 'declined' ? { l: tr('Rad etilgan'), tone: 'danger' as const } : cv.incoming ? { l: tr("Yangi so'rov"), tone: 'warn' as const } : { l: tr('Javob kutilmoqda'), tone: 'muted' as const };
+          const status = cv.requestStatus === 'declined'
+            ? { l: tr('Rad etilgan'), tone: 'danger' as const, icon: 'close-circle' as const }
+            : cv.incoming
+              ? { l: tr("Yangi so'rov"), tone: 'warn' as const, icon: 'mail-unread' as const }
+              : { l: tr('Javob kutilmoqda'), tone: 'muted' as const, icon: 'hourglass-outline' as const };
+          const last = cv.messages[cv.messages.length - 1];
           return (
+            // ism to'liq kenglikda (yonida vaqt), mavzu 2 qatorgacha, holat alohida qatorda —
+            // belgi ism bilan joy talashmaydi; birinchi xabar iqtibos blokida
             <Card key={cv.id} onPress={() => open(cv.id)} style={{ gap: 12 }}>
-              <Row>
-                <PeerAvatar conv={cv} size={46} />
-                <View style={{ flex: 1 }}>
-                  <Row gap={4}><Txt v="h3" numberOfLines={1} style={{ flexShrink: 1 }}>{cv.peerName}</Txt>{cv.peerVerified && <Verified size={14} />}</Row>
-                  <Txt v="small" muted>{PEER_LABEL[cv.peerKind]} · {cv.subject ?? tr("Hamkorlik so'rovi")}</Txt>
+              <Row style={{ alignItems: 'flex-start' }}>
+                <PeerAvatar conv={cv} size={48} />
+                <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+                  <Row gap={8}>
+                    <Row gap={4} style={{ flex: 1, minWidth: 0 }}>
+                      <Txt v="h3" numberOfLines={1} style={{ flexShrink: 1 }}>{cv.peerName}</Txt>
+                      {cv.peerVerified && <Verified size={14} />}
+                    </Row>
+                    {last ? <Txt v="tiny" faint>{ago(last.at)}</Txt> : null}
+                  </Row>
+                  <Txt v="small" muted numberOfLines={2} style={{ lineHeight: 19 }}>{cv.subject ?? tr("Hamkorlik so'rovi")}</Txt>
+                  <Row gap={6} style={{ marginTop: 3 }}>
+                    <Badge label={status.l} tone={status.tone} icon={status.icon} />
+                    <Txt v="tiny" faint numberOfLines={1} style={{ flexShrink: 1 }}>{PEER_LABEL[cv.peerKind]}</Txt>
+                  </Row>
                 </View>
-                <Badge label={status.l} tone={status.tone} />
               </Row>
-              {cv.messages[0] ? <Txt v="small" muted numberOfLines={3} style={{ lineHeight: 19 }}>{cv.messages[0].text}</Txt> : null}
+              {cv.messages[0] ? (
+                <View style={[styles.quote, { backgroundColor: c.surface2, borderStartColor: c.line }]}>
+                  <Txt v="small" muted numberOfLines={3} style={{ lineHeight: 19 }}>{requestPreview(cv.messages[0].text)}</Txt>
+                </View>
+              ) : null}
               {cv.incoming && cv.requestStatus === 'pending' && (
                 <Row gap={8}>
                   <Button title={tr('Rad etish')} kind="ghost" small style={{ flex: 1 }} onPress={() => { p.respondRequest(cv.id, false); toast(tr("So'rov rad etildi"), 'close-circle'); }} />
@@ -262,6 +293,8 @@ function HeaderAction({ children, label, onPress, primary, active }: { children:
 
 const styles = StyleSheet.create({
   page: { padding: 16, paddingTop: 4, gap: 10, paddingBottom: 30 },
+  // so'rovning birinchi xabari — chap chiziqli iqtibos
+  quote: { borderStartWidth: 3, borderRadius: 12, paddingVertical: 9, paddingHorizontal: 12 },
   action: { width: 46, height: 46, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 20 },
   unread: { minWidth: 22, height: 22, borderRadius: 11, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 },
