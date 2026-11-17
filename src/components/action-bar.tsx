@@ -1,6 +1,6 @@
 // Sahifa pastidagi ikki tugma: chapda ikkinchi darajali amal (belgisi rangli doirachada), o'ngda asosiy amal
-// (sariq gradient). Ikkalasi bir xil kenglik va balandlikda, belgi va yozuv o'rtada; uzun yozuv («Hamkorlik
-// so'rovi») ikki qatorga o'tadi, sig'masa shrift biroz kichrayadi.
+// (sariq gradient). Ikkalasi bir xil kenglik va balandlikda, belgi va yozuv o'rtada. Yozuv doim bir qatorda —
+// sig'masa shrift kichrayadi (ikki qatorga bo'linsa xunuk ko'rinadi); telefonda katta shrift ham 1.1 baravardan oshmaydi.
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -45,7 +45,7 @@ function SecondaryAction({ title, icon, onPress, disabled, loading, tint }: Acti
       <View style={[styles.chip, { backgroundColor: alpha(color, 0.16) }]}>
         {loading ? <ActivityIndicator size="small" color={color} /> : <Ionicons name={icon} size={18} color={color} />}
       </View>
-      <Text style={[styles.secondaryText, { color: c.text }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85}>
+      <Text style={[styles.secondaryText, { color: c.text }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>
         {title}
       </Text>
     </Pressable>
@@ -68,7 +68,7 @@ function PrimaryAction({ title, icon, onPress, disabled, loading }: Action) {
           <View style={[styles.primaryIcon, { backgroundColor: 'transparent' }]}>
             <Ionicons name={icon} size={18} color={c.faint} />
           </View>
-          <Text style={[styles.primaryText, { color: c.faint }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85}>{title}</Text>
+          <Text style={[styles.primaryText, { color: c.faint }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{title}</Text>
         </View>
       ) : (
         <LinearGradient colors={['#FFDD55', '#FFC800']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.primary}>
@@ -77,7 +77,7 @@ function PrimaryAction({ title, icon, onPress, disabled, loading }: Action) {
               <View style={styles.primaryIcon}>
                 <Ionicons name={icon} size={18} color={c.brandText} />
               </View>
-              <Text style={[styles.primaryText, { color: c.brandText }]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.85}>{title}</Text>
+              <Text style={[styles.primaryText, { color: c.brandText }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} maxFontSizeMultiplier={1.1}>{title}</Text>
             </>
           )}
         </LinearGradient>
@@ -89,8 +89,8 @@ function PrimaryAction({ title, icon, onPress, disabled, loading }: Action) {
 // ikkala tugma uchun bir xil o'lchamlar
 const HEIGHT = 56;
 const RADIUS = 18;
-const ICON = 32;
-const GAP = 9;
+const ICON = 30;
+const GAP = 8;
 const PAD = 12;
 const FONT = 15.5;
 

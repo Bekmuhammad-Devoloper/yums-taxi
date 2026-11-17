@@ -40,7 +40,8 @@ export default function SpecialistScreen() {
           // taklif — alohida forma va «So'rovlar»dagi alohida so'rov; «Yozish» — oddiy suhbat
           primary={offerSent
             ? { title: tr('Taklif yuborilgan'), icon: 'checkmark-circle', disabled: true }
-            : { title: tr('Ishga taklif qilish'), icon: 'briefcase', disabled: !sp.available, onPress: () => setOffering(true) }}
+            // qisqa yozuv — tugmada bir qatorda to'liq sig'adi (forma sarlavhasi ham «Ishga taklif»)
+            : { title: tr('Ishga taklif'), icon: 'briefcase', disabled: !sp.available, onPress: () => setOffering(true) }}
         />
       }>
       <SpecialistIdCard sp={sp} />
