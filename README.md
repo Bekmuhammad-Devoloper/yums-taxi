@@ -132,14 +132,19 @@ EAS build: `npx eas-cli@latest build --profile driver-preview` (yoki `driver-pro
 
 Ovozli yo'riqnoma oldindan yozilgan kliplar bilan ishlaydi — har qanday telefonda bir xil eshitiladi, internet kerak emas:
 
-- Iboralar: `src/driver/lib/voice-phrases.json` (37 ta, 5 tilda).
-- Kliplar: `assets/voice/<uz|ru>/<kalit>.mp3`, ro'yxati `src/driver/lib/voice-clips.ts` (avtomatik yaratiladi).
-- Biror til uchun kliplar bo'lmasa, qurilmaning shu tildagi ayol ovozi, u ham bo'lmasa — zaxira til ishlatiladi (o'zbek ↔ rus, ingliz va tojik → rus, arab → ingliz). Hozir kliplar o'zbek va rus tilida.
+- Iboralar: `src/driver/lib/voice-phrases.json` (54 ta, 5 tilda).
+- Kliplar: `assets/voice/<til>/<kalit>.mp3`, ro'yxati `src/driver/lib/voice-clips.ts` (avtomatik yaratiladi).
+- Biror til uchun kliplar bo'lmasa, qurilmaning shu tildagi ayol ovozi, u ham bo'lmasa — zaxira til ishlatiladi (o'zbek ↔ rus, ingliz va tojik → rus, arab → ingliz).
 
-Kliplarni yaratish — `scripts/voice/generate.py` (python3, numpy, ffmpeg):
+Kliplarni yaratish — `scripts/voice/generate.py` (python3, numpy, ffmpeg; ffmpeg PATH'da bo'lmasa `pip install imageio-ffmpeg`):
 
 ```bash
-# Tavsiya: Microsoft Azure neyron ovozlari (tijoriy foydalanishga ruxsat; bepul tarif yetadi)
+# Google Gemini TTS (gemini-3.8-flash-tts, «Kore» ayol ovozi) — o'zbek va tojik tilini ham biladi.
+# Kvota tugasa o'zi kutib qayta urinadi; --resume to'xtagan joydan davom ettiradi
+export GEMINI_API_KEY=...
+python3 scripts/voice/generate.py --lang uz,tg,en,ar --engine gemini --resume
+
+# Microsoft Azure neyron ovozlari (tijoriy foydalanishga ruxsat; bepul tarif yetadi; tojikcha ovoz yo'q)
 # uz: uz-UZ-MadinaNeural, ru: ru-RU-SvetlanaNeural — ikkalasi ham ayol ovozi
 export AZURE_SPEECH_KEY=... AZURE_SPEECH_REGION=westeurope
 python3 scripts/voice/generate.py --lang uz --engine azure
@@ -149,7 +154,7 @@ python3 scripts/voice/generate.py --lang ru --engine azure
 python3 scripts/voice/generate.py --lang ru --engine piper --model ./vits-piper-ru_RU-irina-medium
 ```
 
-Hozirgi holat: rus tili — Piper «Irina» ovozi (oflayn neyron model). **Uning litsenziyasi noma'lum** — demo va sinov uchun; do'konga chiqarishdan oldin Azure ovozi yoki diktor yozuvi bilan almashtiring. O'zbek tili uchun kliplar hali yo'q (Azure kaliti kerak) — hozircha ruscha kliplar ishlatiladi. Diktor yozdirgan fayllarni ham shu nomlar bilan `assets/voice/<til>/` ga qo'yib, `--map-only` bilan ro'yxatni yangilash kifoya.
+Hozirgi holat: rus tili — Piper «Irina» ovozi (oflayn neyron model). **Uning litsenziyasi noma'lum** — demo va sinov uchun; do'konga chiqarishdan oldin Gemini/Azure ovozi yoki diktor yozuvi bilan almashtiring. Boshqa tillar uchun kliplar yuqoridagi Gemini buyrug'i bilan yaratiladi. Diktor yozdirgan fayllarni ham shu nomlar bilan `assets/voice/<til>/` ga qo'yib, `--map-only` bilan ro'yxatni yangilash kifoya.
 
 ## Tillar
 

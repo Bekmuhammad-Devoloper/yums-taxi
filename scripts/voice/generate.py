@@ -1,30 +1,42 @@
 #!/usr/bin/env python3
 """YUMS Driver ovozli yo'riqnomasi uchun audio kliplarni yaratish.
 
-Iboralar: src/driver/lib/voice-phrases.json (o'zbek va rus tilida).
+Iboralar: src/driver/lib/voice-phrases.json (5 tilda: uz, ru, en, ar, tg).
 Natija:   assets/voice/<til>/<kalit>.mp3 va src/driver/lib/voice-clips.ts (ilova shu fayldan o'qiydi).
+Tilda klip bo'lmasa ilova qurilma ovozida, u ham bo'lmasa zaxira tilda gapiradi (src/driver/lib/voice.ts).
 
 Dvigatellar:
+  gemini — Google Gemini TTS (gemini-3.8-flash-tts; o'zbek va tojik tilini ham biladi). Standart ovoz: Kore (ayol).
+          Kerak: GEMINI_API_KEY muhit o'zgaruvchisi. Kvota tugasa kutib qayta urinadi; --resume bilan
+          yaratib bo'lingan kliplar o'tkazib yuboriladi (to'xtagan joydan davom etadi).
   azure — Microsoft Azure neyron ovozlari (tijoriy foydalanish uchun litsenziyalangan). Standart ovozlar:
-          uz: uz-UZ-MadinaNeural (ayol), ru: ru-RU-SvetlanaNeural (ayol).
+          uz: uz-UZ-MadinaNeural, ru: ru-RU-SvetlanaNeural, en: en-US-AvaNeural, ar: ar-SA-ZariyahNeural
+          (hammasi ayol ovozi; bepul F0 tarifi oyiga 500 ming belgi — bu kliplar ~8 ming).
           Kerak: AZURE_SPEECH_KEY va AZURE_SPEECH_REGION muhit o'zgaruvchilari.
   piper — oflayn neyron ovoz (sherpa-onnx). Masalan, rus tili uchun vits-piper-ru_RU-irina-medium.
           Diqqat: Piper ovozlarining litsenziyasi har xil — do'konga chiqarishdan oldin tekshiring.
 
 Misollar:
+  python3 scripts/voice/generate.py --lang uz,tg,en,ar --engine gemini --resume
   python3 scripts/voice/generate.py --lang uz --engine azure
   python3 scripts/voice/generate.py --lang ru --engine piper --model ~/models/vits-piper-ru_RU-irina-medium
   python3 scripts/voice/generate.py --map-only        # faqat voice-clips.ts ni yangilash
 
-Talablar: python3, numpy, ffmpeg (libmp3lame); piper uchun: pip install "sherpa-onnx<2" (2.x da espeak yo'q)
+Talablar: python3, numpy, ffmpeg (libmp3lame; PATH'da bo'lmasa — pip install imageio-ffmpeg);
+piper uchun: pip install "sherpa-onnx<2" (2.x da espeak yo'q)
 """
 import argparse
+import base64
 import io
 import json
 import os
+import re
+import shutil
 import subprocess
 import sys
 import tempfile
+import time
+import urllib.error
 import urllib.request
 import wave
 from xml.sax.saxutils import escape
@@ -35,8 +47,27 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 PHRASES = os.path.join(ROOT, 'src', 'driver', 'lib', 'voice-phrases.json')
 ASSETS = os.path.join(ROOT, 'assets', 'voice')
 CLIPS_TS = os.path.join(ROOT, 'src', 'driver', 'lib', 'voice-clips.ts')
-LANGS = ('uz', 'ru')
-AZURE_VOICES = {'uz': ('uz-UZ', 'uz-UZ-MadinaNeural'), 'ru': ('ru-RU', 'ru-RU-SvetlanaNeural')}
+LANGS = ('uz', 'ru', 'en', 'ar', 'tg')
+GEMINI_MODEL = 'gemini-3.8-flash-tts'
+GEMINI_LOCALES = {'uz': 'uz-UZ', 'ru': 'ru-RU', 'en': 'en-US', 'ar': 'ar-SA', 'tg': 'tg-TJ'}
+AZURE_VOICES = {
+    'uz': ('uz-UZ', 'uz-UZ-MadinaNeural'),
+    'ru': ('ru-RU', 'ru-RU-SvetlanaNeural'),
+    'en': ('en-US', 'en-US-AvaNeural'),
+    'ar': ('ar-SA', 'ar-SA-ZariyahNeural'),
+}
+
+
+def ffmpeg():
+    """PATH'dagi ffmpeg, bo'lmasa imageio-ffmpeg o'rnatgan nusxa."""
+    found = shutil.which('ffmpeg')
+    if found:
+        return found
+    try:
+        import imageio_ffmpeg  # noqa: PLC0415 — faqat ffmpeg PATH'da bo'lmaganda kerak
+    except ImportError:
+        sys.exit('ffmpeg topilmadi: o\'rnating yoki pip install imageio-ffmpeg')
+    return imageio_ffmpeg.get_ffmpeg_exe()
 
 
 def load_phrases():
@@ -98,6 +129,56 @@ def synth_azure(voice_override, rate):
     return run
 
 
+def synth_gemini(voice, model):
+    key = os.environ.get('GEMINI_API_KEY')
+    if not key:
+        sys.exit('GEMINI_API_KEY muhit o\'zgaruvchisini bering')
+    url = f'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent'
+    # tilni aniq aytish (languageCode) model qabul qilmasa — bir marta tashlab, matndan aniqlashga qo'yamiz
+    state = {'locale': True}
+
+    def call(text, lang):
+        speech = {'voiceConfig': {'prebuiltVoiceConfig': {'voiceName': voice}}}
+        if state['locale']:
+            speech['languageCode'] = GEMINI_LOCALES[lang]
+        body = {
+            'contents': [{'parts': [{'text': text}]}],
+            'generationConfig': {'responseModalities': ['AUDIO'], 'speechConfig': speech},
+        }
+        req = urllib.request.Request(url, data=json.dumps(body).encode('utf-8'), headers={
+            'x-goog-api-key': key,
+            'Content-Type': 'application/json',
+        })
+        with urllib.request.urlopen(req, timeout=120) as r:
+            return json.load(r)
+
+    def run(text, lang):
+        for attempt in range(8):
+            try:
+                data = call(text, lang)
+                break
+            except urllib.error.HTTPError as e:
+                detail = e.read().decode('utf-8', 'replace')
+                if e.code == 400 and state['locale'] and 'language' in detail.lower():
+                    state['locale'] = False
+                    print('  languageCode qabul qilinmadi — til matndan aniqlanadi')
+                    continue
+                if e.code in (429, 500, 503) and attempt < 7:
+                    # kvota: server aytgan vaqt (retryDelay), bo'lmasa o'sib boruvchi kutish
+                    m = re.search(r'"retryDelay":\s*"(\d+)', detail)
+                    wait = int(m.group(1)) + 2 if m else min(90, 10 * 2 ** attempt)
+                    print(f'  {e.code}: {wait} s kutib qayta urinaman')
+                    time.sleep(wait)
+                    continue
+                sys.exit(f'Gemini xatosi {e.code}: {detail[:400]}')
+        part = next(p['inlineData'] for p in data['candidates'][0]['content']['parts'] if 'inlineData' in p)
+        rate = int(re.search(r'rate=(\d+)', part['mimeType']).group(1)) if 'rate=' in part['mimeType'] else 24000
+        pcm = np.frombuffer(base64.b64decode(part['data']), dtype=np.int16).astype(np.float32) / 32768
+        return pcm, rate
+
+    return run
+
+
 # ---------- Ishlov berish ----------
 
 def polish(samples, sr):
@@ -124,7 +205,7 @@ def write_mp3(samples, sr, path):
             w.setframerate(sr)
             w.writeframes((np.clip(samples, -1, 1) * 32767).astype(np.int16).tobytes())
     try:
-        subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-i', tmp.name, '-ac', '1', '-ar', '24000',
+        subprocess.run([ffmpeg(), '-y', '-loglevel', 'error', '-i', tmp.name, '-ac', '1', '-ar', '24000',
                         '-codec:a', 'libmp3lame', '-b:a', '48k', path], check=True)
     finally:
         os.unlink(tmp.name)
@@ -153,13 +234,14 @@ def write_map(phrases):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('--lang', choices=LANGS)
-    ap.add_argument('--engine', choices=('azure', 'piper'))
-    ap.add_argument('--model', help='piper: sherpa-onnx VITS model papkasi')
-    ap.add_argument('--voice', help="azure: boshqa ovoz nomi (masalan ru-RU-DariyaNeural)")
+    ap.add_argument('--lang', help=f"til(lar), vergul bilan: {', '.join(LANGS)}")
+    ap.add_argument('--engine', choices=('gemini', 'azure', 'piper'))
+    ap.add_argument('--model', help=f'piper: sherpa-onnx VITS model papkasi; gemini: model nomi ({GEMINI_MODEL})')
+    ap.add_argument('--voice', help="azure: boshqa ovoz nomi (masalan ru-RU-DariyaNeural); gemini: ovoz (Kore)")
     ap.add_argument('--speed', type=float, default=0.95, help='piper: tezlik (1.0 — oddiy)')
     ap.add_argument('--rate', default='-4%', help="azure: nutq tezligi (masalan -4%%)")
     ap.add_argument('--only', help='faqat shu kalitlar (vergul bilan)')
+    ap.add_argument('--resume', action='store_true', help='mavjud kliplarni qayta yaratmaslik')
     ap.add_argument('--map-only', action='store_true')
     a = ap.parse_args()
 
@@ -167,15 +249,32 @@ def main():
     if not a.map_only:
         if not a.lang or not a.engine:
             ap.error('--lang va --engine kerak')
+        langs = [x.strip() for x in a.lang.split(',') if x.strip()]
+        unknown = [x for x in langs if x not in LANGS]
+        if unknown:
+            ap.error(f"noma'lum til: {', '.join(unknown)} (bor: {', '.join(LANGS)})")
         if a.engine == 'piper' and not a.model:
             ap.error('piper uchun --model kerak')
-        run = synth_piper(a.model, a.speed) if a.engine == 'piper' else synth_azure(a.voice, a.rate)
+        if a.engine == 'azure' and any(x not in AZURE_VOICES for x in langs):
+            ap.error(f"azure'da ovoz bor tillar: {', '.join(AZURE_VOICES)}")
+        if a.engine == 'piper':
+            run = synth_piper(a.model, a.speed)
+        elif a.engine == 'azure':
+            run = synth_azure(a.voice, a.rate)
+        else:
+            run = synth_gemini(a.voice or 'Kore', a.model or GEMINI_MODEL)
         keys = a.only.split(',') if a.only else list(phrases)
-        for i, key in enumerate(keys, 1):
-            text = phrases[key][a.lang]
-            samples, sr = run(text, a.lang)
-            write_mp3(polish(samples, sr), sr, os.path.join(ASSETS, a.lang, f'{key}.mp3'))
-            print(f'[{i}/{len(keys)}] {a.lang}/{key}.mp3  «{text}»')
+        for lang in langs:
+            for i, key in enumerate(keys, 1):
+                path = os.path.join(ASSETS, lang, f'{key}.mp3')
+                if a.resume and os.path.exists(path):
+                    continue
+                text = phrases[key][lang]
+                samples, sr = run(text, lang)
+                write_mp3(polish(samples, sr), sr, path)
+                print(f'[{i}/{len(keys)}] {lang}/{key}.mp3  «{text}»')
+            # har til tugagach xarita yangilanadi — to'xtab qolsa ham tayyorlari ilovaga kiradi
+            write_map(phrases)
     write_map(phrases)
     print('voice-clips.ts yangilandi')
 
