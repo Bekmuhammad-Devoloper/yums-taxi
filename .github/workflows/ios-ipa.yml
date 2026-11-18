@@ -167,33 +167,24 @@ jobs:
 
           # faqat ilova target'i qo'lda imzolanadi (Pods target'lariga profil berib bo'lmaydi)
           ruby -e 'require "xcodeproj"' 2>/dev/null || gem install xcodeproj --no-document
-          export PROFILE_UUID="$profile_uuid"
           ruby -e '
             require "xcodeproj"
-            path = Dir["ios/*.xcodeproj"].first
-            proj = Xcodeproj::Project.open(path)
+            proj = Xcodeproj::Project.open(Dir["ios/*.xcodeproj"].first)
             target = proj.targets.find { |t| t.name == ENV["SCHEME"] } ||
                      proj.targets.find { |t| t.product_type == "com.apple.product-type.application" }
-            sign = {
-              "CODE_SIGN_STYLE" => "Manual",
-              "DEVELOPMENT_TEAM" => ENV["APPLE_TEAM_ID"],
-              "CODE_SIGN_IDENTITY" => "Apple Distribution",
-              "CODE_SIGN_IDENTITY[sdk=iphoneos*]" => "Apple Distribution",
-              "PROVISIONING_PROFILE_SPECIFIER" => ENV["PROFILE_NAME"],
-              "PROVISIONING_PROFILE" => ENV["PROFILE_UUID"],
-            }
-            abort "PROFILE_NAME bo sh" if ENV["PROFILE_NAME"].to_s.empty?
-            # target va loyiha darajasida (bu loyihada faqat ilova bor; Pods alohida loyihada)
-            (target.build_configurations + proj.build_configurations).each do |c|
+            target.build_configurations.each do |c|
               next unless c.name == "Release"
-              sign.each { |k, v| c.build_settings[k] = v }
+              s = c.build_settings
+              s["CODE_SIGN_STYLE"] = "Manual"
+              s["DEVELOPMENT_TEAM"] = ENV["APPLE_TEAM_ID"]
+              s["CODE_SIGN_IDENTITY"] = "Apple Distribution"
+              s["CODE_SIGN_IDENTITY[sdk=iphoneos*]"] = "Apple Distribution"
+              s["PROVISIONING_PROFILE_SPECIFIER"] = ENV["PROFILE_NAME"]
             end
             attrs = (proj.root_object.attributes["TargetAttributes"] ||= {})
             (attrs[target.uuid] ||= {})["ProvisioningStyle"] = "Manual"
             proj.save
-            check = Xcodeproj::Project.open(path).targets.find { |t| t.uuid == target.uuid }
-            got = check.build_configurations.find { |c| c.name == "Release" }.build_settings
-            puts "Imzo: #{path} #{target.name} -> #{got["PROVISIONING_PROFILE_SPECIFIER"]} (#{got["CODE_SIGN_STYLE"]})"
+            puts "Imzo: #{target.name} → #{ENV["PROFILE_NAME"]}"
             # Pods ichidagi resurs bundle target lari imzolanmaydi, aks holda: requires a development team
             # (bu ruby -e matni bitta tirnoq ichida: unda apostrof bo lmasin)
             pods = Xcodeproj::Project.open("ios/Pods/Pods.xcodeproj")
@@ -203,21 +194,6 @@ jobs:
             end
             pods.save
           '
-
-      - name: Imzo sozlamalari (Xcode ko'rgani)
-        if: env.SIGNED == '1'
-        run: |
-          set -o pipefail
-          xcodebuild -showBuildSettings -workspace "$WORKSPACE" -scheme "$SCHEME" -configuration Release \
-            -destination 'generic/platform=iOS' 2>/dev/null > "$RUNNER_TEMP/all-settings.txt" || true
-          grep -E "^ +(TARGET_NAME|PRODUCT_BUNDLE_IDENTIFIER|CODE_SIGN_STYLE|CODE_SIGN_IDENTITY|DEVELOPMENT_TEAM|PROVISIONING_PROFILE_SPECIFIER|PROVISIONING_PROFILE) =" \
-            "$RUNNER_TEMP/all-settings.txt" > "$RUNNER_TEMP/sign-settings.txt" || true
-          cat "$RUNNER_TEMP/sign-settings.txt"
-          ls ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles ~/Library/MobileDevice/Provisioning\ Profiles 2>/dev/null || true
-          # xulosada (annotation) ko'rinsin: ilova target'ining imzo sozlamalari
-          app_settings=$(grep -A6 "TARGET_NAME = $SCHEME\$" "$RUNNER_TEMP/sign-settings.txt" | tr -s ' ' | tr '\n' ';')
-          echo "::warning::Imzo sozlamalari: $app_settings"
-          echo "$app_settings" | grep -q "PROVISIONING_PROFILE_SPECIFIER = [^;]" || { echo "::error::Ilova target'ida profil ko'rinmayapti"; exit 1; }
 
       - name: Archive
         run: |
