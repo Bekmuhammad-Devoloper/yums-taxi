@@ -3,6 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Card, ListItem, Screen, Txt, type IconName } from '@/components/ui';
+import { openLegal } from '@/lib/legal-links';
 import { useStore } from '@/lib/store';
 import { tr, tx } from '@/lib/i18n';
 
@@ -68,12 +69,19 @@ const DOCS: Doc[] = [
 
 export default function Legal() {
   const { doc } = useLocalSearchParams<{ doc?: string }>();
-  const { colors: c } = useStore();
+  const { colors: c, lang } = useStore();
   const d = DOCS.find(x => x.id === doc);
 
   if (d) {
     return (
       <Screen title={tr(d.title)} subtitle={tr('Yangilangan: {updated}', { updated: d.updated })}>
+        {/* To'liq siyosat — ochiq veb-sahifa (Google Play'dagi havola bilan bir xil) */}
+        {d.id === 'privacy' && (
+          <Card style={{ padding: 6 }}>
+            <ListItem icon="open-outline" title={tr("To'liq maxfiylik siyosati")} sub={tr("Qanday ma'lumot yig'iladi, nima uchun va kimga beriladi")} onPress={() => openLegal('privacy', lang)} />
+            <ListItem icon="trash-outline" title={tr("Hisobni o'chirish")} sub={tr("Nima o'chiriladi va nima saqlanadi")} onPress={() => openLegal('account-deletion', lang)} />
+          </Card>
+        )}
         {d.sections.map(([h, body]) => (
           <Card key={h} style={{ gap: 6 }}>
             <Txt v="h3">{tr(h)}</Txt>

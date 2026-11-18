@@ -17,6 +17,7 @@ import { useDriver } from '@/driver/lib/driver-store';
 import { requestOtp, verifyOtp, verifySecondFactor, type SecondStep } from '@/lib/account-api';
 import { ApiError, errorText } from '@/lib/api';
 import { flipRTL, tr, tx } from '@/lib/i18n';
+import { openLegal } from '@/lib/legal-links';
 import { haptic, useStore } from '@/lib/store';
 import { KEYBOARD_BEHAVIOR } from '@/lib/keyboard';
 import { F } from '@/lib/theme';
@@ -38,7 +39,7 @@ const formatPhone = (d: string) => [d.slice(0, 2), d.slice(2, 5), d.slice(5, 7),
 type Step = 'phone' | 'code';
 
 export default function Login() {
-  const { colors: c, signIn, settings } = useStore();
+  const { colors: c, signIn, settings, lang } = useStore();
   const CODE_LEN = settings?.otpLength ?? DEFAULT_CODE_LEN;
   const { loadAccount } = useDriver();
   const insets = useSafeAreaInsets();
@@ -259,7 +260,10 @@ export default function Login() {
                   {tr("Yangi haydovchi? Keyingi qadamda avtomobil va hujjatlarni qo'shasiz.")}
                 </Txt>
               </View>
-              <Txt v="tiny" faint style={styles.legal}>{tr('Davom etib, foydalanish shartlariga rozilik bildirasiz')}</Txt>
+              <Txt v="tiny" faint style={styles.legal}>
+                {tr('Davom etib, foydalanish shartlariga rozilik bildirasiz')}{' · '}
+                <Txt v="tiny" color={c.accent} onPress={() => openLegal('privacy', lang)}>{tr('Maxfiylik siyosati')}</Txt>
+              </Txt>
             </>
           )}
 

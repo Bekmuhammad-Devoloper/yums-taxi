@@ -483,6 +483,9 @@ const common: Record<string, Row> = {
   "Javob noto'g'ri yoki nomaqbulmi? Operator ko'rib chiqadi.": ["Ответ неверный или недопустимый? Оператор проверит его.", "Is the answer wrong or inappropriate? An operator will review it.", "Ҷавоб нодуруст ё номатлуб аст? Оператор онро баррасӣ мекунад.", "هل الرد خاطئ أو غير لائق؟ سيراجعه أحد المشغلين."],
   "YUMS AI javobi ustidan shikoyat — operator ko'rib chiqsin": ["Жалоба на ответ YUMS AI — прошу оператора проверить", "Report on a YUMS AI answer — please have an operator review it", "Шикоят аз ҷавоби YUMS AI — лутфан оператор баррасӣ кунад", "بلاغ عن رد YUMS AI — يرجى أن يراجعه أحد المشغلين"],
   "Shikoyat yuborildi": ["Жалоба отправлена", "Report sent", "Шикоят фиристода шуд", "تم إرسال البلاغ"],
+  "To'liq maxfiylik siyosati": ["Полная политика конфиденциальности", "Full privacy policy", "Сиёсати пурраи махфият", "سياسة الخصوصية الكاملة"],
+  "Qanday ma'lumot yig'iladi, nima uchun va kimga beriladi": ["Какие данные собираются, зачем и кому передаются", "What data is collected, why and who it is shared with", "Кадом маълумот ҷамъ мешавад, барои чӣ ва ба кӣ дода мешавад", "ما البيانات التي تُجمع ولماذا ومع من تُشارك"],
+  "Nima o'chiriladi va nima saqlanadi": ["Что удаляется и что сохраняется", "What is deleted and what is kept", "Чӣ нест карда мешавад ва чӣ нигоҳ дошта мешавад", "ما الذي يُحذف وما الذي يُحتفظ به"],
 };
 
 export default common;

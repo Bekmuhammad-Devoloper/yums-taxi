@@ -8,11 +8,12 @@ import { confirm } from '@/lib/confirm';
 import { useDriver, type NavApp } from '@/driver/lib/driver-store';
 import { say, voiceSource, type VoiceLang, type VoiceSource } from '@/driver/lib/voice';
 import { API_URL, errorText } from '@/lib/api';
+import { openLegal } from '@/lib/legal-links';
 import { useStore } from '@/lib/store';
 import { LANGS, tr } from '@/lib/i18n';
 
 export default function Settings() {
-  const { dark, setTheme, deleteAccount } = useStore();
+  const { dark, setTheme, deleteAccount, lang } = useStore();
   const d = useDriver();
   return (
     <Screen title={tr('Sozlamalar')}>
@@ -44,6 +45,10 @@ export default function Settings() {
         <Txt v="small" muted>
           {d.live ? tr('Server: {url} · ulangan', { url: API_URL }) : tr('Server: {url} · ulanmoqda…', { url: API_URL })}
         </Txt>
+      </Card>
+
+      <Card style={{ paddingVertical: 6, paddingHorizontal: 4 }}>
+        <ListItem icon="lock-closed-outline" title={tr("To'liq maxfiylik siyosati")} sub={tr("Qanday ma'lumot yig'iladi, nima uchun va kimga beriladi")} onPress={() => openLegal('privacy', lang)} />
       </Card>
 
       <Card style={{ paddingVertical: 6, paddingHorizontal: 4 }}>
