@@ -117,7 +117,8 @@ jobs:
       - name: Native iOS loyiha (expo prebuild + CocoaPods)
         run: |
           npx expo prebuild -p ios --clean --no-install
-          cd ios && pod install
+          # CocoaPods CDN ba'zan uziladi — bir marta qayta urinish
+          cd ios && (pod install || (echo '::warning::pod install qayta urinilmoqda'; pod repo update && pod install))
           cd .. && ws=$(ls -d ios/*.xcworkspace | head -1)
           echo "WORKSPACE=$ws" >> "$GITHUB_ENV"
           echo "SCHEME=$(basename "$ws" .xcworkspace)" >> "$GITHUB_ENV"
@@ -141,6 +142,8 @@ jobs:
           profile_name=$(python -c "import json;print(json.load(open('$sign/ids.json'))['profileName'])")
           profile_uuid=$(python -c "import json;print(json.load(open('$sign/ids.json'))['uuid'])")
           echo "PROFILE_NAME=$profile_name" >> "$GITHUB_ENV"
+          # GITHUB_ENV faqat keyingi qadamlarda ko'rinadi — shu qadamdagi ruby uchun export ham kerak
+          export PROFILE_NAME="$profile_name"
 
           # vaqtinchalik keychain: kalit + sertifikat (+ Apple WWDR oraliq sertifikati)
           kc="$RUNNER_TEMP/yums-signing.keychain-db"
