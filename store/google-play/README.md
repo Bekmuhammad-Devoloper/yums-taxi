@@ -85,12 +85,18 @@ navigator, daromad, hujjatlar.
 
 | Maydon | YUMS | YUMS Driver |
 |---|---|---|
-| Название | `YUMS — Taksi va biznes` | `YUMS Driver` |
-| Язык по умолчанию | Узбекский – uz | Узбекский – uz |
+| Название приложения | `YUMS — такси и бизнес` | `YUMS Driver` |
+| Название пакета | `uz.yums.taxi` | `uz.yums.driver` |
+| Язык по умолчанию | Русский – ru-RU | Русский – ru-RU |
 | Приложение или игра | Приложение | Приложение |
 | Бесплатное или платное | Бесплатное | Бесплатное |
 
-Ikki deklaratsiyaga (Правила для разработчиков, экспортные законы США) belgi qo'ying → **Создать**.
+Paket nomini yozgach **«Проверить доступность»**ni bosing — u AAB'dagi bilan aynan bir xil bo'lishi shart va
+keyin o'zgartirib bo'lmaydi. Uchala belgini qo'ying (Правила программы, подписание приложений, экспорт США)
+→ **Создать приложение**.
+
+O'zbek tili Play do'kon sahifasi tillari ro'yxatida **yo'q**, shuning uchun asosiy til — rus, qo'shimcha — ingliz.
+O'zbek tilidagi telefonlarda sahifa ruscha ko'rinadi; ilovaning o'zi esa o'zbekcha ishlaydi.
 
 ## 3. «Настройка приложения» (Dashboard'dagi vazifalar)
 
@@ -189,42 +195,14 @@ Eskiz — Google ta'rifi bo'yicha «передача» hisoblanmaydi), **«не 
 ## 4. Основная страница в Google Play (Store listing)
 
 Grafika: ikonka `icon-512.png`, feature graphic, telefon skrinshotlari (kamida 2, tavsiya 4–8).
-Tarjimalar: **Переводы → Добавить** → `ru-RU`, `en-US`.
+Tarjima: **Переводы → Добавить** → `en-US` (asosiy til ru-RU). en-US sahifasidagi nom: `YUMS — Taxi & Business`.
 
 ### YUMS — qisqa tavsif (≤80)
 
-- uz: `Taksi chaqiring, loyiha va hamkor toping — hammasi bitta ilovada.`
 - ru: `Вызовите такси, найдите проекты и партнёров — всё в одном приложении.`
 - en: `Order a taxi, find projects and partners — all in one app.`
 
 ### YUMS — to'liq tavsif
-
-**uz**
-```
-YUMS — taksi va biznes platformasi bitta ilovada.
-
-TAKSI
-• Manzilni kiriting — narx buyurtmadan oldin ko'rinadi
-• Tariflar: Start, Komfort, Biznes, Miniven va Yetkazish
-• Haydovchi qayerdaligini xaritada jonli kuzating
-• Haydovchi bilan ilova ichida yozishing
-• Naqd, YUMS balansi yoki bank kartasi bilan to'lang
-• Safardan keyin haydovchini baholang
-
-PLATFORMA
-• Loyihalar katalogi: startap va bizneslarni toping yoki o'zingiznikini joylang
-• Kompaniyalar, mutaxassislar va investorlar katalogi
-• Hamkorlik so'rovi va xavfsiz chat — telefon raqamingiz ko'rinmaydi
-• YUMS ID: QR-kodli raqamli tashrif kartasi
-• E'lonlar, uchrashuvlar va sharhlar
-
-XAVFSIZLIK
-• Barcha loyiha va e'lonlar moderatsiyadan o'tadi
-• Har qanday kontent yoki foydalanuvchi ustidan shikoyat qilish va bloklash
-• Ikki bosqichli kirish, ma'lumotlaringiz nusxasini olish va hisobni ilovaning o'zida o'chirish
-
-Qo'llab-quvvatlash 24/7 — ilovadagi chat orqali.
-```
 
 **ru**
 ```
@@ -282,29 +260,10 @@ Support 24/7 in the in-app chat.
 
 ### YUMS Driver — qisqa tavsif
 
-- uz: `YUMS haydovchilari uchun: buyurtmalar, navigator va daromad bitta joyda.`
 - ru: `Для водителей YUMS: заказы, навигатор и доходы в одном месте.`
 - en: `For YUMS drivers: orders, navigation and earnings in one place.`
 
 ### YUMS Driver — to'liq tavsif
-
-**uz**
-```
-YUMS Driver — YUMS taksi xizmati haydovchilari uchun ilova.
-
-• Liniyaga chiqing va yaqin atrofdagi buyurtmalarni oling
-• Yangi buyurtma haqida ovozli xabar
-• Ichki navigator yoki Yandex Navigator / Google Maps bilan yo'l
-• Yo'lovchi bilan ilova ichida yozishuv
-• Bugungi daromad, safarlar tarixi va reyting
-• Balans va pul yechish so'rovlari
-• Talab yuqori bo'lgan hududlar xaritada
-• Hujjatlarni ilovaning o'zida yuklash va holatini kuzatish
-• Favqulodda vaziyat tugmasi (SOS)
-
-Ishlash uchun haydovchilik guvohnomasi, avtomobil hujjatlari va YUMS tasdig'i kerak.
-Joylashuv faqat «Liniyada» rejimida, ilova ochiq turganda ishlatiladi.
-```
 
 **ru**
 ```
@@ -352,7 +311,6 @@ Location is used only while you are «Online» with the app open.
    (Google o'z kalitini yaratadi; bizdagi kalit faqat yuklash uchun).
 5. `YUMS.aab` ni yuklang. «Название выпуска» avtomatik. «Примечания к выпуску»:
    ```
-   <uz-UZ>Birinchi sinov versiyasi.</uz-UZ>
    <ru-RU>Первая тестовая версия.</ru-RU>
    <en-US>First test release.</en-US>
    ```
