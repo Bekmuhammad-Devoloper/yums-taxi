@@ -1107,6 +1107,8 @@ const platform: Record<string, Row> = {
   "E'lonlari": ["Объявления", "Listings", "Эълонҳо", "الإعلانات"],
   "Hali ochiq loyiha yoki e'lon yo'q": ["Пока нет открытых проектов или объявлений", "No public projects or listings yet", "Ҳоло лоиҳа ё эълони кушода нест", "لا توجد مشاريع أو إعلانات عامة بعد"],
   "{name} katalogga loyiha yoki e'lon joylasa, shu yerda ko'rinadi": ["Когда {name} разместит проект или объявление в каталоге, они появятся здесь", "When {name} posts a project or listing in the catalog, it will show up here", "Вақте ки {name} дар каталог лоиҳа ё эълон гузорад, дар ин ҷо пайдо мешавад", "عندما ينشر {name} مشروعًا أو إعلانًا في الدليل، سيظهر هنا"],
+  "{name} · YUMS ID\n{url}": ["{name} · YUMS ID\n{url}", "{name} · YUMS ID\n{url}", "{name} · YUMS ID\n{url}", "{name} · YUMS ID\n{url}"],
+  "QR-kod: skaner qilinsa kartaning ochiq sahifasi ochiladi. Bosing — havolani ulashish": ["QR-код: при сканировании откроется страница карты. Нажмите — поделиться ссылкой", "QR code: scanning it opens the card's public page. Tap to share the link", "QR-код: ҳангоми скан саҳифаи кушодаи корт кушода мешавад. Пахш кунед — пайвандро мубодила кунед", "رمز QR: عند مسحه تُفتح الصفحة العامة للبطاقة. اضغط لمشاركة الرابط"],
 };
 
 export default platform;

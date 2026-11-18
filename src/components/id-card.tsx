@@ -5,9 +5,10 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Image } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Linking, Platform, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 
 import { useStartChat } from '@/lib/actions';
+import { API_URL } from '@/lib/api';
 import { CARD_BACKS } from '@/lib/card-backs';
 import { LANGUAGES, type Specialist } from '@/lib/platform-data';
 import { countryOf } from '@/lib/platform';
@@ -16,6 +17,7 @@ import { F } from '@/lib/theme';
 import { tr } from '@/lib/i18n';
 
 import { SpecialistAvatar } from './platform-ui';
+import { QrCode } from './qr-code';
 import { toast } from './toast';
 import { BrandMark, Flag, Verified, type IconName } from './ui';
 
@@ -112,12 +114,31 @@ function CardArt({ sp }: { sp: Specialist }) {
     : <LinearGradient colors={BACK_THEMES[i % BACK_THEMES.length]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />;
 }
 
+/** QR yonida joy tor: ko'nikmalar siqilmaydi — faqat to'liq sig'adiganlari (taxminiy kenglik, karta birligida) */
+function fitSkills(all: string[], room = 238): string[] {
+  const out: string[] = [];
+  let used = 0;
+  for (const s of all) {
+    const width = 6.3 * s.length + 18;
+    if (used + width > room) continue;
+    used += width;
+    out.push(s);
+  }
+  return out;
+}
+
 function IdBack({ sp, onFlip, z }: { sp: Specialist; onFlip: () => void; z: Scale }) {
   const start = useStartChat();
   const site = sp.website?.replace(/^https?:\/\//, '').replace(/\/$/, '');
   const num = 'YM' + sp.id.replace(/\D/g, '').padStart(7, '0');
-  const bars = [...(num + sp.name)].map(ch => 1 + (ch.charCodeAt(0) % 4));
   const langs = sp.languages.map(l => LANGUAGES.find(x => x.id === l)?.name ?? l).join(', ');
+  const skills = fitSkills(sp.skills);
+  // QR-kod ochiq karta sahifasini ochadi: istalgan telefonda, ilovasiz ham (server: GET /p/:id)
+  const cardUrl = `${API_URL}/p/${sp.id}`;
+  const shareCard = () => {
+    haptic.tap();
+    Share.share({ message: tr('{name} · YUMS ID\n{url}', { name: sp.name, url: cardUrl }) }).catch(() => {});
+  };
   const chat = () => { haptic.tap(); start({ peerId: sp.id, peerName: sp.name, peerKind: 'specialist', peerVerified: sp.verified }, { subject: tr('YUMS ID orqali murojaat') }); };
   const go = () => {
     if (!sp.website) return chat();
@@ -141,22 +162,33 @@ function IdBack({ sp, onFlip, z }: { sp: Specialist; onFlip: () => void; z: Scal
           <Text style={[styles.backKicker, { fontSize: z(8.5) }]} numberOfLines={1}>{sp.website ? tr('PORTFOLIO · {site}', { site }) : tr('YUMS CHAT ORQALI ALOQA')}</Text>
           <Text style={[styles.backTitle, { fontSize: z(18) }]} numberOfLines={1}>{sp.name}</Text>
         </View>
-        <View style={[styles.row, { gap: z(5), flexWrap: 'wrap' }]}>
-          <Stat z={z} icon="star" tint="#FFC800" text={`${sp.rating.toFixed(1)} (${sp.reviews})`} />
-          <Stat z={z} icon="cash-outline" text={tr('${rate}/soat', { rate: sp.rate })} />
-          <Stat z={z} icon="ribbon-outline" text={tr('{experience} yil', { experience: sp.experience })} />
-          {sp.remote && <Stat z={z} icon="globe-outline" text={tr('Masofaviy')} />}
-        </View>
-        <View style={[styles.row, { gap: z(4), overflow: 'hidden' }]}>
-          {sp.skills.slice(0, 4).map(k => (
-            <View key={k} style={[styles.skill, { height: z(19), paddingHorizontal: z(7), borderRadius: z(6) }]}>
-              <Text style={[styles.skillText, { fontSize: z(10) }]} numberOfLines={1}>{k}</Text>
+        {/* chapda — ko'rsatkichlar, ko'nikmalar, tillar; o'ngda — skaner qilinadigan QR-kod */}
+        <View style={[styles.row, { gap: z(8), alignItems: 'flex-end' }]}>
+          <View style={{ flex: 1, minWidth: 0, gap: z(5) }}>
+            <View style={[styles.row, { gap: z(5), overflow: 'hidden' }]}>
+              <Stat z={z} icon="star" tint="#FFC800" text={`${sp.rating.toFixed(1)} (${sp.reviews})`} />
+              <Stat z={z} icon="cash-outline" text={tr('${rate}/soat', { rate: sp.rate })} />
+              <Stat z={z} icon="ribbon-outline" text={tr('{experience} yil', { experience: sp.experience })} />
             </View>
-          ))}
+            <View style={[styles.row, { gap: z(4), overflow: 'hidden' }]}>
+              {skills.map(k => (
+                <View key={k} style={[styles.skill, { flexShrink: 0, height: z(19), paddingHorizontal: z(7), borderRadius: z(6) }]}>
+                  <Text style={[styles.skillText, { fontSize: z(10) }]} numberOfLines={1}>{k}</Text>
+                </View>
+              ))}
+            </View>
+            <Text style={[styles.backSub, { fontSize: z(10.5) }]} numberOfLines={1}>
+              <Ionicons name="language-outline" size={z(11)} color="rgba(255,255,255,0.8)" /> {langs}  ·  {sp.available ? tr("Hozir bo'sh — buyurtma qabul qiladi") : tr('Hozir band')}
+            </Text>
+          </View>
+          <Pressable
+            onPress={shareCard}
+            style={({ pressed }) => [styles.qrTile, { borderRadius: z(8), padding: z(2), opacity: pressed ? 0.85 : 1 }]}
+            accessibilityRole="button"
+            accessibilityLabel={tr('QR-kod: skaner qilinsa kartaning ochiq sahifasi ochiladi. Bosing — havolani ulashish')}>
+            <QrCode value={cardUrl} size={z(60)} style={{ borderRadius: z(6) }} />
+          </Pressable>
         </View>
-        <Text style={[styles.backSub, { fontSize: z(10.5) }]} numberOfLines={1}>
-          <Ionicons name="language-outline" size={z(11)} color="rgba(255,255,255,0.8)" /> {langs}  ·  {sp.available ? tr("Hozir bo'sh — buyurtma qabul qiladi") : tr('Hozir band')}
-        </Text>
       </View>
       <View style={[styles.row, { gap: z(7) }]}>
         <Pressable onPress={go} style={({ pressed }) => [styles.backCta, { height: btn, paddingHorizontal: z(12), borderRadius: btn / 2, opacity: pressed ? 0.85 : 1 }]}>
@@ -169,12 +201,7 @@ function IdBack({ sp, onFlip, z }: { sp: Specialist; onFlip: () => void; z: Scal
           </Pressable>
         ) : null}
         <View style={{ flex: 1 }} />
-        <View style={{ alignItems: 'flex-end', gap: z(2) }}>
-          <View style={[styles.barcode, { height: z(16) }]}>
-            {bars.map((bw, k) => <View key={k} style={{ width: bw, height: k % 3 ? z(16) : z(12), backgroundColor: 'rgba(255,255,255,0.85)' }} />)}
-          </View>
-          <Text style={[styles.backNum, { fontSize: z(9) }]}>№ {num}</Text>
-        </View>
+        <Text style={[styles.backNum, { fontSize: z(8), flexShrink: 1 }]} numberOfLines={1} ellipsizeMode="middle">№ {num}</Text>
       </View>
     </View>
   );
@@ -315,6 +342,7 @@ const styles = StyleSheet.create({
   skillText: { color: '#FFD54A', fontFamily: F.semi },
   backCta: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#FFC800' },
   backCtaText: { color: '#0E1525', fontFamily: F.bold },
-  barcode: { flexDirection: 'row', alignItems: 'flex-end', gap: 1.5 },
+  // QR atrofida oq plitka — qorong'i kartada ham kamera kodni aniq ajratadi
+  qrTile: { backgroundColor: '#FFFFFF', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 0, height: 2 }, elevation: 4 },
   backNum: { color: 'rgba(255,255,255,0.7)', fontFamily: F.mono, letterSpacing: 1.2 },
 });
