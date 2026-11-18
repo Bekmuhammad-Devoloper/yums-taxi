@@ -479,6 +479,10 @@ const common: Record<string, Row> = {
   "Yangi: #{v}": ["Новая: #{v}", "New: #{v}", "Нав: #{v}", "الجديد: #{v}"],
   "Yangilash": ["Обновить", "Update", "Навсозӣ", "تحديث"],
   "Keyinroq": ["Позже", "Later", "Баъдтар", "لاحقًا"],
+  "YUMS AI javobi ustidan shikoyat": ["Жалоба на ответ YUMS AI", "Report a YUMS AI answer", "Шикоят аз ҷавоби YUMS AI", "الإبلاغ عن رد YUMS AI"],
+  "Javob noto'g'ri yoki nomaqbulmi? Operator ko'rib chiqadi.": ["Ответ неверный или недопустимый? Оператор проверит его.", "Is the answer wrong or inappropriate? An operator will review it.", "Ҷавоб нодуруст ё номатлуб аст? Оператор онро баррасӣ мекунад.", "هل الرد خاطئ أو غير لائق؟ سيراجعه أحد المشغلين."],
+  "YUMS AI javobi ustidan shikoyat — operator ko'rib chiqsin": ["Жалоба на ответ YUMS AI — прошу оператора проверить", "Report on a YUMS AI answer — please have an operator review it", "Шикоят аз ҷавоби YUMS AI — лутфан оператор баррасӣ кунад", "بلاغ عن رد YUMS AI — يرجى أن يراجعه أحد المشغلين"],
+  "Shikoyat yuborildi": ["Жалоба отправлена", "Report sent", "Шикоят фиристода шуд", "تم إرسال البلاغ"],
 };
 
 export default common;

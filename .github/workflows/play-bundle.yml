@@ -1,0 +1,126 @@
+# Google Play uchun YUMS va YUMS Driver AAB (Android App Bundle) yig'ish. Faqat qo'lda ishga tushadi:
+#   GitHub → Actions → «Google Play AAB» → Run workflow
+# Natija — shu yig'ilishning «Artifacts» bo'limida: YUMS.aab va YUMS-Driver.aab. Ularni Play Console'ga yuklang.
+#
+# APK'dan farqi (android-apk.yml):
+#  - yuklash kaliti (upload key) bilan imzolanadi — Play App Signing uni o'z kaliti bilan qayta imzolaydi;
+#  - EXPO_PUBLIC_STORE=play: ilova o'zini GitHub'dan yangilamaydi, raqamli xaridlar Play Billing'gacha yashirin.
+#
+# Kerakli repo secret'lari (Settings → Secrets and variables → Actions):
+#   PLAY_UPLOAD_KEYSTORE_B64     — yuklash kaliti fayli (.jks) base64 ko'rinishida
+#   PLAY_UPLOAD_STORE_PASSWORD   — kalit ombori paroli
+#   PLAY_UPLOAD_KEY_ALIAS        — kalit nomi (alias)
+#   PLAY_UPLOAD_KEY_PASSWORD     — kalit paroli
+# va APK bilan umumiy: GOOGLE_MAPS_ANDROID_KEY, GOOGLE_SERVICES_JSON.
+name: Google Play AAB
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: play-bundle
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  aab:
+    name: ${{ matrix.title }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: passenger
+            title: YUMS
+            file: YUMS.aab
+            package: uz.yums.taxi
+          - variant: driver
+            title: YUMS Driver
+            file: YUMS-Driver.aab
+            package: uz.yums.driver
+    env:
+      APP_VARIANT: ${{ matrix.variant == 'driver' && 'driver' || '' }}
+      EXPO_PUBLIC_API_URL: https://api.yums.uz/api/v1
+      EXPO_PUBLIC_STORE: play
+      GOOGLE_MAPS_ANDROID_KEY: ${{ secrets.GOOGLE_MAPS_ANDROID_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Yuklash kaliti
+        env:
+          KEYSTORE_B64: ${{ secrets.PLAY_UPLOAD_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.PLAY_UPLOAD_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.PLAY_UPLOAD_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.PLAY_UPLOAD_KEY_PASSWORD }}
+        run: |
+          for name in KEYSTORE_B64 STORE_PASSWORD KEY_ALIAS KEY_PASSWORD; do
+            if [ -z "${!name}" ]; then echo "::error::PLAY_UPLOAD_$name secret yo'q — AAB imzolanmaydi"; exit 1; fi
+          done
+          printf '%s' "$KEYSTORE_B64" | tr -d '\r\n ' | base64 -d > "$RUNNER_TEMP/upload.jks"
+          {
+            echo "YUMS_UPLOAD_STORE_FILE=$RUNNER_TEMP/upload.jks"
+            echo "YUMS_UPLOAD_STORE_PASSWORD=$STORE_PASSWORD"
+            echo "YUMS_UPLOAD_KEY_ALIAS=$KEY_ALIAS"
+            echo "YUMS_UPLOAD_KEY_PASSWORD=$KEY_PASSWORD"
+            # Play versionCode doim o'sib borishi kerak; GitHub APK raqamlaridan ajralib turishi uchun 1000 dan
+            echo "APP_BUILD=$((1000 + GITHUB_RUN_NUMBER))"
+          } >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Kutubxonalar
+        run: npm ci
+
+      - name: Firebase (push)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then echo "::error::GOOGLE_SERVICES_JSON secret yo'q"; exit 1; fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" > google-services.json
+
+      - name: Native Android loyiha (expo prebuild)
+        run: npx expo prebuild -p android --clean --no-install
+
+      - name: Release AAB
+        working-directory: android
+        run: ./gradlew bundleRelease --console=plain -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
+
+      # Play qoidalariga zid narsa AAB'ga tushmasin: paket nomi, imzo va taqiqlangan ruxsatlar
+      - name: Tekshiruv
+        run: |
+          aab=android/app/build/outputs/bundle/release/app-release.aab
+          curl -sSL -o "$RUNNER_TEMP/bundletool.jar" https://github.com/google/bundletool/releases/download/1.18.1/bundletool-all-1.18.1.jar
+          manifest=$(java -jar "$RUNNER_TEMP/bundletool.jar" dump manifest --bundle "$aab")
+          echo "$manifest" | grep -oE 'package="[^"]+"|android:versionCode="[^"]+"|android:targetSdkVersion="[^"]+"' || true
+          echo "$manifest" | grep -q "package=\"${{ matrix.package }}\"" || { echo "::error::paket nomi ${{ matrix.package }} emas"; exit 1; }
+          echo "Ruxsatlar:"; echo "$manifest" | grep -oE 'android\.permission\.[A-Z_]+' | sort -u
+          for bad in REQUEST_INSTALL_PACKAGES SYSTEM_ALERT_WINDOW RECORD_AUDIO ACCESS_BACKGROUND_LOCATION READ_MEDIA_IMAGES READ_MEDIA_VIDEO QUERY_ALL_PACKAGES READ_SMS READ_CALL_LOG FOREGROUND_SERVICE; do
+            if echo "$manifest" | grep -q "android.permission.$bad\""; then echo "::error::AAB'da $bad ruxsati bor"; exit 1; fi
+          done
+          signer=$(keytool -printcert -jarfile "$aab")
+          echo "$signer" | grep -E "Owner:|SHA1:|SHA256:"
+          if echo "$signer" | grep -q "CN=Android Debug"; then echo "::error::AAB debug kalit bilan imzolangan"; exit 1; fi
+          mv "$aab" "${{ matrix.file }}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.file }}
+          path: ${{ matrix.file }}
+          retention-days: 30
+
+      - name: Kalitni o'chirish
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload.jks"

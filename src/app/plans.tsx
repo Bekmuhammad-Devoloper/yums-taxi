@@ -13,6 +13,7 @@ import { Badge, Button, Card, Chip, Field, ListItem, Row, Screen, SectionHeader,
 import { fmtDay } from '@/lib/format';
 import { som } from '@/lib/geo';
 import { PLANS, PRO_SERVICES, type Plan } from '@/lib/platform-data';
+import { DIGITAL_SALES } from '@/lib/distribution';
 import { usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
@@ -77,7 +78,8 @@ export default function Plans() {
 
   return (
     <Screen title={tr('Tariflar va reklama')} subtitle={tr("Bepul boshlang — kerak bo'lganda kengaytiring")}>
-      {boostProject && (
+      {/* Play'da (Play Billing ulanmaguncha) — faqat tarif krediti bilan */}
+      {boostProject && (DIGITAL_SALES || p.boostCredits > 0) && (
         <Card style={{ gap: 10, borderWidth: 2, borderColor: c.brand }}>
           <Row gap={8}><Ionicons name="flash" size={20} color={c.brandDeep} /><Txt v="h3" style={{ flex: 1 }}>{tr('TOPga chiqarish')}</Txt><Txt v="h2">{p.boostCredits > 0 ? tr('Bepul') : `$${boostUsd}`}</Txt></Row>
           <Txt v="small" muted>{tr("«{title}» {days} kun davomida bosh sahifa va qidiruvda birinchi ko'rsatiladi.", { title: boostProject.title, days: boostDays })}</Txt>
@@ -107,12 +109,12 @@ export default function Plans() {
             </Row>
             <View>
               <Txt v="title">{price ? `$${price}` : tr('Bepul')}<Txt v="small" muted>{price ? (period === 'year' ? tr(' / yil') : tr(' / oy')) : ''}</Txt></Txt>
-              {!!priceSom && <Txt v="tiny" faint>{tr('≈ {sum} · YUMS balansidan', { sum: som(priceSom) })}</Txt>}
+              {!!priceSom && DIGITAL_SALES && <Txt v="tiny" faint>{tr('≈ {sum} · YUMS balansidan', { sum: som(priceSom) })}</Txt>}
             </View>
             <View style={{ gap: 8 }}>
               {pl.perks.map(x => <Row key={x} gap={8}><Ionicons name="checkmark-circle" size={18} color={pl.color} /><Txt v="small" style={{ flex: 1 }}>{x}</Txt></Row>)}
             </View>
-            {!current && <Button title={pl.id === 'free' ? tr("Free'ga qaytish") : tr("{name}ga o'tish", { name: pl.name })} kind={pl.id === 'free' ? 'ghost' : 'dark'} onPress={() => {
+            {!current && (pl.id === 'free' || DIGITAL_SALES) && <Button title={pl.id === 'free' ? tr("Free'ga qaytish") : tr("{name}ga o'tish", { name: pl.name })} kind={pl.id === 'free' ? 'ghost' : 'dark'} onPress={() => {
               if (pl.id !== 'free') { setBuying(pl.id); return; }
               p.setPlan('free', false).then(ok => ok && toast(tr('Free tarifiga qaytdingiz'), 'leaf')).catch(() => {});
             }} />}
@@ -121,7 +123,8 @@ export default function Plans() {
         );
       })}
 
-      <SectionHeader title={tr('Reklama')} />
+      {(DIGITAL_SALES || p.ads.length > 0) && <SectionHeader title={tr('Reklama')} />}
+      {DIGITAL_SALES && (
       <View style={[styles.ad, { backgroundColor: '#0F1E3D' }]}>
         <Text style={styles.adKicker}>{tr('YUMS ADS')}</Text>
         <Text style={styles.adTitle}>{tr("Kompaniyangizni 86 mamlakatdagi auditoriyaga ko'rsating")}</Text>
@@ -129,6 +132,7 @@ export default function Plans() {
         <Button title={p.isVerified ? tr('Reklama kampaniyasi yaratish') : tr('Avval profilni tasdiqlang')} icon={p.isVerified ? 'megaphone' : 'shield-checkmark'} style={{ marginTop: 10 }}
           onPress={() => (p.isVerified ? setAdOpen(true) : router.push('/verify'))} />
       </View>
+      )}
       {p.ads.map(a => (
         <Card key={a.id}>
           <Row>
@@ -218,7 +222,6 @@ export default function Plans() {
         <Txt v="small" muted style={{ fontFamily: F.bold }}>{tr('Byudjet')}</Txt>
         <Row gap={8} style={{ flexWrap: 'wrap' }}>{[50, 150, 500, 1000].map(b => <Chip key={b} label={`$${b}`} active={adBudget === b} onPress={() => setAdBudget(b)} />)}</Row>
         <Txt v="tiny" faint>{tr("Taxminan {adBudget} ko'rsatish. Banner bosh sahifada 2:1 o'lchamda, «Reklama» belgisi bilan ko'rsatiladi.", { adBudget: adBudget * 120 })}</Txt>
-        <Txt v="tiny" faint>{tr("Byudjet YUMS balansidan yechiladi; reklama rad etilsa to'liq qaytariladi. Balans: {sum}", { sum: som(balance) })}</Txt>
         <Txt v="tiny" faint>{tr("Byudjet YUMS balansidan yechiladi; reklama rad etilsa to'liq qaytariladi. Balans: {sum}", { sum: som(balance) })}</Txt>
       </Sheet>
     </Screen>

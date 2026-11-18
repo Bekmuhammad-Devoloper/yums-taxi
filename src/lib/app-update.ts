@@ -5,6 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
+import { PLAY_BUILD } from './distribution';
+
 export type Release = { build: number; commit?: string; builtAt?: string; minBuild?: number };
 
 const extra = (Constants.expoConfig?.extra ?? {}) as { build?: number; appVariant?: string };
@@ -16,7 +18,8 @@ const APK_FILE = extra.appVariant === 'driver' ? 'YUMS-Driver.apk' : 'YUMS.apk';
 /** Yangi APK'ni yuklab olish havolasi */
 export const APK_URL = RELEASE_URL ? `${RELEASE_URL}/${APK_FILE}` : null;
 
-export const updateCheckEnabled = Platform.OS === 'android' && LOCAL_BUILD > 0 && !!RELEASE_URL;
+// Play'dan o'rnatilgan ilova faqat Play orqali yangilanadi (Play qoidasi: o'zini o'zi yangilamaydi)
+export const updateCheckEnabled = Platform.OS === 'android' && !PLAY_BUILD && LOCAL_BUILD > 0 && !!RELEASE_URL;
 
 /** Releases'dagi eng so'nggi yig'ilish; tarmoq yoki fayl bo'lmasa — null (hech narsa ko'rsatilmaydi) */
 export async function latestRelease(): Promise<Release | null> {

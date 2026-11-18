@@ -4,11 +4,14 @@
 //     ochilishdayoq yopib qo'yishi mumkin. APK biroz kattaroq, lekin barqaror.
 //  2) 32 va 64 bitli ARM telefonlar uchun (armeabi-v7a + arm64-v8a) — arzon va eski telefonlarda ham o'rnatiladi.
 //     Sinov uchun boshqa ABI: `gradlew assembleRelease -PreactNativeArchitectures=x86_64`.
-//  3) Kutilmagan yopilish: sababi faylga yoziladi va keyingi ochilishda oynada ko'rsatiladi — foydalanuvchi
+//  3) Google Play: AAB yuklash kaliti bilan imzolanadi, ishlatilmaydigan joylashuv servislari manifestdan olinadi.
+//  4) Kutilmagan yopilish: sababi faylga yoziladi va keyingi ochilishda oynada ko'rsatiladi — foydalanuvchi
 //     «Nusxa olish» bilan matnni dasturchiga yuboradi (USB va kompyutersiz tashxis).
 const fs = require('fs');
 const path = require('path');
-const { withDangerousMod, withGradleProperties, withMainActivity, withMainApplication } = require('expo/config-plugins');
+const {
+  withAndroidManifest, withAppBuildGradle, withDangerousMod, withGradleProperties, withMainActivity, withMainApplication,
+} = require('expo/config-plugins');
 
 const PROPS = {
   'android.enableMinifyInReleaseBuilds': 'false',
@@ -88,7 +91,58 @@ function insertAfter(contents, anchor, line, file) {
   return `${contents.slice(0, at)}\n${indent}${line}${contents.slice(at)}`;
 }
 
+// Google Play'ga yuklanadigan AAB yuklash kaliti (upload key) bilan imzolanadi. Kalit va parollar faqat CI
+// muhitida (GitHub secrets → .github/workflows/play-bundle.yml): build.gradle ularni yig'ish paytida o'qiydi.
+// Ular bo'lmasa (GitHub'dagi APK) — avvalgidek debug kalit, xarita kaliti cheklovi ham shunga mos.
+const UPLOAD_ENV = 'YUMS_UPLOAD_STORE_FILE';
+const UPLOAD_SIGNING = `
+        // Google Play: yuklash kaliti (plugins/with-android-release.js)
+        if (System.getenv('${UPLOAD_ENV}')) {
+            release {
+                storeFile file(System.getenv('${UPLOAD_ENV}'))
+                storePassword System.getenv('YUMS_UPLOAD_STORE_PASSWORD')
+                keyAlias System.getenv('YUMS_UPLOAD_KEY_ALIAS')
+                keyPassword System.getenv('YUMS_UPLOAD_KEY_PASSWORD')
+            }
+        }`;
+const DEBUG_SIGNING = 'signingConfig signingConfigs.debug';
+const RELEASE_SIGNING = `signingConfig System.getenv('${UPLOAD_ENV}') ? signingConfigs.release : signingConfigs.debug`;
+
+function withUploadSigning(gradle) {
+  if (gradle.includes(UPLOAD_ENV)) return gradle;
+  const debugBlock = /signingConfigs \{\s*debug \{[^}]*\}/.exec(gradle);
+  if (!debugBlock) throw new Error('with-android-release: build.gradle ichida signingConfigs.debug topilmadi');
+  const end = debugBlock.index + debugBlock[0].length;
+  const out = gradle.slice(0, end) + UPLOAD_SIGNING + gradle.slice(end);
+  const types = out.indexOf('buildTypes {');
+  const release = types < 0 ? -1 : out.indexOf('release {', types);
+  const line = release < 0 ? -1 : out.indexOf(DEBUG_SIGNING, release);
+  if (line < 0) throw new Error('with-android-release: buildTypes.release imzosi topilmadi');
+  return out.slice(0, line) + RELEASE_SIGNING + out.slice(line + DEBUG_SIGNING.length);
+}
+
+// expo-location fon rejimi servislari: ilova joylashuvni faqat ochiq turganda oladi, bu servislar ishlatilmaydi.
+// Manifestda qolsa, Play Console «foreground service» deklaratsiyasi va video so'raydi.
+const UNUSED_SERVICES = [
+  'expo.modules.location.services.LocationTaskService',
+  'expo.modules.location.next.locationForegroundService.LocationForegroundService',
+];
+
 module.exports = function withAndroidRelease(config) {
+  config = withAppBuildGradle(config, c => {
+    c.modResults.contents = withUploadSigning(c.modResults.contents);
+    return c;
+  });
+
+  config = withAndroidManifest(config, c => {
+    const manifest = c.modResults.manifest;
+    manifest.$['xmlns:tools'] = manifest.$['xmlns:tools'] || 'http://schemas.android.com/tools';
+    const app = manifest.application[0];
+    app.service = (app.service ?? []).filter(s => !UNUSED_SERVICES.includes(s.$['android:name']));
+    for (const name of UNUSED_SERVICES) app.service.push({ $: { 'android:name': name, 'tools:node': 'remove' } });
+    return c;
+  });
+
   config = withGradleProperties(config, c => {
     for (const [key, value] of Object.entries(PROPS)) {
       const item = c.modResults.find(p => p.type === 'property' && p.key === key);

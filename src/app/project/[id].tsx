@@ -18,6 +18,7 @@ import { LANGUAGES, SEEKS, STAGES } from '@/lib/platform-data';
 import { ago, budget, countryOf, fileSize, flagged, sectorOf, short, usePlatform } from '@/lib/platform';
 import { openFile } from '@/lib/open-file';
 import { SECTOR_ART } from '@/lib/sector-art';
+import { DIGITAL_SALES } from '@/lib/distribution';
 import { useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
 import { flipRTL, tr } from '@/lib/i18n';
@@ -68,10 +69,12 @@ export default function ProjectScreen() {
     else start(peer, { subject: pr.title });
   };
 
+  // TOP: tarif kreditidan yoki sotib olib (Play'da — Play Billing ulangach)
+  const canBoost = DIGITAL_SALES || p.boostCredits > 0;
   const footer = mine ? (
     <Row gap={10}>
       <Button title={tr('Tahrirlash')} kind="ghost" icon="create-outline" style={{ flex: 1 }} onPress={() => router.push({ pathname: '/project/edit', params: { id: pr.id } })} />
-      {pr.status === 'published' ? (
+      {pr.status === 'published' ? (!pr.boosted && !canBoost ? null :
         <Button title={pr.boosted ? tr('TOPda') : tr('TOPga chiqarish')} icon="flash" disabled={pr.boosted || boosting} style={{ flex: 1.3 }} onPress={() => {
           if (p.boostCredits <= 0) { router.push({ pathname: '/plans', params: { boost: pr.id } }); return; }
           setBoosting(true);
@@ -297,7 +300,7 @@ export default function ProjectScreen() {
           [
             { icon: 'share-social-outline', title: tr('Ulashish'), sub: tr('Havolani yuborish'), color: c.accent, onPress: () => { setMenu(false); share(); } },
             { icon: 'create-outline', title: tr('Tahrirlash'), sub: tr("Ma'lumot va bannerni o'zgartirish"), color: c.ok, onPress: () => { setMenu(false); router.push({ pathname: '/project/edit', params: { id: pr.id } }); } },
-            ...(pr.status === 'published' && !pr.boosted ? [{ icon: 'flash-outline' as const, title: tr('TOPga chiqarish'), sub: tr("Ko'proq investor va hamkorlar ko'radi"), color: '#E0A800', onPress: () => { setMenu(false); router.push({ pathname: '/plans', params: { boost: pr.id } }); } }] : []),
+            ...(pr.status === 'published' && !pr.boosted && canBoost ? [{ icon: 'flash-outline' as const, title: tr('TOPga chiqarish'), sub: tr("Ko'proq investor va hamkorlar ko'radi"), color: '#E0A800', onPress: () => { setMenu(false); router.push({ pathname: '/plans', params: { boost: pr.id } }); } }] : []),
           ],
           [
             { icon: 'trash-outline', title: tr("Loyihani o'chirish"), sub: tr("Qaytarib bo'lmaydi"), danger: true, onPress: () => {

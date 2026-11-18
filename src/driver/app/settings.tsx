@@ -2,16 +2,17 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { LangRow } from '@/components/lang-picker';
+import { toast } from '@/components/toast';
 import { Button, Card, Divider, IOSSwitch, ListItem, Row, Screen, Segmented, Txt } from '@/components/ui';
 import { confirm } from '@/lib/confirm';
 import { useDriver, type NavApp } from '@/driver/lib/driver-store';
 import { say, voiceSource, type VoiceLang, type VoiceSource } from '@/driver/lib/voice';
-import { API_URL } from '@/lib/api';
+import { API_URL, errorText } from '@/lib/api';
 import { useStore } from '@/lib/store';
 import { LANGS, tr } from '@/lib/i18n';
 
 export default function Settings() {
-  const { dark, setTheme } = useStore();
+  const { dark, setTheme, deleteAccount } = useStore();
   const d = useDriver();
   return (
     <Screen title={tr('Sozlamalar')}>
@@ -47,6 +48,11 @@ export default function Settings() {
 
       <Card style={{ paddingVertical: 6, paddingHorizontal: 4 }}>
         <ListItem icon="log-out-outline" title={tr('Hisobdan chiqish')} danger onPress={() => confirm(tr('Hisobdan chiqasizmi?'), tr('Daromad tarixi qurilmada saqlanib qoladi.'), d.logout, tr('Chiqish'))} />
+        <ListItem icon="trash-outline" title={tr("Hisobni o'chirish")} danger onPress={() => confirm(tr("Hisobni o'chirasizmi?"), tr("Shaxsiy ma'lumotlaringiz o'chiriladi, kirish sessiyalari yopiladi. Bu amalni qaytarib bo'lmaydi."), () => {
+          deleteAccount()
+            .then(() => { d.logout(); toast(tr("Hisob o'chirildi"), 'trash'); })
+            .catch(error => toast(errorText(error), 'alert-circle'));
+        }, tr("O'chirish"))} />
       </Card>
     </Screen>
   );

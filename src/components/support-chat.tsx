@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { toast } from '@/components/toast';
 import { Chip, PersonAvatar, Row, Screen, Txt } from '@/components/ui';
 import { errorText } from '@/lib/api';
+import { confirm } from '@/lib/confirm';
 import { KEYBOARD_BEHAVIOR, useKeyboardOpen } from '@/lib/keyboard';
 import { useStore } from '@/lib/store';
 import { closeTicket, myTickets, openTicket, replyTicket, ticket, type TicketDetail } from '@/lib/support-api';
@@ -87,6 +88,16 @@ export function SupportChat({ topics, orderId, greeting, draft, ticketId: openId
     }
   };
 
+  // AI javobi noto'g'ri yoki nomaqbul: shikoyat shu murojaatga yoziladi va operatorga uzatiladi
+  const reportAi = (body: string) => confirm(tr('YUMS AI javobi ustidan shikoyat'), tr("Javob noto'g'ri yoki nomaqbulmi? Operator ko'rib chiqadi."), () => {
+    if (!current) return;
+    const quote = body.length > 300 ? `${body.slice(0, 300)}…` : body;
+    replyTicket(current.id, `${tr("YUMS AI javobi ustidan shikoyat — operator ko'rib chiqsin")}:
+«${quote}»`)
+      .then(next => { setCurrent(next); toast(tr('Shikoyat yuborildi'), 'flag'); })
+      .catch(error => toast(errorText(error), 'alert-circle'));
+  }, tr('Yuborish'));
+
   const finish = async () => {
     if (!current) return;
     try {
@@ -130,7 +141,15 @@ export function SupportChat({ topics, orderId, greeting, draft, ticketId: openId
                 <View style={[styles.bubble, mine ? { backgroundColor: c.brand, borderBottomRightRadius: 6 } : { backgroundColor: c.surface, borderBottomLeftRadius: 6, borderColor: c.line, borderWidth: StyleSheet.hairlineWidth }]}>
                   {!mine ? <Txt v="tiny" style={[styles.who, { color: ai ? AI_TINT : c.ok }]}>{ai ? 'YUMS AI' : tr('Operator')}</Txt> : null}
                   <Txt v="small" color={mine ? c.brandText : c.text} style={{ lineHeight: 19 }}>{m.body}</Txt>
-                  <Txt v="tiny" color={mine ? 'rgba(14,21,37,0.55)' : c.faint} style={{ alignSelf: 'flex-end', marginTop: 2 }}>{hhmm(m.createdAt)}</Txt>
+                  <Row gap={10} style={{ alignSelf: 'flex-end', marginTop: 2 }}>
+                    {/* AI javobi ustidan shikoyat — operator ko'rib chiqadi (Google Play: AI kontentini belgilash) */}
+                    {ai && current?.status !== 'CLOSED' ? (
+                      <Pressable onPress={() => reportAi(m.body)} hitSlop={10} accessibilityLabel={tr('Shikoyat qilish')}>
+                        <Ionicons name="flag-outline" size={13} color={c.faint} />
+                      </Pressable>
+                    ) : null}
+                    <Txt v="tiny" color={mine ? 'rgba(14,21,37,0.55)' : c.faint}>{hhmm(m.createdAt)}</Txt>
+                  </Row>
                 </View>
               </Row>
             );
