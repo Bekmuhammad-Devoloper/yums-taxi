@@ -1,0 +1,7 @@
+{
+  "ios": {
+    "NSLocationWhenInUseUsageDescription": "YUMS Driver liniyada bo'lganingizda yaqin buyurtmalarni taklif qilish va yo'lovchiga mashinangiz qayerdaligini ko'rsatish uchun joylashuvingizdan foydalanadi.",
+    "NSPhotoLibraryUsageDescription": "YUMS profil rasmi, hujjat yoki e'lon rasmini tanlashingiz uchun galereyangizdan foydalanadi.",
+    "NSCameraUsageDescription": "YUMS profil rasmini olish yoki hujjatlaringizni suratga olish uchun kameradan foydalanadi."
+  }
+}

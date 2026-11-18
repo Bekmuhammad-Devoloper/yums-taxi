@@ -1,0 +1,7 @@
+{
+  "ios": {
+    "NSLocationWhenInUseUsageDescription": "YUMS taksi chaqirganingizda olib ketish nuqtasini aniqlash va yaqindagi mashinalarni ko'rsatish uchun joylashuvingizdan foydalanadi.",
+    "NSPhotoLibraryUsageDescription": "YUMS profil rasmi, hujjat yoki e'lon rasmini tanlashingiz uchun galereyangizdan foydalanadi.",
+    "NSCameraUsageDescription": "YUMS profil rasmini olish yoki hujjatlaringizni suratga olish uchun kameradan foydalanadi."
+  }
+}

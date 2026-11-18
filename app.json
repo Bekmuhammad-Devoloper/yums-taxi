@@ -11,7 +11,39 @@
       "bundleIdentifier": "uz.yums.taxi",
       "supportsTablet": false,
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "YUMS Taxi xizmati sizni qayerdan olib ketishni aniqlash uchun joylashuvingizdan foydalanadi."
+        "NSLocationWhenInUseUsageDescription": "YUMS uses your location to find your pickup point and show nearby cars when you order a taxi."
+      },
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "privacyManifests": {
+        "NSPrivacyTracking": false,
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "C617.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "35F9.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "E174.1"
+            ]
+          }
+        ]
       }
     },
     "android": {
@@ -42,7 +74,11 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "YUMS Taxi xizmati sizni qayerdan olib ketishni aniqlash uchun joylashuvingizdan foydalanadi."
+          "locationWhenInUsePermission": "YUMS uses your location to find your pickup point and show nearby cars when you order a taxi.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
+          "motionUsagePermission": false,
+          "locationFullAccuracyPermission": "YUMS needs your precise location to find your exact pickup point."
         }
       ],
       [
@@ -56,8 +92,9 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "YUMS profil rasmini tanlash uchun galereyangizga ruxsat so'raydi.",
-          "cameraPermission": "YUMS profil rasmini olish uchun kameradan foydalanadi."
+          "photosPermission": "YUMS uses your photos so you can choose a profile picture, document photos or listing images.",
+          "cameraPermission": "YUMS uses the camera so you can take a profile picture or photograph your documents.",
+          "microphonePermission": false
         }
       ],
       [
@@ -73,12 +110,29 @@
         }
       ],
       "expo-sharing",
-      "expo-notifications",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "enableBackgroundPlayback": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "mode": "production"
+        }
+      ],
       "./plugins/with-android-release"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "locales": {
+      "uz": "./locales/uz.json",
+      "ru": "./locales/ru.json"
     }
   }
 }

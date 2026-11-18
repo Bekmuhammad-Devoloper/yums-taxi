@@ -2,7 +2,8 @@
 // Standart — yo'lovchi va platforma; APP_VARIANT=driver — alohida haydovchi ilovasi.
 const VARIANT = process.env.APP_VARIANT;
 
-const LOCATION_DRIVER = "YUMS Driver buyurtmalarni yaqin atrofdan taklif qilish va yo'lovchiga mashinangiz qayerdaligini ko'rsatish uchun joylashuvingizdan foydalanadi.";
+// iOS ruxsat matni: inglizcha asos, o'zbek va rus tarjimalari locales/driver-*.json da (App Store tekshiruvchisi uchun)
+const LOCATION_DRIVER = 'YUMS Driver uses your location while you are online to offer you nearby orders and show passengers where your car is.';
 
 /** expo-router ildiz papkasini almashtirish (qolgan plaginlar o'zgarmaydi) */
 const withRouterRoot = (plugins, root, extra) => (plugins ?? []).map(p => {
@@ -29,7 +30,13 @@ const withMaps = android => {
 // versionCode sifatida ishlatadi — har yangi APK eskisining ustiga yangilanish bo'lib o'rnatiladi.
 const BUILD = Number(process.env.APP_BUILD) || 0;
 const withBuild = cfg => (BUILD > 0
-  ? { ...cfg, android: { ...cfg.android, versionCode: BUILD }, extra: { ...cfg.extra, build: BUILD } }
+  ? {
+    ...cfg,
+    android: { ...cfg.android, versionCode: BUILD },
+    // App Store ham har yuklashda kattaroq raqam talab qiladi
+    ios: { ...cfg.ios, buildNumber: String(BUILD) },
+    extra: { ...cfg.extra, build: BUILD },
+  }
   : cfg);
 
 module.exports = ({ config }) => withBuild(configFor(config));
@@ -47,6 +54,7 @@ function configFor(config) {
         infoPlist: { ...config.ios?.infoPlist, NSLocationWhenInUseUsageDescription: LOCATION_DRIVER },
       },
       android: withMaps({ ...config.android, package: 'uz.yums.driver' }),
+      locales: { uz: './locales/driver-uz.json', ru: './locales/driver-ru.json' },
       plugins: withRouterRoot(config.plugins, './src/driver/app', (name, opts) =>
         (name === 'expo-location' ? ['expo-location', { ...opts, locationWhenInUsePermission: LOCATION_DRIVER }] : undefined)),
       extra: { ...config.extra, appVariant: 'driver' },

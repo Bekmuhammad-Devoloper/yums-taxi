@@ -158,12 +158,15 @@ python3 scripts/voice/generate.py --lang ru --engine piper --model ./vits-piper-
 
 Hozirgi holat: rus tili — Piper «Irina» ovozi (oflayn neyron model). **Uning litsenziyasi noma'lum** — demo va sinov uchun; do'konga chiqarishdan oldin Gemini/Azure ovozi yoki diktor yozuvi bilan almashtiring. Boshqa tillar uchun kliplar yuqoridagi Gemini buyrug'i bilan yaratiladi. Diktor yozdirgan fayllarni ham shu nomlar bilan `assets/voice/<til>/` ga qo'yib, `--map-only` bilan ro'yxatni yangilash kifoya.
 
-## Google Play
+## Do'konlar: Google Play va App Store
 
-Play versiyasi alohida yig'iladi (`.github/workflows/play-bundle.yml`, qo'lda: Actions → «Google Play AAB»):
-AAB, yuklash kaliti bilan imzolangan, `EXPO_PUBLIC_STORE=play` — ilova o'zini GitHub'dan yangilamaydi, raqamli
-xaridlar Play Billing ulanmaguncha yashirin. Joylash bo'yicha qadamma-qadam yo'riqnoma, tayyor matnlar va
-grafikalar: [`store/google-play/`](store/google-play/README.md).
+- **Google Play** — AAB: `.github/workflows/play-bundle.yml` (qo'lda: Actions → «Google Play AAB»), yuklash kaliti
+  bilan imzolangan, `EXPO_PUBLIC_STORE=play`. Yo'riqnoma, matnlar, grafikalar: [`store/google-play/`](store/google-play/README.md).
+- **App Store** — IPA: `.github/workflows/ios-ipa.yml` (macOS'da; Actions → «iOS IPA»), App Store Connect API kaliti
+  bilan avtomatik imzolanadi, xohlasa TestFlight'ga yuklaydi. Yo'riqnoma: [`store/app-store/`](store/app-store/README.md).
+
+Ikkala do'kon versiyasida ilova o'zini GitHub'dan yangilamaydi, raqamli xaridlar (tarif, TOP, reklama) do'kon
+to'lovi (Play Billing / Apple IAP) ulanmaguncha yashirin — `src/lib/distribution.ts`.
 
 ## Tillar
 

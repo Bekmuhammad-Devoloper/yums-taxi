@@ -1,4 +1,4 @@
-"""Telefon skrinshotlarini Google Play talabiga moslash (1080x1920, 9:16).
+"""Telefon skrinshotlarini do'kon talabiga moslash: Google Play — 1080x1920 (9:16), App Store — 1290x2796 (--ios).
 
 Play qoidasi: uzun tomon qisqa tomondan 2 barobardan oshmasligi kerak. Zamonaviy telefon skrinshoti
 (masalan 1080x2400, 20:9) bunga sig'maydi — rad etiladi. Skript har bir rasmni YUMS fonida, yumaloq
@@ -6,6 +6,7 @@ burchaklar bilan 1080x1920 kadrga joylaydi; ixtiyoriy sarlavha tepada yoziladi.
 
 Ishlatish:
     python scripts/store/fit-screenshots.py <skrinshotlar papkasi> [chiqish papkasi]
+    python scripts/store/fit-screenshots.py --ios <skrinshotlar papkasi> [chiqish papkasi]   # iPhone 6.7"
 
 Sarlavhalar (ixtiyoriy): papkadagi captions.txt — har qatorda bitta, fayllar alfavit tartibida.
 Kerak: pip install pillow
@@ -51,7 +52,8 @@ def wrap(draw, text, fnt, width):
     return lines
 
 
-def fit(src, dst, caption=None):
+def fit(src, dst, caption=None, size=(W, H)):
+    W, H = size
     shot = Image.open(src).convert('RGB')
     canvas = Image.new('RGB', (W, H), BG)
     draw = ImageDraw.Draw(canvas)
@@ -67,18 +69,22 @@ def fit(src, dst, caption=None):
         top = y + 60
     room_w, room_h = W - 120, H - top - 60
     scale = min(room_w / shot.width, room_h / shot.height)
-    size = (round(shot.width * scale), round(shot.height * scale))
-    phone = rounded(shot.resize(size, Image.LANCZOS), 44)
-    canvas.paste(phone, ((W - size[0]) // 2, top + (room_h - size[1]) // 2), phone)
+    dims = (round(shot.width * scale), round(shot.height * scale))
+    phone = rounded(shot.resize(dims, Image.LANCZOS), 44)
+    canvas.paste(phone, ((W - dims[0]) // 2, top + (room_h - dims[1]) // 2), phone)
     canvas.save(dst, optimize=True)
 
 
 def main():
-    if len(sys.argv) < 2:
+    args = sys.argv[1:]
+    ios = '--ios' in args
+    args = [a for a in args if a != '--ios']
+    if not args:
         print(__doc__)
         sys.exit(1)
-    src = Path(sys.argv[1])
-    out = Path(sys.argv[2]) if len(sys.argv) > 2 else src / 'play'
+    size = (1290, 2796) if ios else (W, H)
+    src = Path(args[0])
+    out = Path(args[1]) if len(args) > 1 else src / ('app-store' if ios else 'play')
     out.mkdir(parents=True, exist_ok=True)
     files = sorted(p for p in src.iterdir() if p.suffix.lower() in ('.png', '.jpg', '.jpeg', '.webp'))
     captions_file = src / 'captions.txt'
@@ -86,9 +92,9 @@ def main():
     for i, path in enumerate(files):
         caption = captions[i].strip() if i < len(captions) and captions[i].strip() else None
         dst = out / f'{path.stem}.png'
-        fit(path, dst, caption)
+        fit(path, dst, caption, size)
         print(f'{path.name} -> {dst}')
-    print(f"Tayyor: {len(files)} ta rasm, 1080x1920 — Play Console'ga shu papkadan yuklang.")
+    print(f"Tayyor: {len(files)} ta rasm, {size[0]}x{size[1]} — do'konga shu papkadan yuklang: {out}")
 
 
 if __name__ == '__main__':

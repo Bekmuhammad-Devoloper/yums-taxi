@@ -92,7 +92,8 @@ export default function Plans() {
         </Card>
       )}
 
-      <Segmented value={period} onChange={setPeriod} items={[{ id: 'month', label: tr('Oylik') }, { id: 'year', label: tr('Yillik · −17%') }]} />
+      {/* Do'kon versiyalarida (Play, App Store) narx va muddat — do'kon to'lovi ulangach: sotib olish tugmasisiz narx ko'rsatilmaydi */}
+      {DIGITAL_SALES && <Segmented value={period} onChange={setPeriod} items={[{ id: 'month', label: tr('Oylik') }, { id: 'year', label: tr('Yillik · −17%') }]} />}
 
       {plans.map(pl => {
         const current = p.plan === pl.id;
@@ -107,10 +108,12 @@ export default function Plans() {
               </Row>
               {current ? <Badge label={tr('Joriy tarif')} tone="ok" icon="checkmark" /> : pl.id === 'pro' ? <Badge label={tr('Mashhur')} tone="brand" /> : null}
             </Row>
-            <View>
-              <Txt v="title">{price ? `$${price}` : tr('Bepul')}<Txt v="small" muted>{price ? (period === 'year' ? tr(' / yil') : tr(' / oy')) : ''}</Txt></Txt>
-              {!!priceSom && DIGITAL_SALES && <Txt v="tiny" faint>{tr('≈ {sum} · YUMS balansidan', { sum: som(priceSom) })}</Txt>}
-            </View>
+            {(DIGITAL_SALES || !price) && (
+              <View>
+                <Txt v="title">{price ? `$${price}` : tr('Bepul')}<Txt v="small" muted>{price ? (period === 'year' ? tr(' / yil') : tr(' / oy')) : ''}</Txt></Txt>
+                {!!priceSom && DIGITAL_SALES && <Txt v="tiny" faint>{tr('≈ {sum} · YUMS balansidan', { sum: som(priceSom) })}</Txt>}
+              </View>
+            )}
             <View style={{ gap: 8 }}>
               {pl.perks.map(x => <Row key={x} gap={8}><Ionicons name="checkmark-circle" size={18} color={pl.color} /><Txt v="small" style={{ flex: 1 }}>{x}</Txt></Row>)}
             </View>
