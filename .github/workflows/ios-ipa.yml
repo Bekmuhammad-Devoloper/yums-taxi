@@ -92,7 +92,11 @@ jobs:
         run: |
           # App Store har yuklashda kattaroq raqam talab qiladi; Play bilan bir xil sxema (1000 + run raqami)
           echo "APP_BUILD=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_ENV"
-          if [ -n "$ASC_KEY_ID" ] && [ -n "$ASC_ISSUER_ID" ] && [ -n "$ASC_KEY_P8" ] && [ -n "$APPLE_TEAM_ID" ]; then
+          # imzo — faqat teg yoki qo'lda ishga tushirilganda; branch push'i faqat yig'ilishni tekshiradi
+          # (har imzolangan yig'ilish vaqtinchalik sertifikat oladi, Apple ularning sonini cheklaydi)
+          if [ "$GITHUB_EVENT_NAME" = push ] && [ "${GITHUB_REF#refs/tags/}" = "$GITHUB_REF" ]; then
+            echo "SIGNED=0" >> "$GITHUB_ENV"; echo "Branch push'i — imzosiz tekshiruv yig'ilishi"
+          elif [ -n "$ASC_KEY_ID" ] && [ -n "$ASC_ISSUER_ID" ] && [ -n "$ASC_KEY_P8" ] && [ -n "$APPLE_TEAM_ID" ]; then
             echo "SIGNED=1" >> "$GITHUB_ENV"; echo "Imzolangan IPA (App Store)"
           else
             echo "SIGNED=0" >> "$GITHUB_ENV"
