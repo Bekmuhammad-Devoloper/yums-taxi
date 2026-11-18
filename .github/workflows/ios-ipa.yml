@@ -182,7 +182,8 @@ jobs:
             (attrs[target.uuid] ||= {})["ProvisioningStyle"] = "Manual"
             proj.save
             puts "Imzo: #{target.name} → #{ENV["PROFILE_NAME"]}"
-            # Pods ichidagi resurs to'plamlari (bundle) imzolanmaydi — aks holda «requires a development team»
+            # Pods ichidagi resurs bundle target lari imzolanmaydi, aks holda: requires a development team
+            # (bu ruby -e matni bitta tirnoq ichida: unda apostrof bo lmasin)
             pods = Xcodeproj::Project.open("ios/Pods/Pods.xcodeproj")
             pods.targets.each do |t|
               next unless t.respond_to?(:product_type) && t.product_type == "com.apple.product-type.bundle"
