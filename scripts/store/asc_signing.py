@@ -80,7 +80,8 @@ def bundle_id(identifier, name):
 
 def ensure_push(bid):
     """Ilova push huquqi (aps-environment) bilan yig'iladi — profil ham Push Notifications bilan bo'lishi kerak."""
-    caps = call('GET', f'/bundleIds/{bid}/bundleIdCapabilities?limit=200').get('data', [])
+    # bu bog'lanish so'rovi `limit` parametrini qabul qilmaydi (400 PARAMETER_ERROR.ILLEGAL)
+    caps = call('GET', f'/bundleIds/{bid}/bundleIdCapabilities').get('data', [])
     if any(c['attributes'].get('capabilityType') == 'PUSH_NOTIFICATIONS' for c in caps):
         return
     call('POST', '/bundleIdCapabilities', {'data': {
