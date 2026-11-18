@@ -131,6 +131,10 @@ jobs:
           printf '%s\n' "$ASC_KEY_P8" > "$key"
           echo "ASC_KEY_PATH=$key" >> "$GITHUB_ENV"
           export ASC_KEY_PATH="$key"
+          # iOS'da push bildirishnomalar hali ulanmagan (APNs yo'q): push huquqi olib tashlanadi — shunda profil
+          # Bundle ID'da Push Notifications bo'lishini talab qilmaydi. Push ulanganda bu qator o'chiriladi va
+          # asc_signing.py ga --push beriladi.
+          for ent in ios/*/*.entitlements; do /usr/libexec/PlistBuddy -c 'Delete :aps-environment' "$ent" 2>/dev/null && echo "$ent: aps-environment olib tashlandi" || true; done
           pip install --quiet pyjwt cryptography
           sign="$RUNNER_TEMP/signing"
           python scripts/store/asc_signing.py create --bundle "${{ matrix.bundle }}" --name "${{ matrix.title }}" --out "$sign"

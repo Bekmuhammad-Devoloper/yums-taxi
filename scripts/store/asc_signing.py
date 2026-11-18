@@ -86,7 +86,7 @@ def ensure_push(bid):
         return
     call('POST', '/bundleIdCapabilities', {'data': {
         'type': 'bundleIdCapabilities',
-        'attributes': {'capabilityType': 'PUSH_NOTIFICATIONS'},
+        'attributes': {'capabilityType': 'PUSH_NOTIFICATIONS', 'settings': []},
         'relationships': {'bundleId': {'data': {'type': 'bundleIds', 'id': bid}}},
     }})
     print('Push Notifications yoqildi')
@@ -103,7 +103,8 @@ def create(args):
     ids = {}
     # avval Bundle ID va uning push huquqi — sertifikat keyin, keraksiz olinmasin
     bid = bundle_id(args.bundle, args.name)
-    ensure_push(bid)
+    if args.push:
+        ensure_push(bid)
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     cert = call('POST', '/certificates', {'data': {'type': 'certificates', 'attributes': {
         'certificateType': 'DISTRIBUTION', 'csrContent': csr_for(key)}}})['data']
@@ -150,6 +151,7 @@ def main():
     c = sub.add_parser('create')
     c.add_argument('--bundle', required=True)
     c.add_argument('--name', default='YUMS', help="Bundle ID yo'q bo'lsa — uning nomi")
+    c.add_argument('--push', action='store_true', help="ilova push huquqi bilan yig'ilsa — Bundle ID'da Push Notifications yoqiladi")
     c.add_argument('--out', required=True)
     d = sub.add_parser('cleanup')
     d.add_argument('--ids', required=True)
