@@ -133,7 +133,7 @@ jobs:
           export ASC_KEY_PATH="$key"
           pip install --quiet pyjwt cryptography
           sign="$RUNNER_TEMP/signing"
-          python scripts/store/asc_signing.py create --bundle "${{ matrix.bundle }}" --out "$sign"
+          python scripts/store/asc_signing.py create --bundle "${{ matrix.bundle }}" --name "${{ matrix.title }}" --out "$sign"
           profile_name=$(python -c "import json;print(json.load(open('$sign/ids.json'))['profileName'])")
           profile_uuid=$(python -c "import json;print(json.load(open('$sign/ids.json'))['uuid'])")
           echo "PROFILE_NAME=$profile_name" >> "$GITHUB_ENV"

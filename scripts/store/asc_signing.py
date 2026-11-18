@@ -5,7 +5,7 @@ Nega: Xcode'ning avtomatik imzosi arxivlashda development profilini so'raydi, u 
 yaratilmaydi; sertifikatni repo'da saqlash ham kerak emas. Do'kondagi va TestFlight'dagi build sertifikat bekor
 qilingach ham ishlayveradi (Apple ularni o'zi qayta imzolaydi).
 
-    python asc_signing.py create  --bundle uz.yums.taxi --out DIR   # key.pem, cert.pem, profile.mobileprovision, ids.json
+    python asc_signing.py create  --bundle uz.yums.taxi --name YUMS --out DIR   # key.pem, cert.pem, profile, ids.json
     python asc_signing.py cleanup --ids DIR/ids.json                # profil o'chiriladi, sertifikat bekor qilinadi
 
 Muhit: ASC_KEY_ID, ASC_ISSUER_ID va ASC_KEY_PATH (.p8 fayl). Kerak: pip install pyjwt cryptography
@@ -66,12 +66,29 @@ def csr_for(key):
     return req.public_bytes(serialization.Encoding.PEM).decode()
 
 
-def bundle_id(identifier):
+def bundle_id(identifier, name):
+    """Bundle ID'ning Apple'dagi id'si; yo'q bo'lsa — ro'yxatdan o'tkaziladi."""
     query = urllib.parse.urlencode({'filter[identifier]': identifier, 'limit': 200})
     for item in call('GET', f'/bundleIds?{query}').get('data', []):
         if item['attributes']['identifier'] == identifier:
             return item['id']
-    fail(f"Bundle ID {identifier} Apple Developer'da ro'yxatdan o'tmagan (Certificates, Identifiers & Profiles)")
+    created = call('POST', '/bundleIds', {'data': {'type': 'bundleIds', 'attributes': {
+        'identifier': identifier, 'name': name, 'platform': 'IOS'}}})['data']
+    print(f"Bundle ID {identifier} ro'yxatdan o'tkazildi")
+    return created['id']
+
+
+def ensure_push(bid):
+    """Ilova push huquqi (aps-environment) bilan yig'iladi — profil ham Push Notifications bilan bo'lishi kerak."""
+    caps = call('GET', f'/bundleIds/{bid}/bundleIdCapabilities?limit=200').get('data', [])
+    if any(c['attributes'].get('capabilityType') == 'PUSH_NOTIFICATIONS' for c in caps):
+        return
+    call('POST', '/bundleIdCapabilities', {'data': {
+        'type': 'bundleIdCapabilities',
+        'attributes': {'capabilityType': 'PUSH_NOTIFICATIONS'},
+        'relationships': {'bundleId': {'data': {'type': 'bundleIds', 'id': bid}}},
+    }})
+    print('Push Notifications yoqildi')
 
 
 def save(path, data):
@@ -83,6 +100,9 @@ def create(args):
     os.makedirs(args.out, exist_ok=True)
     ids_path = os.path.join(args.out, 'ids.json')
     ids = {}
+    # avval Bundle ID va uning push huquqi — sertifikat keyin, keraksiz olinmasin
+    bid = bundle_id(args.bundle, args.name)
+    ensure_push(bid)
     key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     cert = call('POST', '/certificates', {'data': {'type': 'certificates', 'attributes': {
         'certificateType': 'DISTRIBUTION', 'csrContent': csr_for(key)}}})['data']
@@ -99,7 +119,7 @@ def create(args):
         'type': 'profiles',
         'attributes': {'name': name, 'profileType': 'IOS_APP_STORE'},
         'relationships': {
-            'bundleId': {'data': {'type': 'bundleIds', 'id': bundle_id(args.bundle)}},
+            'bundleId': {'data': {'type': 'bundleIds', 'id': bid}},
             'certificates': {'data': [{'type': 'certificates', 'id': cert['id']}]},
         },
     }})['data']
@@ -128,6 +148,7 @@ def main():
     sub = parser.add_subparsers(dest='cmd', required=True)
     c = sub.add_parser('create')
     c.add_argument('--bundle', required=True)
+    c.add_argument('--name', default='YUMS', help="Bundle ID yo'q bo'lsa — uning nomi")
     c.add_argument('--out', required=True)
     d = sub.add_parser('cleanup')
     d.add_argument('--ids', required=True)
