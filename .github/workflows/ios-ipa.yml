@@ -178,6 +178,13 @@ jobs:
             (attrs[target.uuid] ||= {})["ProvisioningStyle"] = "Manual"
             proj.save
             puts "Imzo: #{target.name} → #{ENV["PROFILE_NAME"]}"
+            # Pods ichidagi resurs to'plamlari (bundle) imzolanmaydi — aks holda «requires a development team»
+            pods = Xcodeproj::Project.open("ios/Pods/Pods.xcodeproj")
+            pods.targets.each do |t|
+              next unless t.respond_to?(:product_type) && t.product_type == "com.apple.product-type.bundle"
+              t.build_configurations.each { |c| c.build_settings["CODE_SIGNING_ALLOWED"] = "NO" }
+            end
+            pods.save
           '
 
       - name: Archive
@@ -187,13 +194,18 @@ jobs:
           if [ "$SIGNED" = 1 ]; then
             xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" -configuration Release \
               -destination 'generic/platform=iOS' -archivePath "$archive" archive \
-              OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN" | tail -n 40
+              OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN" > "$RUNNER_TEMP/archive.log" 2>&1 || status=$?
           else
             xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" -configuration Release \
               -destination 'generic/platform=iOS' -archivePath "$archive" archive \
-              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" | tail -n 40
+              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" > "$RUNNER_TEMP/archive.log" 2>&1 || status=$?
           fi
-          test -d "$archive/Products/Applications" || { echo "::error::Archive yaratilmadi"; exit 1; }
+          tail -n 60 "$RUNNER_TEMP/archive.log"
+          if [ "${status:-0}" != 0 ] || [ ! -d "$archive/Products/Applications" ]; then
+            # Xcode xatolari yig'ilish xulosasiga (annotation) chiqadi
+            grep -E "error:|error \[|\*\* ARCHIVE FAILED" "$RUNNER_TEMP/archive.log" | sort -u | head -15 | sed 's/^/::error::/'
+            exit 1
+          fi
 
       - name: IPA
         run: |
@@ -219,7 +231,9 @@ jobs:
           </dict></plist>
           EOF
             xcodebuild -exportArchive -archivePath "$archive" -exportPath "$out" \
-              -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" | tail -n 30
+              -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" > "$RUNNER_TEMP/export.log" 2>&1 || {
+                tail -n 40 "$RUNNER_TEMP/export.log"; grep -E "error:|error " "$RUNNER_TEMP/export.log" | sort -u | head -10 | sed 's/^/::error::/'; exit 1; }
+            tail -n 15 "$RUNNER_TEMP/export.log"
             mv "$out"/*.ipa "${{ matrix.file }}.ipa"
           else
             mkdir -p "$out/Payload"
