@@ -29,6 +29,12 @@ from cryptography.x509.oid import NameOID
 API = 'https://api.appstoreconnect.apple.com/v1'
 
 
+def fail(message):
+    # GitHub Actions bu qatorni yig'ilish xulosasida (annotation) ko'rsatadi
+    print(f'::error::{message}', flush=True)
+    sys.exit(1)
+
+
 def token():
     with open(os.environ['ASC_KEY_PATH'], encoding='utf-8') as f:
         key = f.read()
@@ -49,7 +55,7 @@ def call(method, path, body=None):
             return json.loads(raw) if raw else {}
     except urllib.error.HTTPError as e:
         detail = e.read().decode(errors='replace')
-        sys.exit(f'App Store Connect API {method} {path}: {e.code} {detail[:800]}')
+        fail(f'App Store Connect API {method} {path.split("?")[0]}: {e.code} {detail[:600]}')
 
 
 def csr_for(key):
@@ -65,7 +71,7 @@ def bundle_id(identifier):
     for item in call('GET', f'/bundleIds?{query}').get('data', []):
         if item['attributes']['identifier'] == identifier:
             return item['id']
-    sys.exit(f"Bundle ID {identifier} Apple Developer'da ro'yxatdan o'tmagan (Certificates, Identifiers & Profiles)")
+    fail(f"Bundle ID {identifier} Apple Developer'da ro'yxatdan o'tmagan (Certificates, Identifiers & Profiles)")
 
 
 def save(path, data):
