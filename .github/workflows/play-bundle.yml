@@ -1,5 +1,6 @@
-# Google Play uchun YUMS va YUMS Driver AAB (Android App Bundle) yig'ish. Faqat qo'lda ishga tushadi:
-#   GitHub → Actions → «Google Play AAB» → Run workflow
+# Google Play uchun YUMS va YUMS Driver AAB (Android App Bundle) yig'ish. Ishga tushirish:
+#   - teg: `play-…` yoki `release-…` (masalan play-1.0.0-1) — shu commit'dan yig'iladi;
+#   - GitHub → Actions → «Google Play AAB» → Run workflow (tugma faqat fayl asosiy branch'da bo'lsa ko'rinadi).
 # Natija — shu yig'ilishning «Artifacts» bo'limida: YUMS.aab va YUMS-Driver.aab. Ularni Play Console'ga yuklang.
 #
 # APK'dan farqi (android-apk.yml):
@@ -16,6 +17,8 @@ name: Google Play AAB
 
 on:
   workflow_dispatch:
+  push:
+    tags: ['play-*', 'release-*']
 
 concurrency:
   group: play-bundle

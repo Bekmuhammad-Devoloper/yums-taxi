@@ -49,7 +49,8 @@ Settings → Secrets and variables → Actions → New repository secret:
 
 ## 3. IPA yig'ish va TestFlight
 
-GitHub → **Actions → «iOS IPA» → Run workflow** → «TestFlight'ga yuklash» belgisini qo'ying → **Run**.
+Teg push qilinadi (`ios-1.0.0-1`, keyingisi `ios-1.0.0-2` …): yig'iladi va TestFlight'ga yuklanadi. («Run workflow»
+tugmasi faqat workflow fayli asosiy `main` branch'da bo'lsa ko'rinadi.) `release-…` tegi AAB va IPA'ni birga yig'adi.
 ~40–60 daqiqa. Natija:
 
 - **Artifacts:** `YUMS-ipa`, `YUMS-Driver-ipa` (imzolangan `.ipa`);

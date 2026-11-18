@@ -58,7 +58,8 @@ Keyin shu raqam bilan ikkala ilovaga bir marta kirib, hisobni tayyorlang:
 
 ### 1.3 AAB yig'ish
 
-GitHub → `yums-taxi` → **Actions → «Google Play AAB» → Run workflow**. ~25 daqiqada tayyor bo'ladi;
+Teg push qilinadi (`play-1.0.0-1`, keyingisi `play-1.0.0-2` …) — workflow shu commit'dan yig'adi. «Run workflow» tugmasi
+faqat workflow fayli asosiy (`main`) branch'da bo'lsa ko'rinadi. ~25 daqiqada tayyor bo'ladi;
 yig'ilish sahifasining pastida **Artifacts**: `YUMS.aab` va `YUMS-Driver.aab` (zip ichida). Ularni yuklab oling.
 
 Workflow o'zi tekshiradi: paket nomi, upload key bilan imzolangani, taqiqlangan ruxsatlar yo'qligi.
