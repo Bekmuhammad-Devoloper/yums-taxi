@@ -163,7 +163,7 @@ Umumiy savollar (ikkala ilova):
 | Все данные шифруются при передаче? | Да |
 | Можно запросить удаление? | Да |
 | URL удаления аккаунта | `https://api.yums.uz/api/v1/legal/account-deletion` |
-| Можно удалить часть данных без удаления аккаунта? | Да (profil, loyiha, e'lon, karta — ilovada o'chiriladi) |
+| Можно удалить часть данных без удаления аккаунта? (необязательно) | **Bo'sh qoldiring.** «Да» tanlansa, qisman o'chirish bosqichlari yozilgan alohida URL so'raladi — `legal/account-deletion` sahifasida bunday bo'lim yo'q |
 
 Ma'lumot turlari — hammasi **«собираются»**, **«не передаются»** (xizmat ko'rsatuvchilar — Click, Google,
 Eskiz — Google ta'rifi bo'yicha «передача» hisoblanmaydi), **«не обрабатываются эфемерно»**:
