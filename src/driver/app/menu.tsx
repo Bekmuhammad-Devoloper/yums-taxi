@@ -5,7 +5,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Card, Divider, ListItem, PersonAvatar, Row, Screen, Txt } from '@/components/ui';
 import { CARD_ART, CardBg, useCardInk } from '@/driver/components/card-bg';
 import { useContractAcceptance } from '@/driver/lib/contract';
-import { DOC_KINDS } from '@/driver/lib/docs';
 import { useDriver } from '@/driver/lib/driver-store';
 import { callNumber } from '@/driver/lib/support';
 import { activityColor } from '@/driver/lib/theme';
@@ -82,7 +81,7 @@ export default function Menu() {
         <Divider style={{ marginLeft: 62 }} />
         <ListItem icon="car-sport" art={ART.car} title={tr('Avtomobil va tariflar')} sub={tr('{car} · {length} ta faol tarif', { car: p.car, length: d.activeTariffs.length })} onPress={() => go('/profile')} />
         <Divider style={{ marginLeft: 62 }} />
-        <ListItem icon="document-text" art={ART.documents} title={tr('Hujjatlar')} sub={tr('{length} / {length2} tasdiqlangan · guvohnoma, tex. pasport', { length: DOC_KINDS.filter(k => d.docs[k].status === 'approved').length, length2: DOC_KINDS.length })} onPress={() => go('/documents')} />
+        <ListItem icon="document-text" art={ART.documents} title={tr('Hujjatlar')} sub={tr('{length} / {length2} tasdiqlangan · guvohnoma, tex. pasport', { length: d.requiredDocs.filter(k => d.docs[k].status === 'approved').length, length2: d.requiredDocs.length })} onPress={() => go('/documents')} />
         <Divider style={{ marginLeft: 62 }} />
         <ListItem
           icon="reader" art={ART.contract}

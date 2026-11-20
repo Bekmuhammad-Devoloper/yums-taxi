@@ -93,6 +93,8 @@ type Ctx = {
   ready: boolean;
   rules: DriverRules;
   docs: Docs;
+  /** Liniyaga chiqish uchun majburiy hujjatlar; qolganlari ixtiyoriy */
+  requiredDocs: DocKind[];
   docsApproved: boolean;
   /** Hujjatni tekshiruvga yuboradi; server rad etsa xabar ko'rsatib false qaytaradi */
   submitDoc: (d: DriverDoc) => Promise<boolean>;
@@ -430,7 +432,13 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   }, [accountOwner, loadAccount, syncState]);
 
   /* ---------- Hujjatlar ---------- */
-  const docsApproved = DOC_KINDS.every(k => docs[k].status === 'approved') && (account?.documentsBlocking.length ?? 0) === 0;
+  // Majburiy hujjatlarni admin tanlaydi; eski server ro'yxat yubormasa — to'rttasi ham majburiy
+  const requiredKinds = account?.documentsRequired;
+  const requiredDocs = useMemo<DocKind[]>(
+    () => (requiredKinds ? DOC_KINDS.filter(k => requiredKinds.includes(serverKind(k))) : DOC_KINDS),
+    [requiredKinds],
+  );
+  const docsApproved = requiredDocs.every(k => docs[k].status === 'approved') && (account?.documentsBlocking.length ?? 0) === 0;
 
   const submitDoc = useCallback(async (d: DriverDoc) => {
     try {
@@ -919,7 +927,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
 
   const value: Ctx = {
     ready, rules, profile,
-    docs, docsApproved, submitDoc, tariffState, activeTariffs, setTariffEnabled, updateCar,
+    docs, requiredDocs, docsApproved, submitDoc, tariffState, activeTariffs, setTariffEnabled, updateCar,
     acceptDeliveryTerms: () => dapi.acceptDeliveryTerms().then(acc => { setAccount(acc); return true; }).catch(error => { fail(error); return false; }),
     register: async (p, tariffIds) => {
       const [brand, ...model] = p.car.split(' ');

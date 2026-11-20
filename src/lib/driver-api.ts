@@ -20,6 +20,8 @@ export type DriverAccount = {
   trips: number;
   activity: number;
   documentsBlocking: DocKindServer[];
+  /** Liniyaga chiqish uchun majburiy hujjatlar (admin tanlaydi); qolganlari ixtiyoriy. Eski server yubormaydi. */
+  documentsRequired?: DocKindServer[];
   home?: { title: string; latitude: number; longitude: number };
   homeUsesLeft: number;
   online: boolean;

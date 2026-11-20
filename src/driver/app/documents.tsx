@@ -15,7 +15,8 @@ export default function Documents() {
   const [view, setView] = useState<DocKind | null>(null);
   const [edit, setEdit] = useState<DocKind | null>(null);
   const [formKey, setFormKey] = useState(0);
-  const approved = DOC_KINDS.filter(k => d.docs[k].status === 'approved').length;
+  const required = d.requiredDocs;
+  const approved = required.filter(k => d.docs[k].status === 'approved').length;
 
   // yuklanmagan hujjat — darhol forma, aks holda hujjatning o'zi ochiladi
   const open = (k: DocKind) => {
@@ -23,18 +24,18 @@ export default function Documents() {
   };
 
   return (
-    <Screen title={tr('Hujjatlar')} subtitle={tr('{approved} / {length} tasdiqlangan', { approved, length: DOC_KINDS.length })}>
+    <Screen title={tr('Hujjatlar')} subtitle={tr('{approved} / {length} tasdiqlangan', { approved, length: required.length })}>
       <Card style={{ gap: 10 }}>
         <Row>
           <View style={[styles.big, { backgroundColor: d.docsApproved ? c.okSoft : c.brandSoft }]}>
             <Ionicons name={d.docsApproved ? 'shield-checkmark' : 'document-text'} size={24} color={d.docsApproved ? c.ok : c.brandDeep} />
           </View>
           <View style={{ flex: 1 }}>
-            <Txt v="h3">{d.docsApproved ? tr('Barcha hujjatlar tasdiqlangan') : tr('Liniyaga chiqish uchun hujjatlar kerak')}</Txt>
-            <Txt v="small" muted>{d.docsApproved ? tr('Buyurtmalarni qabul qilishingiz mumkin') : tr("To'rtta hujjat ham tekshiruvdan o'tishi kerak")}</Txt>
+            <Txt v="h3">{d.docsApproved ? tr('Majburiy hujjatlar tasdiqlangan') : tr('Liniyaga chiqish uchun hujjatlar kerak')}</Txt>
+            <Txt v="small" muted>{d.docsApproved ? tr('Buyurtmalarni qabul qilishingiz mumkin') : tr("Majburiy hujjatlar tekshiruvdan o'tishi kerak")}</Txt>
           </View>
         </Row>
-        <Progress value={approved / DOC_KINDS.length} color={d.docsApproved ? c.ok : c.brand} />
+        <Progress value={required.length ? approved / required.length : 1} color={d.docsApproved ? c.ok : c.brand} />
       </Card>
 
       <Card style={{ paddingVertical: 4, paddingHorizontal: 4 }}>
@@ -50,7 +51,14 @@ export default function Documents() {
                 <Ionicons name={meta.icon} size={20} color={st.color} />
               </Pressable>
               <View style={{ flex: 1, gap: 2 }}>
-                <Txt v="h3" numberOfLines={1}>{tr(meta.title)}</Txt>
+                <Row style={{ gap: 6 }}>
+                  <Txt v="h3" numberOfLines={1} style={{ flexShrink: 1 }}>{tr(meta.title)}</Txt>
+                  {!required.includes(k) && (
+                    <View style={[styles.optional, { backgroundColor: c.surface2 }]}>
+                      <Txt v="tiny" muted>{tr('Ixtiyoriy')}</Txt>
+                    </View>
+                  )}
+                </Row>
                 <Txt v="tiny" muted numberOfLines={1}>
                   {doc.status === 'missing' ? tr('Bosib yuklang') : [doc.number, doc.expires ? tr('{date} gacha', { date: doc.expires }) : doc.categories].filter(Boolean).join(' · ')}
                 </Txt>
@@ -81,4 +89,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 12, paddingVertical: 12, borderRadius: 14 },
   icon: { width: 42, height: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   tip: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 14, borderRadius: 16 },
+  optional: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
 });

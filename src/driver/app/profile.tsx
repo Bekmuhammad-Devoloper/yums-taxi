@@ -7,7 +7,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { toast } from '@/components/toast';
 import { ActionSheet, Button, Card, Chip, Divider, Field, IOSSwitch, PersonAvatar, Row, Screen, Sheet, Txt } from '@/components/ui';
 import { CarPicker } from '@/driver/components/car-picker';
-import { DOC_KINDS } from '@/driver/lib/docs';
 import { useDriver, type TariffState } from '@/driver/lib/driver-store';
 import { CLASS_NAME, findCar } from '@/driver/lib/requirements';
 import { TARIFF_ART } from '@/lib/cars';
@@ -40,7 +39,7 @@ export default function Profile() {
   const p = d.profile;
   if (!p) return null;
   const car = findCar(p.car);
-  const approved = DOC_KINDS.filter(k => d.docs[k].status === 'approved').length;
+  const approved = d.requiredDocs.filter(k => d.docs[k].status === 'approved').length;
   const active = d.tariffState.filter(t => t.enabled).map(t => tr(TARIFFS.find(x => x.id === t.id)?.name ?? t.id));
 
   const toggle = (t: TariffState, on: boolean) => {
@@ -100,12 +99,12 @@ export default function Profile() {
 
       <Pressable onPress={() => go('/documents')} accessibilityLabel={tr('Hujjatlar')}>
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={[styles.docIcon, { backgroundColor: approved === DOC_KINDS.length ? c.okSoft : c.brandSoft }]}>
-            <Ionicons name="document-text" size={20} color={approved === DOC_KINDS.length ? c.ok : c.brandDeep} />
+          <View style={[styles.docIcon, { backgroundColor: approved === d.requiredDocs.length ? c.okSoft : c.brandSoft }]}>
+            <Ionicons name="document-text" size={20} color={approved === d.requiredDocs.length ? c.ok : c.brandDeep} />
           </View>
           <View style={{ flex: 1 }}>
             <Txt v="h3">{tr('Hujjatlar')}</Txt>
-            <Txt v="small" muted>{tr('{approved} / {length} tasdiqlangan', { approved, length: DOC_KINDS.length })}</Txt>
+            <Txt v="small" muted>{tr('{approved} / {length} tasdiqlangan', { approved, length: d.requiredDocs.length })}</Txt>
           </View>
           <Ionicons name="chevron-forward" size={18} color={c.faint} style={flipRTL()} />
         </Card>

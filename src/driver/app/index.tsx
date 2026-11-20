@@ -11,7 +11,6 @@ import { toast } from '@/components/toast';
 import { ActionSheet, PersonAvatar, Row, Sheet, Txt, alpha } from '@/components/ui';
 import { SlideButton } from '@/driver/components/slide-button';
 import { nearestHot, nearestUsual, surgeAt, USUAL_COLOR, ZONE_COLOR } from '@/driver/lib/demand';
-import { DOC_KINDS } from '@/driver/lib/docs';
 import { useDriver, waitFeeOf, type Offer, type Trip } from '@/driver/lib/driver-store';
 import { fmtDist, guide, maneuverText, nextManeuver, remainingPath, type ManeuverKind } from '@/driver/lib/nav';
 import { callNumber } from '@/driver/lib/support';
@@ -388,13 +387,13 @@ function HomePanel() {
   const ms = d.onlineMsToday(now);
   const hm = tr('{h} s {m} d', { h: Math.floor(ms / 3600000), m: Math.floor((ms % 3600000) / 60000) });
   const tariffNames = d.activeTariffs.map(id => tr(TARIFFS.find(t => t.id === id)?.name ?? id));
-  const approvedDocs = DOC_KINDS.filter(k => d.docs[k].status === 'approved').length;
-  const inReview = DOC_KINDS.some(k => d.docs[k].status === 'review');
+  const approvedDocs = d.requiredDocs.filter(k => d.docs[k].status === 'approved').length;
+  const inReview = d.requiredDocs.some(k => d.docs[k].status === 'review');
   // liniyaga chiqishdan oldingi to'siq: blok, hujjatlar yoki faol tarif yo'q
   const block = d.blocked
     ? { title: tr('Hisob bloklangan'), sub: d.blocked.reason, icon: 'lock-closed' as const, to: '/support' }
     : !d.docsApproved
-    ? { title: inReview ? tr('Hujjatlar tekshirilmoqda') : tr('Hujjatlarni yuklang'), sub: tr('{approvedDocs} / {length} tasdiqlangan · liniyaga chiqish uchun kerak', { approvedDocs, length: DOC_KINDS.length }), icon: inReview ? 'time' as const : 'document-text' as const, to: '/documents', docs: DOC_KINDS.map(k => d.docs[k].status) }
+    ? { title: inReview ? tr('Hujjatlar tekshirilmoqda') : tr('Hujjatlarni yuklang'), sub: tr('{approvedDocs} / {length} tasdiqlangan · liniyaga chiqish uchun kerak', { approvedDocs, length: d.requiredDocs.length }), icon: inReview ? 'time' as const : 'document-text' as const, to: '/documents', docs: d.requiredDocs.map(k => d.docs[k].status) }
     : !d.activeTariffs.length ? { title: tr('Tarifni yoqing'), sub: tr("Shartlari bajarilgan tarif yo'q yoki hammasi o'chiq"), icon: 'car' as const, to: '/profile' } : null;
 
   return (
