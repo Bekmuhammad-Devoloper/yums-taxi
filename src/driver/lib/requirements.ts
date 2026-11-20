@@ -16,6 +16,7 @@ export const CAR_MODELS: CarModel[] = [
   { brand: 'Ravon', model: 'R4', cls: 'economy', seats: 4 },
   { brand: 'Kia', model: 'Rio', cls: 'economy', seats: 4 },
   { brand: 'Hyundai', model: 'Accent', cls: 'economy', seats: 4 },
+  { brand: 'Chevrolet', model: 'Damas', cls: 'economy', seats: 2 },
   // Komfort
   { brand: 'Chevrolet', model: 'Onix', cls: 'comfort', seats: 4 },
   { brand: 'Chevrolet', model: 'Tracker', cls: 'comfort', seats: 4 },
@@ -42,7 +43,6 @@ export const CAR_MODELS: CarModel[] = [
   { brand: 'Hyundai', model: 'Staria', cls: 'minivan', seats: 9 },
   { brand: 'Toyota', model: 'Alphard', cls: 'minivan', seats: 7 },
   // Yuk / yetkazish
-  { brand: 'Chevrolet', model: 'Damas', cls: 'cargo', seats: 2 },
   { brand: 'Chevrolet', model: 'Labo', cls: 'cargo', seats: 2 },
 ];
 
