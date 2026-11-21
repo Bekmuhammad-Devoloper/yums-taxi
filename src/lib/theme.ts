@@ -67,22 +67,24 @@ export const shadow = (c: Colors, level = 1) => ({
   elevation: 3 * level,
 });
 
-// Google Maps uchun qorong'i uslub (Android)
+// Google Maps uchun qorong'i uslub (Android). Do'kon, kafe, ofis, metro — Google xaritasidagi hamma joylar
+// ko'rinadi (Yandex va Google xaritalaridagidek), faqat ranglari qorong'i fonga moslangan.
 export const darkMapStyle = [
   { elementType: 'geometry', stylers: [{ color: '#1a1f2b' }] },
   { elementType: 'labels.text.fill', stylers: [{ color: '#8a93a8' }] },
   { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1f2b' }] },
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#20263a' }] },
+  { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#a3acbf' }] },
+  { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#1b2a22' }] },
   { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2a3140' }] },
   { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3a4357' }] },
   { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0e1626' }] },
-  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', elementType: 'geometry', stylers: [{ color: '#2a3140' }] },
+  { featureType: 'transit.station', elementType: 'labels.text.fill', stylers: [{ color: '#a3acbf' }] },
 ];
 
-export const lightMapStyle = [
-  { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
-  { featureType: 'transit', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-];
+// Yorug' rejim — Google'ning o'z uslubi: hamma joylar va metro bekatlari ko'rinadi
+export const lightMapStyle: typeof darkMapStyle = [];
 
 /**
  * Shriftlar: butun interfeys — Onest (lotin va kirill, o'zbekcha o'/g' uchun toza belgilar),

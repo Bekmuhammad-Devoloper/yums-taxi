@@ -157,7 +157,7 @@ export default function TaxiMap(props: TaxiMapProps) {
       showsUserLocation={locationGranted}
       showsMyLocationButton={false}
       showsCompass={false}
-      showsPointsOfInterests={false}
+      showsPointsOfInterests
       showsTraffic={!!traffic}
       toolbarEnabled={false}
       mapPadding={{ top: topPad, right: 0, bottom: bottomPad, left: 0 }}
