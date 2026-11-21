@@ -13,6 +13,7 @@ export const CAR_MODELS: CarModel[] = [
   { brand: 'Chevrolet', model: 'Nexia 3', cls: 'economy', seats: 4 },
   { brand: 'Chevrolet', model: 'Lacetti (Gentra)', cls: 'economy', seats: 4 },
   { brand: 'Chevrolet', model: 'Spark', cls: 'economy', seats: 4 },
+  { brand: 'Chevrolet', model: 'Matiz', cls: 'economy', seats: 4 },
   { brand: 'Ravon', model: 'R4', cls: 'economy', seats: 4 },
   { brand: 'Kia', model: 'Rio', cls: 'economy', seats: 4 },
   { brand: 'Hyundai', model: 'Accent', cls: 'economy', seats: 4 },

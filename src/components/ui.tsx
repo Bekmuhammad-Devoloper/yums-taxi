@@ -32,9 +32,13 @@ const sizes: Record<Variant, TextStyle> = {
   tiny: { fontSize: 11.5, fontFamily: F.semi, letterSpacing: 0.1 },
 };
 
+/** Telefon sozlamasidagi juda katta shrift (1.5×–2×) kartalarni va qatorlarni sindirmasin: matn ko'pi bilan
+ *  shuncha kattalashadi. Joyi kichik matn o'zi pastroq chegarani beradi (maxFontSizeMultiplier). */
+export const TEXT_MAX_SCALE = 1.3;
+
 export function Txt({ v = 'body', muted, faint, color, style, ...rest }: TextProps & { v?: Variant; muted?: boolean; faint?: boolean; color?: string }) {
   const c = useColors();
-  return <Text {...rest} style={[sizes[v], { color: color ?? (muted ? c.muted : faint ? c.faint : c.text) }, style]} />;
+  return <Text maxFontSizeMultiplier={TEXT_MAX_SCALE} {...rest} style={[sizes[v], { color: color ?? (muted ? c.muted : faint ? c.faint : c.text) }, style]} />;
 }
 
 type BtnProps = {

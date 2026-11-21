@@ -3,7 +3,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Image } from 'expo-image';
 import { Redirect, router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import TaxiMap, { TRAFFIC_AVAILABLE, type MapHandle } from '@/components/taxi-map';
@@ -416,8 +416,8 @@ function HomePanel() {
             <View style={[styles.pulseDot, { backgroundColor: GREEN }]} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.mainTitle, { color: GREEN }]}>{tr('Liniyadasiz')}</Text>
-            <Txt v="small" muted>{!d.docsApproved ? tr("Hujjatlar qayta tekshirilmoqda — buyurtmalar tekshiruvdan so'ng keladi") : d.live ? tr("Buyurtma qidirilmoqda · YUMS yo'lovchilari") : tr('Buyurtma qidirilmoqda · aloqa tiklanmoqda')}{d.homeDest ? tr(' · uyga: {title}', { title: d.homeDest.title }) : ''}</Txt>
+            <Text style={[styles.mainTitle, { color: GREEN }]} maxFontSizeMultiplier={TILE_SCALE}>{tr('Liniyadasiz')}</Text>
+            <Txt v="small" muted maxFontSizeMultiplier={TILE_SCALE}>{!d.docsApproved ? tr("Hujjatlar qayta tekshirilmoqda — buyurtmalar tekshiruvdan so'ng keladi") : d.live ? tr("Buyurtma qidirilmoqda · YUMS yo'lovchilari") : tr('Buyurtma qidirilmoqda · aloqa tiklanmoqda')}{d.homeDest ? tr(' · uyga: {title}', { title: d.homeDest.title }) : ''}</Txt>
           </View>
           <Ionicons name="power" size={22} color={GREEN} />
         </Pressable>
@@ -425,8 +425,8 @@ function HomePanel() {
         <Pressable onPress={() => go(block.to)} style={({ pressed }) => [styles.mainBtn, { backgroundColor: c.surface2, transform: [{ scale: pressed ? 0.98 : 1 }] }]} accessibilityLabel={block.title}>
           <View style={[styles.blockIcon, { backgroundColor: alpha(c.brand, 0.16) }]}><Ionicons name={block.icon} size={22} color={c.brand} /></View>
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={[styles.mainTitle, { color: c.text }]}>{block.title}</Text>
-            <Txt v="small" muted numberOfLines={2}>{block.sub}</Txt>
+            <Text style={[styles.mainTitle, { color: c.text }]} maxFontSizeMultiplier={TILE_SCALE}>{block.title}</Text>
+            <Txt v="small" muted numberOfLines={3} maxFontSizeMultiplier={TILE_SCALE}>{block.sub}</Txt>
             {'docs' in block && block.docs ? (
               // har bir hujjat — bitta bo'lak: yashil tasdiqlangan, sariq tekshiruvda, qizil rad etilgan
               <View style={styles.docBar}>
@@ -442,8 +442,8 @@ function HomePanel() {
         <Pressable onPress={() => d.setOnline(true)} style={({ pressed }) => [styles.mainBtn, { backgroundColor: c.brand, transform: [{ scale: pressed ? 0.98 : 1 }] }]} accessibilityLabel={tr('Liniyaga chiqish')}>
           <View style={[styles.powerIcon, { backgroundColor: 'rgba(14,21,37,0.1)' }]}><Ionicons name="power" size={22} color="#0E1525" /></View>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.mainTitle, { color: '#0E1525' }]}>{tr('Liniyaga chiqish')}</Text>
-            <Text style={styles.mainSub}>{d.activity < 40 ? tr('Faollik past — buyurtmalar kamroq keladi') : tr('Buyurtmalarni qabul qilishni boshlang')}</Text>
+            <Text style={[styles.mainTitle, { color: '#0E1525' }]} maxFontSizeMultiplier={TILE_SCALE}>{tr('Liniyaga chiqish')}</Text>
+            <Text style={styles.mainSub} maxFontSizeMultiplier={TILE_SCALE}>{d.activity < 40 ? tr('Faollik past — buyurtmalar kamroq keladi') : tr('Buyurtmalarni qabul qilishni boshlang')}</Text>
           </View>
         </Pressable>
       )}
@@ -451,16 +451,16 @@ function HomePanel() {
       {/* asosiy ko'rsatkichlar: uchtasi teng kartada, hech biri ekran chetida kesilmaydi */}
       <View style={styles.tiles}>
         <Tile icon="flash" tint={activityColor(d.activity)} label={tr('Faollik')} onPress={() => go('/quality')}>
-          <Text style={[styles.tValue, { color: activityColor(d.activity) }]} numberOfLines={1}>{d.activity}</Text>
+          <Fit style={[styles.tValue, { color: activityColor(d.activity) }]} min={0.5}>{d.activity}</Fit>
           <View style={[styles.wBar, { backgroundColor: c.surface3 }]}><View style={{ width: `${d.activity}%`, height: 4, borderRadius: 2, backgroundColor: activityColor(d.activity) }} /></View>
         </Tile>
         <Tile icon="wallet" tint={BLUE} label={tr('Bugun')} onPress={() => go('/earnings')}>
-          <Text style={[styles.tValue, { color: c.text, fontSize: fitSize(groupDigits(d.today.sum)) }]} numberOfLines={1}>{groupDigits(d.today.sum)}</Text>
-          <Text style={[styles.tUnit, { color: c.muted }]} numberOfLines={1}>{tr("so'm · {count} ta", { count: d.today.count })}</Text>
+          <Fit style={[styles.tValue, { color: c.text, fontSize: fitSize(groupDigits(d.today.sum)) }]} min={0.5}>{groupDigits(d.today.sum)}</Fit>
+          <Fit style={[styles.tUnit, { color: c.muted }]}>{tr("so'm · {count} ta", { count: d.today.count })}</Fit>
         </Tile>
         <Tile icon="time" tint={VIOLET} label={tr('Liniyada')} onPress={() => go('/earnings')}>
-          <Text style={[styles.tValue, { color: c.text, fontSize: fitSize(hm) }]} numberOfLines={1}>{hm}</Text>
-          <Text style={[styles.tUnit, { color: c.muted }]} numberOfLines={1}>{tr('bugun')}</Text>
+          <Fit style={[styles.tValue, { color: c.text, fontSize: fitSize(hm) }]} min={0.5}>{hm}</Fit>
+          <Fit style={[styles.tUnit, { color: c.muted }]}>{tr('bugun')}</Fit>
         </Tile>
       </View>
       {/* tezkor o'tishlar: reyting, «Uyga» rejimi, tariflar */}
@@ -508,13 +508,21 @@ type IconName = keyof typeof Ionicons.glyphMap;
 /** Uzun qiymat (katta summa, «12 s 45 d») kartaga sig'ishi uchun shrift kichrayadi */
 const fitSize = (text: string) => (text.length > 10 ? 14 : text.length > 8 ? 16 : 19);
 
+/** Bosh paneldagi kartalar telefonning katta shrifti bilan ham buzilmasligi uchun: shrift ko'pi bilan
+ *  shuncha kattalashadi, sig'masa — kesilmasdan kichrayadi (kichik ekran, ruscha uzun so'zlar) */
+const TILE_SCALE = 1.15;
+
+function Fit({ style, min = 0.7, children }: { style: StyleProp<TextStyle>; min?: number; children: React.ReactNode }) {
+  return <Text style={style} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={min} maxFontSizeMultiplier={TILE_SCALE}>{children}</Text>;
+}
+
 function Tile({ icon, tint, label, children, onPress }: { icon: IconName; tint: string; label: string; children: React.ReactNode; onPress?: () => void }) {
   const { colors: c } = useStore();
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.tile, { backgroundColor: c.surface2, transform: [{ scale: pressed ? 0.97 : 1 }] }]} accessibilityLabel={label}>
-      <Row gap={7}>
+      <Row gap={6}>
         <View style={[styles.tIcon, { backgroundColor: alpha(tint, 0.16) }]}><Ionicons name={icon} size={13} color={tint} /></View>
-        <Text style={[styles.tLabel, { color: c.muted }]} numberOfLines={1}>{label}</Text>
+        <View style={{ flex: 1, minWidth: 0 }}><Fit style={[styles.tLabel, { color: c.muted }]}>{label}</Fit></View>
       </Row>
       <View style={{ flex: 1, justifyContent: 'flex-end' }}>{children}</View>
     </Pressable>
@@ -526,7 +534,7 @@ function Chip({ icon, tint, text, label, onPress, active }: { icon: IconName; ti
   return (
     <Pressable onPress={onPress} style={({ pressed }) => [styles.chip, { backgroundColor: active ? alpha(tint, 0.14) : c.surface2, borderColor: active ? alpha(tint, 0.45) : 'transparent', transform: [{ scale: pressed ? 0.97 : 1 }] }]} accessibilityLabel={label}>
       <View style={[styles.chipIcon, { backgroundColor: alpha(tint, active ? 0.24 : 0.16) }]}><Ionicons name={icon} size={14} color={tint} /></View>
-      <Text style={[styles.chipText, { color: active ? tint : c.text }]} numberOfLines={1}>{text}</Text>
+      <View style={{ flexShrink: 1, minWidth: 0 }}><Fit style={[styles.chipText, { color: active ? tint : c.text }]}>{text}</Fit></View>
     </Pressable>
   );
 }
@@ -837,12 +845,12 @@ const styles = StyleSheet.create({
   pulseRing: { position: 'absolute', width: 30, height: 30, borderRadius: 15, borderWidth: 3 },
   pulseDot: { width: 14, height: 14, borderRadius: 7 },
   tiles: { flexDirection: 'row', gap: 8 },
-  tile: { flex: 1, minWidth: 0, height: 86, borderRadius: 18, paddingHorizontal: 11, paddingTop: 10, paddingBottom: 10, gap: 4 },
+  tile: { flex: 1, minWidth: 0, minHeight: 86, borderRadius: 18, paddingHorizontal: 10, paddingTop: 10, paddingBottom: 10, gap: 4 },
   tIcon: { width: 22, height: 22, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
   tLabel: { flexShrink: 1, fontFamily: F.semi, fontSize: 12 },
   tValue: { fontFamily: F.heavy, fontSize: 19, letterSpacing: -0.4 },
   tUnit: { fontFamily: F.semi, fontSize: 11.5, marginTop: -1 },
-  chip: { flex: 1, minWidth: 0, height: 44, borderRadius: 15, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7, paddingHorizontal: 8 },
+  chip: { flex: 1, minWidth: 0, minHeight: 44, borderRadius: 15, borderWidth: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingHorizontal: 7 },
   chipIcon: { width: 26, height: 26, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
   chipText: { flexShrink: 1, fontFamily: F.bold, fontSize: 13.5 },
   blockIcon: { width: 46, height: 46, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
