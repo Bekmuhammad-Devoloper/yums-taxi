@@ -302,6 +302,7 @@ const common: Record<string, Row> = {
   "Mashhur joylar": ["Популярные места", "Popular places", "Ҷойҳои машҳур", "أماكن شائعة"],
   "Hech narsa topilmadi": ["Ничего не найдено", "Nothing found", "Ҳеҷ чиз ёфт нашуд", "لم يتم العثور على شيء"],
   "Boshqacha yozib ko'ring yoki xaritada tanlang": ["Попробуйте написать иначе или выберите на карте", "Try different words or pick on the map", "Ба таври дигар нависед ё дар харита интихоб кунед", "جرّب كتابة أخرى أو اختر من الخريطة"],
+  "Bu joyni aniqlab bo'lmadi — xaritada tanlang": ["Не удалось определить это место — выберите на карте", "Couldn't find this place — pick it on the map", "Ин ҷойро муайян карда натавонистем — дар харита интихоб кунед", "تعذّر تحديد هذا المكان — اختره من الخريطة"],
   "Yordam": ["Помощь", "Help", "Ёрӣ", "المساعدة"],
   "Ilovada yozish": ["Написать в приложении", "Message in the app", "Дар барнома навиштан", "المراسلة داخل التطبيق"],
   "YUMS qo'llab-quvvatlash · 24/7": ["Поддержка YUMS · 24/7", "YUMS support · 24/7", "Дастгирии YUMS · 24/7", "دعم YUMS · 24/7"],

@@ -175,6 +175,32 @@ export const searchPlaces = async (q: string, near?: LatLng): Promise<Place[]> =
   return (await api<PlaceDto[]>('GET', `/places/search?q=${encodeURIComponent(q)}${at}`)).map(fromPlaceDto);
 };
 
+/** Qidiruv natijasi: katalog va OpenStreetMap joylari koordinatasi bilan, Google takliflari esa faqat placeId bilan
+ *  (koordinatasi joy tanlanganda resolvePlace bilan olinadi) */
+export type PlaceHit = Omit<Place, 'latitude' | 'longitude'> & Partial<LatLng> & { placeId?: string; distanceKm?: number };
+type PlaceHitDto = { id?: string; placeId?: string; title: string; subtitle?: string; latitude?: number; longitude?: number; distanceKm?: number };
+
+/** Google Maps'dagidek qidiruv (server kalitsiz bo'lsa — oddiy qidiruv). `session` — bitta qidiruv seansi:
+ *  ekran ochilganda va har tanlovdan keyin yangisi; Google shu seans takliflarini alohida hisoblamaydi */
+export const suggestPlaces = async (q: string, near: LatLng | undefined, session: string): Promise<PlaceHit[]> => {
+  const at = near ? `&lat=${near.latitude.toFixed(6)}&lng=${near.longitude.toFixed(6)}` : '';
+  const rows = await api<PlaceHitDto[]>('GET', `/places/suggest?q=${encodeURIComponent(q)}${at}&session=${session}`);
+  return rows.map(r => ({ id: r.id, placeId: r.placeId, title: r.title, subtitle: r.subtitle, latitude: r.latitude, longitude: r.longitude, distanceKm: r.distanceKm }));
+};
+
+/** Tanlangan Google taklifining koordinatasi */
+export const resolvePlace = async (placeId: string, session: string): Promise<LatLng> => {
+  const r = await api<{ latitude: number; longitude: number }>('GET', `/places/resolve?placeId=${encodeURIComponent(placeId)}&session=${session}`);
+  return { latitude: r.latitude, longitude: r.longitude };
+};
+
+/** Google seansi uchun tasodifiy UUID (v4 ko'rinishida; kriptografik bo'lishi shart emas) */
+export const newSearchSession = () =>
+  'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, ch => {
+    const r = Math.floor(Math.random() * 16);
+    return (ch === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
+
 export const popularPlaces = async (near?: LatLng): Promise<Place[]> => {
   const at = near ? `?lat=${near.latitude.toFixed(6)}&lng=${near.longitude.toFixed(6)}` : '';
   return (await api<PlaceDto[]>('GET', `/places/popular${at}`)).map(fromPlaceDto);

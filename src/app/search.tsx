@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { toast } from '@/components/toast';
@@ -9,7 +9,7 @@ import { Divider, IconButton, ListItem, SectionTitle, Txt, type IconName } from 
 import { type Place } from '@/lib/data';
 import { distanceKm } from '@/lib/geo';
 import { useStore } from '@/lib/store';
-import { popularPlaces, searchPlaces } from '@/lib/trip-api';
+import { newSearchSession, popularPlaces, resolvePlace, suggestPlaces, type PlaceHit } from '@/lib/trip-api';
 import { F } from '@/lib/theme';
 import { tr, tx, trPlace } from '@/lib/i18n';
 
@@ -23,19 +23,33 @@ export default function Search() {
   const insets = useSafeAreaInsets();
   const [q, setQ] = useState('');
 
-  // Joylar serverdan: bo'sh qidiruvda — mashhur joylar, matn bo'lsa — qidiruv; ikkalasi ham olish nuqtasiga yaqinidan
-  const [results, setResults] = useState<Place[]>([]);
+  // Joylar serverdan: bo'sh qidiruvda — mashhur joylar, matn bo'lsa — Google Maps'dagidek qidiruv (katalog, so'ng
+  // Google takliflari); ikkalasi ham olish nuqtasiga yaqinidan
+  const [results, setResults] = useState<PlaceHit[]>([]);
+  const [resolving, setResolving] = useState<string | null>(null);
+  const session = useRef(newSearchSession());
   const near = order.pickup ?? undefined;
   useEffect(() => {
     const t = q.trim();
     let alive = true;
     const timer = setTimeout(() => {
-      (t.length >= 2 ? searchPlaces(t, near) : popularPlaces(near))
+      (t.length >= 2 ? suggestPlaces(t, near, session.current) : popularPlaces(near))
         .then(list => { if (alive) setResults(list); })
         .catch(() => { if (alive) setResults([]); });
     }, t ? 250 : 0);
     return () => { alive = false; clearTimeout(timer); };
   }, [q, near]);
+
+  /** Google taklifida koordinata yo'q — tanlanganda serverdan olinadi (shu bilan Google seansi yopiladi) */
+  const pick = (hit: PlaceHit) => {
+    if (hit.latitude !== undefined && hit.longitude !== undefined) return choose({ ...hit, latitude: hit.latitude, longitude: hit.longitude });
+    if (!hit.placeId || resolving) return;
+    setResolving(hit.placeId);
+    resolvePlace(hit.placeId, session.current)
+      .then(point => { session.current = newSearchSession(); choose({ title: hit.title, subtitle: hit.subtitle, ...point }); })
+      .catch(() => toast(tr("Bu joyni aniqlab bo'lmadi — xaritada tanlang"), 'alert-circle-outline'))
+      .finally(() => setResolving(null));
+  };
 
   const choose = (p: Place) => {
     if (mode === 'to') { setDestination(p); pushRecent(p); }
@@ -85,7 +99,7 @@ export default function Search() {
 
       <FlatList
         data={results}
-        keyExtractor={p => p.id ?? p.title}
+        keyExtractor={p => p.id ?? p.placeId ?? `${p.title}|${p.latitude}|${p.longitude}`}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingHorizontal: 8, paddingBottom: insets.bottom + 24 }}
         ListHeaderComponent={
@@ -107,15 +121,22 @@ export default function Search() {
             <Txt v="small" muted style={{ textAlign: 'center' }}>{tr("Boshqacha yozib ko'ring yoki xaritada tanlang")}</Txt>
           </View>
         }
-        renderItem={({ item }) => (
-          <ListItem
-            icon="location-outline"
-            title={trPlace(item.title)}
-            sub={trPlace(item.subtitle)}
-            onPress={() => choose(item)}
-            right={order.pickup ? <Txt v="tiny" faint>{tr('{distanceKm} km', { distanceKm: distanceKm(order.pickup, item).toFixed(1) })}</Txt> : undefined}
-          />
-        )}
+        renderItem={({ item }) => {
+          const km = item.latitude !== undefined && item.longitude !== undefined
+            ? (order.pickup ? distanceKm(order.pickup, { latitude: item.latitude, longitude: item.longitude }) : undefined)
+            : item.distanceKm;
+          return (
+            <ListItem
+              icon="location-outline"
+              title={trPlace(item.title)}
+              sub={trPlace(item.subtitle)}
+              onPress={() => pick(item)}
+              right={resolving && resolving === item.placeId
+                ? <ActivityIndicator size="small" color={c.brand} />
+                : km !== undefined ? <Txt v="tiny" faint>{tr('{distanceKm} km', { distanceKm: km.toFixed(1) })}</Txt> : undefined}
+            />
+          );
+        }}
       />
     </View>
   );
