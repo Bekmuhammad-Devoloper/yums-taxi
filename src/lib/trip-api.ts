@@ -184,8 +184,13 @@ type PlaceHitDto = { id?: string; placeId?: string; title: string; subtitle?: st
  *  ekran ochilganda va har tanlovdan keyin yangisi; Google shu seans takliflarini alohida hisoblamaydi */
 export const suggestPlaces = async (q: string, near: LatLng | undefined, session: string): Promise<PlaceHit[]> => {
   const at = near ? `&lat=${near.latitude.toFixed(6)}&lng=${near.longitude.toFixed(6)}` : '';
-  const rows = await api<PlaceHitDto[]>('GET', `/places/suggest?q=${encodeURIComponent(q)}${at}&session=${session}`);
-  return rows.map(r => ({ id: r.id, placeId: r.placeId, title: r.title, subtitle: r.subtitle, latitude: r.latitude, longitude: r.longitude, distanceKm: r.distanceKm }));
+  try {
+    const rows = await api<PlaceHitDto[]>('GET', `/places/suggest?q=${encodeURIComponent(q)}${at}&session=${session}`);
+    return rows.map(r => ({ id: r.id, placeId: r.placeId, title: r.title, subtitle: r.subtitle, latitude: r.latitude, longitude: r.longitude, distanceKm: r.distanceKm }));
+  } catch {
+    // server hali yangi qidiruvni bilmasa (eski deploy) yoki u ishlamasa — oddiy qidiruv
+    return searchPlaces(q, near);
+  }
 };
 
 /** Tanlangan Google taklifining koordinatasi */
