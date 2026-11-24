@@ -35,7 +35,8 @@ const fmtPlate = (s: string) => {
   return m ? [m[1], m[2], m[3], m[4]].filter(Boolean).join(' ') : r;
 };
 export default function Register() {
-  const { colors: c, user } = useStore();
+  const { colors: c, user, settings } = useStore();
+  const freeTrips = settings?.driverFreeTrips ?? 0;
   const { register } = useDriver();
   const [busy, setBusy] = useState(false);
   const [name, setName] = useState('');
@@ -96,7 +97,7 @@ export default function Register() {
           <View style={styles.heroRule} />
           {/* Teng ustunlar: ikonka, katta qiymat, ostida izoh. Faqat shartnomadagi faktlar */}
           <View style={styles.perks}>
-            {([['pie-chart', tr("1 200 so'm"), tr('har buyurtmaga')], ['time', tr('Erkin grafik'), tr('xohlagan vaqtda ishlang')]] as const).map(([icon, big, small], i) => (
+            {([freeTrips ? ['gift' as const, tr('{n} ta bepul', { n: freeTrips }), tr('birinchi buyurtmalar')] as const : ['pie-chart' as const, tr("1 200 so'm"), tr('har buyurtmaga')] as const, ['time', tr('Erkin grafik'), tr('xohlagan vaqtda ishlang')]] as const).map(([icon, big, small], i) => (
               <View key={icon} style={[styles.perk, i === 0 ? { paddingStart: 0 } : styles.perkSep]}>
                 {/* ikonka qiymat yonida — karta past va ixcham bo'ladi */}
                 <View style={styles.perkHead}>

@@ -228,6 +228,8 @@ export type PublicSettings = {
   otpResendSec: number; recentPlacesMax: number; nearbyMaxCars: number; priceRoundTo: number; supportPhone: string; supportTelegramUrl: string;
   waitPerMin: number; noShowAfterSec: number; activityAcceptBonus: number; activityDeclinePenalty: number; activityMissPenalty: number;
   activityCancelPenalty: number; homeUsesPerDay: number; chainRadiusKm: number;
+  /** Yangi haydovchining birinchi buyurtmalari bepul (eski server bermaydi) */
+  driverFreeTrips?: number;
   /** Kirish kodini Telegram orqali ham olish mumkin (kod shlyuzi ulangan) */
   telegramLogin?: boolean;
   /** Click ilovasi orqali to'ldirish ulangan (eski server bermaydi — unda bor deb hisoblanadi) */

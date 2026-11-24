@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import TaxiMap, { TRAFFIC_AVAILABLE, type MapHandle } from '@/components/taxi-map';
 import { toast } from '@/components/toast';
 import { ActionSheet, PersonAvatar, Row, Sheet, Txt, alpha } from '@/components/ui';
+import { FreeTripsCard, PaySheet } from '@/driver/components/free-trips';
 import { SlideButton } from '@/driver/components/slide-button';
 import { nearestHot, nearestUsual, surgeAt, USUAL_COLOR, ZONE_COLOR } from '@/driver/lib/demand';
 import { useDriver, waitFeeOf, type Offer, type Trip } from '@/driver/lib/driver-store';
@@ -363,6 +364,7 @@ function NavBanner({ trip, path, pos, top }: { trip: Trip; path?: LatLng[]; pos:
 function HomePanel() {
   const { colors: c } = useStore();
   const d = useDriver();
+  const { setPayPrompt } = d;
   const now = useNow(d.online, 15000);
   const [sure, setSure] = useState(false);
   const [homeSheet, setHomeSheet] = useState(false);
@@ -394,7 +396,12 @@ function HomePanel() {
     ? { title: tr('Hisob bloklangan'), sub: d.blocked.reason, icon: 'lock-closed' as const, to: '/support' }
     : !d.docsApproved
     ? { title: inReview ? tr('Hujjatlar tekshirilmoqda') : tr('Hujjatlarni yuklang'), sub: tr('{approvedDocs} / {length} tasdiqlangan · liniyaga chiqish uchun kerak', { approvedDocs, length: d.requiredDocs.length }), icon: inReview ? 'time' as const : 'document-text' as const, to: '/documents', docs: d.requiredDocs.map(k => d.docs[k].status) }
-    : !d.activeTariffs.length ? { title: tr('Tarifni yoqing'), sub: tr("Shartlari bajarilgan tarif yo'q yoki hammasi o'chiq"), icon: 'car' as const, to: '/profile' } : null;
+    : !d.activeTariffs.length ? { title: tr('Tarifni yoqing'), sub: tr("Shartlari bajarilgan tarif yo'q yoki hammasi o'chiq"), icon: 'car' as const, to: '/profile' }
+    : !d.canWork
+    ? {
+      title: d.freeTripsEnded ? tr('{n} ta bepul buyurtma tugadi', { n: d.freeTrips }) : tr("Hisobingizni to'ldiring"),
+      sub: tr('Davom etish uchun kamida {sum} · bosing', { sum: som(d.topUpNeeded) }), icon: 'wallet' as const, pay: true as const,
+    } : null;
 
   return (
     <View style={{ gap: 14 }}>
@@ -409,6 +416,7 @@ function HomePanel() {
           <Pressable onPress={d.dismissNotice} hitSlop={10} accessibilityLabel={tr('Xabarni yopish')}><Ionicons name="close" size={20} color={c.muted} /></Pressable>
         </View>
       ) : null}
+      <FreeTripsCard />
       {d.online ? (
         <Pressable onPress={() => setSure(true)} style={[styles.mainBtn, { backgroundColor: alpha(GREEN, 0.12), borderColor: GREEN, borderWidth: 2 }]} accessibilityLabel={tr('Liniyada')}>
           <View style={styles.pulseWrap}>
@@ -422,7 +430,7 @@ function HomePanel() {
           <Ionicons name="power" size={22} color={GREEN} />
         </Pressable>
       ) : block ? (
-        <Pressable onPress={() => go(block.to)} style={({ pressed }) => [styles.mainBtn, { backgroundColor: c.surface2, transform: [{ scale: pressed ? 0.98 : 1 }] }]} accessibilityLabel={block.title}>
+        <Pressable onPress={() => ('pay' in block ? setPayPrompt(true) : go(block.to))} style={({ pressed }) => [styles.mainBtn, { backgroundColor: c.surface2, transform: [{ scale: pressed ? 0.98 : 1 }] }]} accessibilityLabel={block.title}>
           <View style={[styles.blockIcon, { backgroundColor: alpha(c.brand, 0.16) }]}><Ionicons name={block.icon} size={22} color={c.brand} /></View>
           <View style={{ flex: 1, gap: 2 }}>
             <Text style={[styles.mainTitle, { color: c.text }]} maxFontSizeMultiplier={TILE_SCALE}>{block.title}</Text>
@@ -470,6 +478,7 @@ function HomePanel() {
         <Chip icon="car-sport" tint={ORANGE} text={tariffNames.length ? (tariffNames.length > 1 ? `${tariffNames[0]} +${tariffNames.length - 1}` : tariffNames[0]) : tr('Tariflar')} label={tr('Tariflar')} onPress={() => go('/profile')} />
       </View>
 
+      <PaySheet visible={d.payPrompt} onClose={() => setPayPrompt(false)} />
       <ActionSheet
         visible={sure}
         onClose={() => setSure(false)}
@@ -772,7 +781,7 @@ function SummaryPanel() {
       <View style={{ gap: 6 }}>
         <Line label={tr('Safar narxi')} value={som(e.price)} />
         {e.waitFee ? <Line label={tr('Pullik kutish')} value={som(e.waitFee)} /> : null}
-        <Line label={tr('YUMS komissiyasi')} value={`−${som(fee)}`} color={c.danger} />
+        <Line label={tr('YUMS komissiyasi')} value={fee ? `−${som(fee)}` : tr('Bepul')} color={fee ? c.danger : GREEN} />
         <Line label={tr('Sizning daromadingiz')} value={som(total - fee)} bold />
       </View>
       <View style={{ alignItems: 'center', gap: 6 }}>

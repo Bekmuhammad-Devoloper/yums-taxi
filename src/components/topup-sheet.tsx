@@ -14,6 +14,7 @@ import { startClickTopup, topUpFromCard, topupStatus, type WalletKind } from '@/
 
 const PRESETS = [10_000, 20_000, 50_000, 100_000];
 const MIN_AMOUNT = 1_000;
+const COMFORT_MARGIN = 10_000;
 const POLL_MS = 3_000;
 // To'lov havolasi 30 daqiqa yashaydi; undan keyin kutishning ma'nosi yo'q
 const POLL_LIMIT_MS = 30 * 60_000;
@@ -26,17 +27,22 @@ type Props = {
   fixedAmount?: number;
   /** To'lov o'tgach (Click yoki karta) — masalan, tarifni shu zahoti faollashtirish */
   onPaid?: () => void;
+  /** Bundan kam to'ldirish foyda bermaydi (haydovchi liniyaga chiqa olmaydi) — birinchi tanlov ham shu */
+  minAmount?: number;
   title?: string;
 };
 
 /** Balansni to'ldirish: Click ilovasi orqali yoki saqlangan kartadan */
-export function TopupSheet({ visible, onClose, kind, cards, onDone, onAddCard, fixedAmount, onPaid, title }: Props) {
+export function TopupSheet({ visible, onClose, kind, cards, onDone, onAddCard, fixedAmount, onPaid, minAmount = 0, title }: Props) {
   const { colors: c, settings } = useStore();
   // server Click ulanmaganini aytsa — ishlamaydigan tugma ko'rsatilmaydi (eski server bu belgini bermaydi — unda bor deb hisoblanadi)
   const clickOn = settings?.clickTopup !== false;
   const cardsOn = settings?.cardPayments !== false;
-  const [chosen, setAmount] = useState(PRESETS[1]);
-  const amount = fixedAmount ? Math.max(MIN_AMOUNT, Math.ceil(fixedAmount)) : chosen;
+  const [chosen, setAmount] = useState<number | null>(null);
+  const presets = minAmount ? [minAmount, ...PRESETS.filter(sum => sum > minAmount)] : PRESETS;
+  // eng kam summa bitta safarga yetadi xolos — standart tanlov undan ancha ko'p
+  const suggested = minAmount ? presets.find(sum => sum >= minAmount + COMFORT_MARGIN) ?? minAmount : PRESETS[1];
+  const amount = fixedAmount ? Math.max(MIN_AMOUNT, Math.ceil(fixedAmount)) : chosen ?? suggested;
   const [busy, setBusy] = useState(false);
   const [waitingFor, setWaitingFor] = useState<string | null>(null);
   // Javob yo'qolsa, shu kalit bilan takrorlash pulni ikki marta yechmaydi
@@ -106,7 +112,7 @@ export function TopupSheet({ visible, onClose, kind, cards, onDone, onAddCard, f
     onClose();
   };
 
-  const valid = Number.isInteger(amount) && amount >= MIN_AMOUNT;
+  const valid = Number.isInteger(amount) && amount >= Math.max(MIN_AMOUNT, minAmount);
 
   return (
     <Sheet visible={visible} onClose={close} title={title ?? tr("Balansni to'ldirish")}>
@@ -119,9 +125,9 @@ export function TopupSheet({ visible, onClose, kind, cards, onDone, onAddCard, f
         ) : (
           <>
             <Row gap={8} style={{ flexWrap: 'wrap' }}>
-              {PRESETS.map(sum => <Chip key={sum} label={som(sum)} active={sum === amount} onPress={() => setAmount(sum)} />)}
+              {presets.map(sum => <Chip key={sum} label={som(sum)} active={sum === amount} onPress={() => setAmount(sum)} />)}
             </Row>
-            <Field label={tr("Summa (so'm)")} keyboardType="number-pad" value={String(amount || '')} onChangeText={v => setAmount(Number(v.replace(/\D/g, '')))} />
+            <Field label={tr("Summa (so'm)")} keyboardType="number-pad" value={String(amount || '')} onChangeText={v => setAmount(Number(v.replace(/\D/g, '')))} error={amount < minAmount ? tr('Kamida {sum}', { sum: som(minAmount) }) : ''} />
           </>
         )}
         {waitingFor ? (

@@ -62,7 +62,7 @@ export default function Earnings() {
         <View style={{ width: '100%' }}>
           <Txt v="small" color={ink.sub}>{tr('Balans')}</Txt>
           <Text style={[styles.balanceValue, { color: d.balance < 0 ? ink.danger : ink.text }]}>{som(d.balance)}</Text>
-          <Txt v="tiny" color={ink.faint}>{tr("Buyurtma olish uchun {sum} dan ko'p bo'lishi kerak", { sum: som(d.minBalance) })}</Txt>
+          <Txt v="tiny" color={ink.faint}>{d.freeTripsLeft > 0 ? tr('Yana {n} ta bepul buyurtma', { n: d.freeTripsLeft }) : tr("Buyurtma olish uchun {sum} dan ko'p bo'lishi kerak", { sum: som(d.minBalance) })}</Txt>
         </View>
         <Pressable onPress={() => setTopup(true)} accessibilityLabel={tr("To'ldirish")} style={[styles.withdraw, { flex: 1, justifyContent: 'center', backgroundColor: ink.btn, boxShadow: ink.btnShadow }]}>
           <Ionicons name="add-circle" size={18} color={ink.btnText} />
@@ -133,7 +133,7 @@ export default function Earnings() {
       )}
 
       <WithdrawSheet visible={sheet} onClose={() => setSheet(false)} />
-      <TopupSheet visible={topup} onClose={() => setTopup(false)} kind="driver" cards={cards.filter(card => card.status === 'ACTIVE')} onDone={() => { d.refreshWallet().catch(() => {}); }} />
+      <TopupSheet visible={topup} onClose={() => setTopup(false)} kind="driver" cards={cards.filter(card => card.status === 'ACTIVE')} minAmount={d.canWork ? 0 : d.topUpNeeded} onDone={() => { d.refreshWallet().catch(() => {}); }} />
       <TripSheet e={detail} onClose={() => setDetail(null)} />
     </Screen>
   );

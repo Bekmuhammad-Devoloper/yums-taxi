@@ -145,6 +145,18 @@ type Ctx = {
   balance: number;
   /** Shu summadan yuqori bo'lgandagina buyurtma olish mumkin */
   minBalance: number;
+  /** Balans (yoki bepul buyurtma) liniyaga chiqishga yetadi */
+  canWork: boolean;
+  /** Liniyaga chiqish uchun eng kam to'ldirish */
+  topUpNeeded: number;
+  /** Komissiyasiz birinchi buyurtmalar: jami va qolgani */
+  freeTrips: number;
+  freeTripsLeft: number;
+  /** Bepul buyurtmalar hozirgina tugagan, pullik buyurtma hali olinmagan */
+  freeTripsEnded: boolean;
+  /** Server balans sabab to'xtatdi — to'lov oynasi ochilsin */
+  payPrompt: boolean;
+  setPayPrompt: (v: boolean) => void;
   payouts: Payout[];
   withdraw: (amount: number) => Promise<boolean>;
   zones: DemandZone[];
@@ -202,6 +214,7 @@ const APPROACH_KMH = 32;
 const RIDE_KMH = 38;
 const DEMO_SPEEDUP = 6;
 const DEFAULT_COMMISSION = 1200;
+const EMPTY_WALLET: dapi.DriverWallet = { balance: 0, minBalance: 0, recommendedBalance: 0, canWork: true };
 const DEV = typeof __DEV__ !== 'undefined' && __DEV__;
 const dayKey = () => new Date().toDateString();
 const persist = (k: string, v: unknown) => { AsyncStorage.setItem(k, JSON.stringify(v)).catch(() => {}); };
@@ -272,8 +285,8 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   const [local, setLocal] = useState<LocalProfile>({});
   const [earnings, setEarnings] = useState<Earning[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
-  const [balance, setBalance] = useState(0);
-  const [minBalance, setMinBalance] = useState(0);
+  const [wallet, setWallet] = useState<dapi.DriverWallet>(EMPTY_WALLET);
+  const [payPrompt, setPayPrompt] = useState(false);
   const [online, setOnlineState] = useState(false);
   const [onlineLog, setOnlineLog] = useState<{ date: string; ms: number }>({ date: dayKey(), ms: 0 });
   const [onlineSince, setOnlineSince] = useState<number | null>(null);
@@ -359,9 +372,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   }, [account, local, user?.joinedAt, user?.avatar]);
 
   const refreshWallet = useCallback(async () => {
-    const wallet = await dapi.loadDriverWallet();
-    setBalance(wallet.balance);
-    setMinBalance(wallet.minBalance);
+    setWallet(await dapi.loadDriverWallet());
   }, []);
 
   const refreshDocs = useCallback(async () => {
@@ -656,7 +667,8 @@ export function DriverProvider({ children }: { children: ReactNode }) {
         setOnlineState(false);
         setOnlineSince(null);
         setOffer(null);
-        toast(e.reason === 'DEBT_LIMIT' ? tr("Balans minimal miqdordan kam — liniyadan chiqdingiz. Balansni to'ldiring") : tr('Operator sizni liniyadan chiqardi'), 'alert-circle');
+        if (e.reason === 'DEBT_LIMIT') setPayPrompt(true);
+        else toast(tr('Operator sizni liniyadan chiqardi'), 'alert-circle');
         loadAccount().catch(() => {});
       }),
       onRealtime<{ kind: dapi.DocKindServer; status: string; note: string | null }>('driver.document', e => {
@@ -859,10 +871,10 @@ export function DriverProvider({ children }: { children: ReactNode }) {
       })
       .catch(error => {
         if (error instanceof ApiError && error.code === 'DOCUMENTS_REQUIRED') { toast(tr('Avval hujjatlaringiz tasdiqlanishi kerak'), 'document-text'); return; }
-        if (error instanceof ApiError && error.code === 'DRIVER_DEBT_LIMIT') { toast(tr("Balans minimal miqdordan kam — avval balansni to'ldiring"), 'wallet'); return; }
+        if (error instanceof ApiError && error.code === 'DRIVER_DEBT_LIMIT') { refreshWallet().catch(() => {}); setPayPrompt(true); return; }
         fail(error);
       });
-  }, [activeTariffs.length]);
+  }, [activeTariffs.length, refreshWallet]);
 
   const onlineMsToday = useCallback((now: number) => (onlineLog.date === dayKey() ? onlineLog.ms : 0) + (onlineSince ? Math.max(0, now - onlineSince) : 0), [onlineLog, onlineSince]);
 
@@ -925,6 +937,7 @@ export function DriverProvider({ children }: { children: ReactNode }) {
   };
 
 
+  const freeTrips = wallet.freeTrips ?? 0;
   const value: Ctx = {
     ready, rules, profile,
     docs, requiredDocs, docsApproved, submitDoc, tariffState, activeTariffs, setTariffEnabled, updateCar,
@@ -957,13 +970,13 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     logout: () => {
       if (online) dapi.setDriverOnline(false).catch(() => {});
       setOffer(null); setTrip(null); setSummary(null); setAccount(null); setDocs(emptyDocs()); setNotice(null);
-      setBalance(0); setMinBalance(0); setEarnings([]); setPayouts([]); setOnlineState(false); setOnlineSince(null);
+      setWallet(EMPTY_WALLET); setPayPrompt(false); setEarnings([]); setPayouts([]); setOnlineState(false); setOnlineSince(null);
       stopRealtime();
       endSession();
     },
     online, setOnline, pos, heading, gps: gpsState, retryGps: () => setGpsTry(n => n + 1),
     offer, accept, decline, trip, next, leftKm, arrived, startRide, finishRide, cancelTrip, noShow, cancelNext, summary, closeSummary,
-    earnings, today, onlineMsToday, rating, activity, balance, minBalance, payouts, withdraw, zones,
+    earnings, today, onlineMsToday, rating, activity, payouts, withdraw, zones,
     homeDest: account?.home ? { title: account.home.title, latitude: account.home.latitude, longitude: account.home.longitude } : null,
     homeUsesLeft: account?.homeUsesLeft ?? rules.homeUsesPerDay,
     setHomeDest,
@@ -973,6 +986,9 @@ export function DriverProvider({ children }: { children: ReactNode }) {
     autopilot: autopilotOn, setAutopilot: v => { setAutopilotState(DEV && v); persist(K.autopilot, DEV && v); },
     live, lastRating, clearRating: () => setLastRating(null), nav,
     blocked: account?.status === 'BLOCKED' ? { reason: tr('Hisobingiz operator tomonidan bloklangan') } : null,
+    balance: wallet.balance, minBalance: wallet.minBalance, canWork: wallet.canWork, topUpNeeded: wallet.topUpNeeded ?? 0,
+    freeTrips, freeTripsLeft: wallet.freeTripsLeft ?? 0, freeTripsEnded: freeTrips > 0 && account?.trips === freeTrips,
+    payPrompt, setPayPrompt,
     notice, dismissNotice: () => setNotice(null), commission, sos,
   };
   return <DCtx.Provider value={value}>{children}</DCtx.Provider>;

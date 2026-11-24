@@ -33,7 +33,14 @@ export type DriverAccount = {
   vehicle?: { brand: string; model: string; color: string; plate: string; seats: number; year?: number; tariffIds: string[] };
 };
 
-export type DriverWallet = { balance: number; minBalance: number; recommendedBalance: number; canWork: boolean };
+export type DriverWallet = {
+  balance: number; minBalance: number; recommendedBalance: number; canWork: boolean;
+  /** Liniyaga chiqish uchun eng kam to'ldirish (0 — yetarli). Eski server yubormaydi. */
+  topUpNeeded?: number;
+  /** Yangi haydovchining komissiyasiz birinchi buyurtmalari: jami va qolgani. Eski server yubormaydi. */
+  freeTrips?: number;
+  freeTripsLeft?: number;
+};
 
 export type DriverRegistration = {
   fullName: string;
