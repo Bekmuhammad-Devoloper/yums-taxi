@@ -115,8 +115,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-          # 54 — birinchi bepul buyurtmalar va to'lov oynasi: undan eski ilova yangilanmasdan ishlamaydi
-          MIN_BUILD: ${{ vars.MIN_APP_BUILD || 54 }}
+          # 55 — ro'yxatdan o'tishda 14 hudud: undan eski ilova yangilanmasdan ishlamaydi
+          MIN_BUILD: ${{ vars.MIN_APP_BUILD || 55 }}
         run: |
           printf '{"build":%s,"commit":"%s","builtAt":"%s","minBuild":%s}\n' \
             "${{ github.run_number }}" "${GITHUB_SHA::7}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$MIN_BUILD" > version.json

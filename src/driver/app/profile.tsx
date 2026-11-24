@@ -13,6 +13,7 @@ import { TARIFF_ART } from '@/lib/cars';
 import { TARIFFS } from '@/lib/data';
 import { fmtDate } from '@/lib/format';
 import { pickAvatar } from '@/lib/media';
+import { findRegion, regionName } from '@/lib/regions';
 import { useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
 import { tr, tx, flipRTL } from '@/lib/i18n';
@@ -39,6 +40,7 @@ export default function Profile() {
   const p = d.profile;
   if (!p) return null;
   const car = findCar(p.car);
+  const region = findRegion('UZ', p.city);
   const approved = d.requiredDocs.filter(k => d.docs[k].status === 'approved').length;
   const active = d.tariffState.filter(t => t.enabled).map(t => tr(TARIFFS.find(x => x.id === t.id)?.name ?? t.id));
 
@@ -69,7 +71,7 @@ export default function Profile() {
           <View style={[styles.cam, { backgroundColor: c.brand, borderColor: c.surface }]}><Ionicons name="camera" size={15} color={c.brandText} /></View>
         </Pressable>
         <Txt v="h2">{p.name}</Txt>
-        <Txt v="small" muted>{tr('{phone} · {city} · YUMSda {v2} dan', { phone: p.phone, city: tr(p.city), v2: fmtDate(p.joinedAt).split(',')[0] })}</Txt>
+        <Txt v="small" muted>{tr('{phone} · {city} · YUMSda {v2} dan', { phone: p.phone, city: region ? regionName(region) : tr(p.city), v2: fmtDate(p.joinedAt).split(',')[0] })}</Txt>
         <Row gap={8} style={{ marginTop: 6 }}>
           <Chip label={tr('Erkak')} icon="male" active={p.gender === 'm'} onPress={() => d.updateProfile({ gender: 'm' })} />
           <Chip label={tr('Ayol')} icon="female" active={p.gender === 'f'} onPress={() => d.updateProfile({ gender: 'f' })} />

@@ -228,7 +228,6 @@ const driver: Record<string, Row> = {
   "Modelni tanlang": ["Выберите модель", "Choose a model", "Моделро интихоб кунед", "اختر الطراز"],
   "Rangi": ["Цвет", "Colour", "Ранг", "اللون"],
   "Davlat raqami": ["Госномер", "Plate number", "Рақами давлатӣ", "رقم اللوحة"],
-  "Shahar": ["Город", "City", "Шаҳр", "المدينة"],
   "Tariflar qanday ochiladi": ["Как открываются тарифы", "How tariffs unlock", "Тарифҳо чӣ тавр кушода мешаванд", "كيف تُفتح الفئات"],
   "Hujjatlaringiz tasdiqlangach tariflar avtomobil sinfi, yili, reyting va safarlar soniga qarab ochiladi.": ["После подтверждения документов тарифы открываются в зависимости от класса и года автомобиля, рейтинга и количества поездок.", "Once your documents are approved, tariffs unlock based on car class and year, rating and number of rides.", "Пас аз тасдиқи ҳуҷҷатҳо тарифҳо вобаста ба синф ва соли мошин, рейтинг ва шумораи сафарҳо кушода мешаванд.", "بعد الموافقة على مستنداتك تُفتح الفئات وفق فئة السيارة وسنة صنعها والتقييم وعدد الرحلات."],
   "Podyezd oldida kutaman": ["Жду у подъезда", "I'll wait by the entrance", "Дар назди даромадгоҳ интизор мешавам", "سأنتظر عند المدخل"],

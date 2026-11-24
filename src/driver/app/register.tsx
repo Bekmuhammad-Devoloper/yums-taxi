@@ -8,8 +8,9 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { LangButton } from '@/components/lang-picker';
 import { toast } from '@/components/toast';
-import { BrandMark, Button, Chip, DEFAULT_DRIVER, Field, Row, Screen, Txt } from '@/components/ui';
+import { BrandMark, Button, DEFAULT_DRIVER, Field, Row, Screen, Txt } from '@/components/ui';
 import { CarPicker } from '@/driver/components/car-picker';
+import { RegionPicker } from '@/driver/components/region-picker';
 import { useContractAcceptance } from '@/driver/lib/contract';
 import { useDriver } from '@/driver/lib/driver-store';
 import { CLASS_NAME, findCar } from '@/driver/lib/requirements';
@@ -18,6 +19,7 @@ import { errorText } from '@/lib/api';
 import { TARIFFS, type Gender } from '@/lib/data';
 import { useStore } from '@/lib/store';
 import { KEYBOARD_BEHAVIOR } from '@/lib/keyboard';
+import { findRegion, regionName } from '@/lib/regions';
 import { F } from '@/lib/theme';
 import { tr, tx } from '@/lib/i18n';
 
@@ -26,7 +28,6 @@ const HERO_BG = require('@/assets/menu/card-register.webp');
 // rang nomi profilda o'zbekcha saqlanadi, ekranda tr() bilan
 const COLORS = [tx('Oq'), tx('Qora'), tx('Kumush'), tx('Kulrang'), tx("Ko'k"), tx('Qizil'), tx('Sariq')];
 const SWATCH: Record<string, string> = { Oq: '#F4F4F4', Qora: '#14161B', Kumush: '#C4C8CE', Kulrang: '#7B818B', "Ko'k": '#2457F5', Qizil: '#D93A3A', Sariq: '#FFC800' };
-const CITIES = [tx('Toshkent'), tx('Samarqand'), tx('Buxoro'), tx('Andijon'), tx("Farg'ona"), tx('Namangan')];
 
 /** 01A123BC → "01 A 123 BC" */
 const fmtPlate = (s: string) => {
@@ -45,7 +46,8 @@ export default function Register() {
   const [year, setYear] = useState('');
   const [color, setColor] = useState('Oq');
   const [plate, setPlate] = useState('');
-  const [city, setCity] = useState('Toshkent');
+  const [city, setCity] = useState('');
+  const [regionSheet, setRegionSheet] = useState(false);
   const [gender, setGender] = useState<Gender | null>(null);
   const [tried, setTried] = useState(false);
   // hamkorlik shartnomasiga rozilik — shartnoma sahifasida «Tanishdim va roziman» bilan beriladi
@@ -58,10 +60,12 @@ export default function Register() {
     car: !findCar(car) ? tr("Avtomobil modelini ro'yxatdan tanlang") : '',
     year: !(+year >= 1995 && +year <= new Date().getFullYear() + 1) ? tr('Masalan: {example}', { example: 2021 }) : '',
     plate: !/^\d{2} [A-Z] \d{3} [A-Z]{2}$/.test(plate) ? tr('Masalan: {example}', { example: '01 A 123 BC' }) : '',
+    city: !city ? tr('Hududni tanlang') : '',
     contract: !accepted ? tr('Shartnoma bilan tanishib, rozilik bildiring') : '',
   };
   const ok = !Object.values(err).some(Boolean);
   const model = findCar(car);
+  const region = findRegion('UZ', city);
   // shu sinfdagi avtomobil qaysi tariflarga mos kelishi mumkin (hujjat va reyting shartlaridan tashqari)
   const fits = model ? TARIFFS.filter(t => ({ economy: ['start', 'delivery'], comfort: ['start', 'comfort', 'delivery'], business: ['start', 'comfort', 'business', 'delivery'], minivan: ['start', 'minivan', 'delivery'], cargo: ['delivery'] })[model.cls].includes(t.id)) : [];
 
@@ -152,9 +156,15 @@ export default function Register() {
           </View>
         </View>
         <Field label={tr('Davlat raqami')} placeholder="01 A 123 BC" autoCapitalize="characters" value={plate} onChangeText={v => setPlate(fmtPlate(v))} error={tried ? err.plate : ''} inputStyle={{ fontFamily: F.heavy, letterSpacing: 1.5 }} />
-        <View style={{ gap: 8 }}>
-          <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>{tr('Shahar')}</Txt>
-          <Row gap={8} style={{ flexWrap: 'wrap' }}>{CITIES.map(x => <Chip key={x} label={tr(x)} active={city === x} onPress={() => setCity(x)} />)}</Row>
+        <View style={{ gap: 6 }}>
+          <Txt v="small" muted style={{ fontFamily: F.bold, marginLeft: 2 }}>{tr('Shahar / hudud')}</Txt>
+          <Pressable onPress={() => setRegionSheet(true)} accessibilityLabel={tr('Hududni tanlang')}
+            style={[styles.pick, { backgroundColor: c.surface2, borderColor: tried && err.city ? c.danger : c.line }]}>
+            <Ionicons name="location-outline" size={20} color={c.muted} />
+            <Txt v="h3" color={region ? c.text : c.faint} style={{ flex: 1 }} numberOfLines={1}>{region ? regionName(region) : tr('Hududni tanlang')}</Txt>
+            <Ionicons name="chevron-down" size={18} color={c.faint} />
+          </Pressable>
+          {tried && err.city ? <Txt v="tiny" color={c.danger} style={{ marginLeft: 2 }}>{err.city}</Txt> : null}
         </View>
         <View style={[styles.note, { backgroundColor: c.surface2 }]}>
           <Txt v="h3">{tr('Tariflar qanday ochiladi')}</Txt>
@@ -183,6 +193,7 @@ export default function Register() {
         </Pressable>
         {tried && err.contract ? <Txt v="tiny" color={c.danger} style={{ marginTop: -8, marginLeft: 2 }}>{err.contract}</Txt> : null}
         <CarPicker visible={carSheet} onClose={() => setCarSheet(false)} value={car} onPick={m => setCar(`${m.brand} ${m.model}`)} />
+        <RegionPicker visible={regionSheet} onClose={() => setRegionSheet(false)} value={city} onPick={setCity} />
       </Screen>
     </KeyboardAvoidingView>
   );
