@@ -50,18 +50,19 @@ export default function Documents() {
               <Pressable onPress={() => open(k)} accessibilityLabel={tr('{title}ni ochish', { title: tr(meta.title) })} style={[styles.icon, { backgroundColor: st.bg }]}>
                 <Ionicons name={meta.icon} size={20} color={st.color} />
               </Pressable>
-              <View style={{ flex: 1, gap: 2 }}>
+              {/* nom to'liq ko'rinsin (2 qatorgacha); «Ixtiyoriy» belgisi nomni siqmasin — pastki qatorda */}
+              <View style={{ flex: 1, gap: 3 }}>
+                <Txt v="h3" numberOfLines={2}>{tr(meta.title)}</Txt>
                 <Row style={{ gap: 6 }}>
-                  <Txt v="h3" numberOfLines={1} style={{ flexShrink: 1 }}>{tr(meta.title)}</Txt>
                   {!required.includes(k) && (
                     <View style={[styles.optional, { backgroundColor: c.surface2 }]}>
-                      <Txt v="tiny" muted>{tr('Ixtiyoriy')}</Txt>
+                      <Txt v="tiny" muted numberOfLines={1}>{tr('Ixtiyoriy')}</Txt>
                     </View>
                   )}
+                  <Txt v="tiny" muted numberOfLines={1} style={{ flexShrink: 1 }}>
+                    {doc.status === 'missing' ? tr('Bosib yuklang') : [doc.number, doc.expires ? tr('{date} gacha', { date: doc.expires }) : doc.categories].filter(Boolean).join(' · ')}
+                  </Txt>
                 </Row>
-                <Txt v="tiny" muted numberOfLines={1}>
-                  {doc.status === 'missing' ? tr('Bosib yuklang') : [doc.number, doc.expires ? tr('{date} gacha', { date: doc.expires }) : doc.categories].filter(Boolean).join(' · ')}
-                </Txt>
               </View>
               <StatusChip status={doc.status} />
             </Pressable>
