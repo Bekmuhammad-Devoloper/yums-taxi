@@ -1,6 +1,7 @@
 import type { ComponentProps } from 'react';
 import type Ionicons from '@expo/vector-icons/Ionicons';
 
+import { FINANCE_FEATURES } from './distribution';
 import { tr, tx, type TKey } from './i18n';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -205,7 +206,7 @@ export type SecurityEvent = { id: string; at: string; event: string; device: str
 
 export type Section = { id: string; name: string; icon: IconName; color: string; soft: string; route: string; desc: TKey };
 
-export const SECTIONS: Section[] = [
+const ALL_SECTIONS: Section[] = [
   { id: 'project', name: 'PROJECT', icon: 'rocket-outline', color: '#2457F5', soft: '#E8EEFF', route: '/projects', desc: 'sec.project' },
   { id: 'business', name: 'BUSINESS', icon: 'business-outline', color: '#0E9F6E', soft: '#E3F6EE', route: '/business', desc: 'sec.business' },
   { id: 'invest', name: 'INVEST', icon: 'trending-up-outline', color: '#7A4DF0', soft: '#F0EAFF', route: '/invest', desc: 'sec.invest' },
@@ -214,6 +215,9 @@ export const SECTIONS: Section[] = [
   { id: 'connect', name: 'CONNECT', icon: 'chatbubbles-outline', color: '#D97706', soft: '#FEF3E2', route: '/connect', desc: 'sec.connect' },
   { id: 'world', name: 'WORLD', icon: 'earth-outline', color: '#4F6BD8', soft: '#E6E9F0', route: '/world', desc: 'sec.world' },
 ];
+
+/** Bo'limlar; Play yig'ilishida INVEST yo'q (distribution.ts, FINANCE_FEATURES) */
+export const SECTIONS = ALL_SECTIONS.filter(s => FINANCE_FEATURES || s.id !== 'invest');
 
 export type Sector = { id: string; name: string; icon: IconName; color: string; examples: string };
 
@@ -301,13 +305,16 @@ export const STAGES: { id: Stage; name: string; icon: IconName }[] = [
   { id: 'scale', get name() { return tr('Kengayish'); }, icon: 'globe-outline' },
 ];
 
-export const SEEKS: { id: Seek; name: string; icon: IconName }[] = [
+const ALL_SEEKS: { id: Seek; name: string; icon: IconName }[] = [
   { id: 'investment', get name() { return tr('Investitsiya'); }, icon: 'cash-outline' },
   { id: 'partner', get name() { return tr('Hamkor'); }, icon: 'people-outline' },
   { id: 'specialist', get name() { return tr('Mutaxassis'); }, icon: 'code-slash-outline' },
   { id: 'client', get name() { return tr('Mijozlar'); }, icon: 'person-add-outline' },
   { id: 'supplier', get name() { return tr("Yetkazib beruvchi"); }, icon: 'cube-outline' },
 ];
+
+/** Loyiha nimani izlaydi; Play yig'ilishida «Investitsiya» yo'q — ro'yxatda ham, loyiha kartasida ham */
+export const SEEKS = ALL_SEEKS.filter(s => FINANCE_FEATURES || s.id !== 'investment');
 
 export const STATUS_META: Record<ListingStatus, { name: string; icon: IconName; tone: 'muted' | 'warn' | 'ok' | 'danger' }> = {
   draft: { get name() { return tr('Qoralama'); }, icon: 'create-outline', tone: 'muted' },

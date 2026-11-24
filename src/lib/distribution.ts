@@ -15,3 +15,9 @@ export const APP_STORE_BUILD = Platform.OS === 'ios';
 
 /** Tarif, TOP va reklamani ilova ichida sotib olish mumkinmi (do'konlarda — ularning to'lovi ulangach) */
 export const DIGITAL_SALES = !PLAY_BUILD && !APP_STORE_BUILD;
+
+/** Moliyaviy funksiyalar: YUMS balans va uni to'ldirish, keshbek, YUMS Invest, investorlar katalogi va loyihada
+ *  «investitsiya izlash». Google Play ularni faqat tashkilot (yuridik shaxs) akkauntiga ruxsat beradi — shaxsiy
+ *  akkauntdagi Play yig'ilishida o'chiq; tashkilot akkauntiga ko'chgach qaytariladi. Taksi naqd va karta bilan
+ *  to'lanadi — bu o'zgarmaydi. */
+export const FINANCE_FEATURES = !PLAY_BUILD;

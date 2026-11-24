@@ -43,7 +43,7 @@ export function CollabRequestSheet({ visible, onClose, peer, project, seeking }:
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const chosen = options.find(o => o.id === kind) ?? options[0] ?? SEEKS[1];
+  const chosen = options.find(o => o.id === kind) ?? options[0] ?? SEEKS.find(s => s.id === 'partner')!;
   const investing = chosen.id === 'investment';
   const choices: Choice[] = options.map(o => ({ value: o.id, label: OFFER[o.id](), icon: o.icon }));
   const error = about.trim().length < 20 ? tr('Kamida 20 belgi') : undefined;

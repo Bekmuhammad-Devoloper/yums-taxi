@@ -5,7 +5,9 @@
 #
 # APK'dan farqi (android-apk.yml):
 #  - yuklash kaliti (upload key) bilan imzolanadi — Play App Signing uni o'z kaliti bilan qayta imzolaydi;
-#  - EXPO_PUBLIC_STORE=play: ilova o'zini GitHub'dan yangilamaydi, raqamli xaridlar Play Billing'gacha yashirin.
+#  - EXPO_PUBLIC_STORE=play: ilova o'zini GitHub'dan yangilamaydi, raqamli xaridlar Play Billing'gacha yashirin;
+#    yo'lovchi ilovasida moliyaviy funksiyalar (balans/to'ldirish, keshbek, YUMS Invest) yo'q — shaxsiy Play
+#    akkauntida ular rad etiladi (src/lib/distribution.ts, FINANCE_FEATURES).
 #
 # Kerakli repo secret'lari (Settings → Secrets and variables → Actions):
 #   PLAY_UPLOAD_KEYSTORE_B64     — yuklash kaliti fayli (.jks) base64 ko'rinishida

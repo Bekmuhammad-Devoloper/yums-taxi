@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CompanyCard, InvestorCard, MarketCard, PickerSheet, ProjectCard, SpecialistCard } from '@/components/platform-ui';
 import { Chip, EmptyState, Row, SearchBar, Txt } from '@/components/ui';
 import { useContactInvestor } from '@/lib/actions';
+import { FINANCE_FEATURES } from '@/lib/distribution';
 import { COUNTRIES, LANGUAGES, SECTORS, STAGES, type Country } from '@/lib/platform-data';
 import { countryOf, sectorOf, usePlatform } from '@/lib/platform';
 import { SECTOR_ART } from '@/lib/sector-art';
@@ -15,7 +16,8 @@ import { F } from '@/lib/theme';
 import { tr, tx } from '@/lib/i18n';
 
 export type SearchType = 'projects' | 'companies' | 'specialists' | 'market' | 'investors';
-const TYPES: SearchType[] = ['projects', 'companies', 'specialists', 'market', 'investors'];
+// Play yig'ilishida investorlar katalogi yo'q (distribution.ts, FINANCE_FEATURES)
+const TYPES: SearchType[] = ['projects', 'companies', 'specialists', 'market', 'investors'].filter(x => FINANCE_FEATURES || x !== 'investors') as SearchType[];
 const REGIONS: (Country['region'] | 'all')[] = ['all', tx('Osiyo'), tx('Yevropa'), tx('Amerika'), tx('Afrika')];
 type Sort = 'new' | 'popular' | 'rating';
 type Picker = 'sector' | 'country' | 'language' | 'stage' | 'sort' | null;

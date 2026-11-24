@@ -6,6 +6,7 @@ import { router } from 'expo-router';
 
 import { toast } from '@/components/toast';
 import { Card, Divider, ListItem, Row, Screen, SectionTitle, Txt } from '@/components/ui';
+import { FINANCE_FEATURES } from '@/lib/distribution';
 import { useStore } from '@/lib/store';
 import { tr, tx } from '@/lib/i18n';
 
@@ -13,13 +14,14 @@ const FAQ = [
   [tx('Loyihani qanday joylashtiraman?'), tx("Pastki menyudagi «+ Loyiha» tugmasini bosing, formani to'ldiring va «Yuborish»ni bosing. Moderatsiyadan so'ng loyiha katalogda va qidiruvda ko'rinadi. Oddiy joylashtirish bepul.")],
   [tx("Nega loyiham hali ko'rinmayapti?"), tx("Barcha loyiha va e'lonlar moderatsiyadan o'tadi. Odatda bir necha daqiqa, shubhali e'lonlar uchun 24 soatgacha. Rad etilsa, sabab Kabinet → Mening loyihalarim bo'limida ko'rsatiladi.")],
   [tx('«Tasdiqlangan» belgisini qanday olaman?'), tx("Kabinet → Profilni tasdiqlash bo'limida hujjatlarni yuklang. Belgi faqat moderator tekshiruvidan keyin beriladi.")],
-  [tx('Investor bilan qanday bog\'lanaman?'), tx("YUMS Invest bo'limida investorni tanlab «Taklif yuborish»ni bosing. Investor so'rovni qabul qilgach, yozishma va onlayn uchrashuv belgilash mumkin bo'ladi.")],
+  // investor va keshbek savollari Play yig'ilishida yo'q (distribution.ts, FINANCE_FEATURES)
+  ...(FINANCE_FEATURES ? [[tx('Investor bilan qanday bog\'lanaman?'),tx("YUMS Invest bo'limida investorni tanlab «Taklif yuborish»ni bosing. Investor so'rovni qabul qilgach, yozishma va onlayn uchrashuv belgilash mumkin bo'ladi.")]] : []),
   [tx('Firibgarlikka duch keldim'), tx("E'lon yoki profil sahifasidagi bayroqcha tugmasi orqali shikoyat qiling. Oldindan to'lovni shaxsiy kartaga o'tkazmang — faqat rasmiy shartnoma va to'lov hamkorlari orqali.")],
   [tx('Narx qanday hisoblanadi?'), tx("Narx tarif, masofa va taxminiy vaqtga qarab buyurtmadan oldin ko'rsatiladi. Talab yuqori bo'lgan soatlarda koeffitsient qo'llanishi mumkin — u albatta oldindan ko'rsatiladi.")],
   [tx('Buyurtmani qanday bekor qilaman?'), tx("Haydovchi qidirilayotganda bepul bekor qilasiz. Haydovchi yo'lga chiqqandan keyin ham bekor qilish mumkin, lekin tez-tez bekor qilish reytingga ta'sir qiladi.")],
   [tx('Bepul kutish necha daqiqa?'), tx("Haydovchi yetib kelgach 3 daqiqa bepul kutadi. Keyin har daqiqa tarif bo'yicha hisoblanadi.")],
   [tx('Buyumimni mashinada unutdim'), tx("Safarlar tarixidan safarni oching va «Muammo haqida xabar berish»ni bosing — haydovchi bilan bog'lab qo'yamiz.")],
-  [tx('Keshbek qanday ishlaydi?'), tx("Karta yoki naqd to'lagan har bir safardan 3% YUMS balansga qaytadi. Balans bilan keyingi safarlarni to'lashingiz mumkin.")],
+  ...(FINANCE_FEATURES ? [[tx('Keshbek qanday ishlaydi?'),tx("Karta yoki naqd to'lagan har bir safardan 3% YUMS balansga qaytadi. Balans bilan keyingi safarlarni to'lashingiz mumkin.")]] : []),
 ];
 
 export default function Support() {

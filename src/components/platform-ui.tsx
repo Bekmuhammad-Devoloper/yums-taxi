@@ -139,7 +139,7 @@ export function ProjectCard({ p, mine }: { p: Project; mine?: boolean }) {
       <View style={styles.wrap}>
         {p.boosted && <Badge label={tr('TOP')} icon="flash" tone="brand" />}
         <Badge label={stageName(p.stage)} tone="accent" />
-        {p.seeking.slice(0, 2).map(s => <Badge key={s} label={SEEKS.find(x => x.id === s)?.name ?? s} />)}
+        {SEEKS.filter(m => p.seeking.includes(m.id)).slice(0, 2).map(m => <Badge key={m.id} label={m.name} />)}
       </View>
       <Row style={{ justifyContent: 'space-between' }}>
         <View style={{ flex: 1 }}><Place code={p.country} city={p.city} /></View>

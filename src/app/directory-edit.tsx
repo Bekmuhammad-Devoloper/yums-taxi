@@ -14,6 +14,7 @@ import { confirm } from '@/lib/confirm';
 import { pickImage } from '@/lib/media';
 import { COUNTRIES, LANGUAGES, SECTORS, STAGES } from '@/lib/platform-data';
 import * as papi from '@/lib/platform-api';
+import { FINANCE_FEATURES } from '@/lib/distribution';
 import { countryOf, sectorOf, usePlatform } from '@/lib/platform';
 import { useStore } from '@/lib/store';
 import { tr, tx } from '@/lib/i18n';
@@ -36,7 +37,8 @@ const arr = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is str
 
 export default function DirectoryEdit() {
   const params = useLocalSearchParams<{ type?: string }>();
-  const kind: Kind = params.type === 'company' || params.type === 'investor' ? params.type : 'specialist';
+  // investor profili Play yig'ilishida yo'q (distribution.ts, FINANCE_FEATURES)
+  const kind: Kind = params.type === 'company' || (params.type === 'investor' && FINANCE_FEATURES) ? params.type : 'specialist';
   const { colors: c, user } = useStore();
   const p = usePlatform();
   const [loading, setLoading] = useState(true);

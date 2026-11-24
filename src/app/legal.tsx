@@ -4,12 +4,13 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Card, ListItem, Screen, Txt, type IconName } from '@/components/ui';
 import { openLegal } from '@/lib/legal-links';
+import { FINANCE_FEATURES } from '@/lib/distribution';
 import { useStore } from '@/lib/store';
 import { tr, tx } from '@/lib/i18n';
 
 type Doc = { id: string; title: string; icon: IconName; updated: string; sections: [string, string][] };
 
-const DOCS: Doc[] = [
+const DOCS: Doc[] = ([
   {
     id: 'terms', title: tx('Foydalanish shartlari'), icon: 'document-text-outline', updated: '21.10.2026',
     sections: [
@@ -65,7 +66,7 @@ const DOCS: Doc[] = [
       [tx('Bitimlar'), tx("Mablag' qabul qilish va bitimlar faqat tegishli litsenziyaga ega moliyaviy hamkorlar orqali, har bir mamlakat qonunchiligiga muvofiq amalga oshiriladi.")],
     ],
   },
-];
+] satisfies Doc[]).filter(x => FINANCE_FEATURES || x.id !== 'invest'); // Play yig'ilishida YUMS Invest yo'q
 
 export default function Legal() {
   const { doc } = useLocalSearchParams<{ doc?: string }>();

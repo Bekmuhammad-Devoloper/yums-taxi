@@ -9,6 +9,7 @@ import { Place, ProjectCard } from '@/components/platform-ui';
 import { RotatingName } from '@/components/rotating-name';
 import { Badge, Button, Card, Divider, IconTile, ListItem, Row, SectionHeader, Stat, Txt } from '@/components/ui';
 import { PLANS } from '@/lib/platform-data';
+import { FINANCE_FEATURES } from '@/lib/distribution';
 import { countryOf, short, usePlatform } from '@/lib/platform';
 import { useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
@@ -95,7 +96,7 @@ export default function Profile() {
       <Card style={{ padding: 6 }}>
         <ListItem icon="rocket-outline" title={t('profile.myProjects')} sub={tr('Qoralama, moderatsiya, faol')} onPress={() => router.push({ pathname: '/projects', params: { tab: 'mine' } })} />
         <ListItem icon="storefront-outline" title={tr("Bozordagi e'lonlarim")} sub={tr("{length} ta e'lon", { length: p.myMarket.length })} onPress={() => router.push({ pathname: '/market', params: { tab: 'mine' } })} />
-        <ListItem icon="id-card-outline" title={tr('Katalogdagi profilim')} sub={tr('Kompaniya, mutaxassis yoki investor sifatida')} onPress={() => router.push({ pathname: '/directory-edit', params: { type: user?.kind === 'company' ? 'company' : 'specialist' } })} />
+        <ListItem icon="id-card-outline" title={tr('Katalogdagi profilim')} sub={FINANCE_FEATURES ? tr('Kompaniya, mutaxassis yoki investor sifatida') : tr('Kompaniya yoki mutaxassis sifatida')} onPress={() => router.push({ pathname: '/directory-edit', params: { type: user?.kind === 'company' ? 'company' : 'specialist' } })} />
         <ListItem icon="bookmark-outline" title={t('profile.favorites')} sub={tr('{length} ta', { length: p.favorites.length })} onPress={() => router.push('/favorites')} />
         <ListItem icon="notifications-outline" title={t('profile.notifications')} right={p.unreadNotices ? <Badge label={String(p.unreadNotices)} tone="danger" /> : undefined} onPress={() => router.push('/notifications')} />
       </Card>

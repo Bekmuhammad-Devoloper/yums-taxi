@@ -9,6 +9,7 @@ import { toast } from '@/components/toast';
 import { alpha, Button, Card, Row, Screen, SectionTitle, Txt, type IconName } from '@/components/ui';
 import { errorText } from '@/lib/api';
 import type { Card as PayCard, PaymentId } from '@/lib/data';
+import { FINANCE_FEATURES } from '@/lib/distribution';
 import { som } from '@/lib/geo';
 import { tr } from '@/lib/i18n';
 import { haptic, useStore } from '@/lib/store';
@@ -127,8 +128,8 @@ export default function Payment() {
 
   return (
     <Screen title={tr("To'lov usullari")}>
-      {/* balans — qora-oltin karta: chapda summa, o'ngda YUMS taksisi va Toshkent manzarasi */}
-      <View style={styles.wallet}>
+      {/* balans — qora-oltin karta: chapda summa, o'ngda YUMS taksisi va Toshkent manzarasi (Play'da yo'q) */}
+      {FINANCE_FEATURES && <View style={styles.wallet}>
         <Image source={WALLET_ART} style={styles.walletArt} contentFit="cover" contentPosition="center" />
         {/* rasmning chap cheti qorong'ilikka silliq o'tadi — summa va yozuvlar aniq o'qiladi */}
         <LinearGradient colors={['#0B0B0C', 'rgba(11,11,12,0.92)', 'rgba(11,11,12,0)']} locations={[0, 0.4, 0.68]} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={StyleSheet.absoluteFill} />
@@ -150,12 +151,12 @@ export default function Payment() {
             <Text style={styles.cashbackText} numberOfLines={1}>{tr('Har safardan {n}% keshbek', { n: s.settings.cashbackPercent })}</Text>
           </View>
         ) : null}
-      </View>
+      </View>}
 
       <SectionTitle>{tr("To'lov usuli")}</SectionTitle>
       <Card style={{ padding: 6 }}>
         {option({ id: 'cash', icon: 'cash', tint: CASH, title: tr('Naqd pul'), sub: tr("Haydovchiga to'lash") })}
-        {option({ id: 'balance', icon: 'wallet', tint: WALLET, title: tr('YUMS balans'), sub: som(s.balance) })}
+        {FINANCE_FEATURES && option({ id: 'balance', icon: 'wallet', tint: WALLET, title: tr('YUMS balans'), sub: som(s.balance) })}
         {activeCards.map(card => option({ id: 'card', cardId: card.id, icon: 'card', tint: CARD_TINT[card.brand], title: `${card.brand} •••• ${card.last4}`, sub: tr('Avtomatik yechiladi') }))}
         {cardsOff && (
           // karta protsessori yoqilmagan — qo'shish tugmasi o'rniga holat
@@ -255,7 +256,7 @@ export default function Payment() {
         )}
       </Card>
 
-      <TopupSheet visible={topup} onClose={() => setTopup(false)} kind="passenger" cards={activeCards} onDone={reload} onAddCard={() => setAdding(true)} />
+      <TopupSheet visible={FINANCE_FEATURES && topup}onClose={() => setTopup(false)} kind="passenger" cards={activeCards} onDone={reload} onAddCard={() => setAdding(true)} />
     </Screen>
   );
 }

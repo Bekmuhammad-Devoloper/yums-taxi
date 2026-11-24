@@ -5,17 +5,18 @@ import { ScrollView, View } from 'react-native';
 import { CompanyCard, InvestorCard, MarketCard, ProjectCard, SpecialistCard } from '@/components/platform-ui';
 import { Chip, EmptyState, Row, Screen, type IconName } from '@/components/ui';
 import { useContactInvestor } from '@/lib/actions';
+import { FINANCE_FEATURES } from '@/lib/distribution';
 import { usePlatform } from '@/lib/platform';
 import { tr, tx } from '@/lib/i18n';
 
 type Tab = 'project' | 'company' | 'specialist' | 'market' | 'investor';
-const TABS: { id: Tab; label: string; icon: IconName }[] = [
+const TABS = ([
   { id: 'project', label: tx('Loyihalar'), icon: 'rocket-outline' },
   { id: 'company', label: tx('Kompaniyalar'), icon: 'business-outline' },
   { id: 'specialist', label: tx('Mutaxassislar'), icon: 'code-slash-outline' },
   { id: 'market', label: tx('Bozor'), icon: 'storefront-outline' },
   { id: 'investor', label: tx('Investorlar'), icon: 'trending-up-outline' },
-];
+] satisfies { id: Tab; label: string; icon: IconName }[]).filter(x => FINANCE_FEATURES || x.id !== 'investor'); // Play'da investorlar katalogi yo'q
 
 export default function Favorites() {
   const p = usePlatform();

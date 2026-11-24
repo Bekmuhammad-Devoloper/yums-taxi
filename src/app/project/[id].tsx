@@ -18,7 +18,7 @@ import { LANGUAGES, SEEKS, STAGES } from '@/lib/platform-data';
 import { ago, budget, countryOf, fileSize, flagged, sectorOf, short, usePlatform } from '@/lib/platform';
 import { openFile } from '@/lib/open-file';
 import { SECTOR_ART } from '@/lib/sector-art';
-import { DIGITAL_SALES } from '@/lib/distribution';
+import { DIGITAL_SALES, FINANCE_FEATURES } from '@/lib/distribution';
 import { useStore } from '@/lib/store';
 import { F, radius } from '@/lib/theme';
 import { flipRTL, tr } from '@/lib/i18n';
@@ -236,10 +236,8 @@ export default function ProjectScreen() {
           <Card style={{ gap: 10 }}>
             <Txt v="h3">{tr('Nima izlanmoqda')}</Txt>
             <Row gap={8} style={{ flexWrap: 'wrap' }}>
-              {pr.seeking.map(s => {
-                const m = SEEKS.find(x => x.id === s)!;
-                return <Badge key={s} label={m.name} icon={m.icon} tone="ok" />;
-              })}
+              {/* SEEKS bo'yicha: Play yig'ilishida «Investitsiya» ko'rsatilmaydi */}
+              {SEEKS.filter(m => pr.seeking.includes(m.id)).map(m => <Badge key={m.id} label={m.name} icon={m.icon} tone="ok" />)}
             </Row>
           </Card>
 
@@ -274,7 +272,7 @@ export default function ProjectScreen() {
 
           <View style={[styles.alert, { backgroundColor: c.surface2 }]}>
             <Ionicons name="information-circle-outline" size={20} color={c.muted} />
-            <Txt v="small" muted style={{ flex: 1, lineHeight: 19 }}>{tr("YUMS e'lon ma'lumotlarini avtomatik haqiqat deb qabul qilmaydi. «Tasdiqlangan» belgisi faqat hujjatlar tekshiruvidan keyin beriladi.{v2}", { v2: pr.seeking.includes('investment') ? tr(" Investitsiya qilishdan oldin mustaqil tekshiruv o'tkazing; mablag' qabul qilish faqat litsenziyalangan hamkorlar orqali amalga oshiriladi.") : '' })}
+            <Txt v="small" muted style={{ flex: 1, lineHeight: 19 }}>{tr("YUMS e'lon ma'lumotlarini avtomatik haqiqat deb qabul qilmaydi. «Tasdiqlangan» belgisi faqat hujjatlar tekshiruvidan keyin beriladi.{v2}", { v2: FINANCE_FEATURES && pr.seeking.includes('investment') ? tr(" Investitsiya qilishdan oldin mustaqil tekshiruv o'tkazing; mablag' qabul qilish faqat litsenziyalangan hamkorlar orqali amalga oshiriladi.") : '' })}
             </Txt>
           </View>
         </View>

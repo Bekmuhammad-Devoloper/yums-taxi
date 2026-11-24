@@ -9,6 +9,7 @@ import { PEER_LABEL, PeerAvatar } from '@/components/platform-ui';
 import { toast } from '@/components/toast';
 import { Badge, Button, Card, EmptyState, Row, SearchBar, Segmented, Sheet, Txt, Verified } from '@/components/ui';
 import type { Conversation } from '@/lib/platform-data';
+import { FINANCE_FEATURES } from '@/lib/distribution';
 import { ago, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
 import { F } from '@/lib/theme';
@@ -20,12 +21,13 @@ type SearchType = 'specialists' | 'companies' | 'investors' | 'projects';
 type IconName = keyof typeof Ionicons.glyphMap;
 
 // «Yangi suhbat»: kimga yozishni tanlab, qidiruvning o'sha bo'limiga o'tamiz — u yerda profilda «Yozish» bor
-const COMPOSE: { type: SearchType; icon: IconName; color: string; title: string; sub: string }[] = [
+const COMPOSE = ([
   { type: 'specialists', icon: 'people', color: '#2F7BF6', title: tx('Mutaxassislar'), sub: tx('Dasturchi, dizayner, maslahatchi va boshqalar') },
   { type: 'companies', icon: 'business', color: '#8B5CF6', title: tx('Kompaniyalar'), sub: tx('Hamkorlik, xizmatlar va buyurtmalar') },
   { type: 'investors', icon: 'trending-up', color: '#12A150', title: tx('Investorlar'), sub: tx('Loyihangiz uchun sarmoya toping') },
   { type: 'projects', icon: 'rocket', color: '#E8890C', title: tx('Loyihalar'), sub: tx("Jamoaga qo'shiling yoki hamkorlik taklif qiling") },
-];
+] satisfies { type: SearchType; icon: IconName; color: string; title: string; sub: string }[])
+  .filter(x => FINANCE_FEATURES || x.type !== 'investors'); // Play'da investorlar katalogi yo'q
 
 const preview = (cv: Conversation): { text: string; icon?: 'calendar-outline' | 'attach' } => {
   const m = cv.messages[cv.messages.length - 1];

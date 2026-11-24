@@ -16,6 +16,7 @@ import { type OtpContact, requestOtp, saveProfile, type SecondStep, verifyOtp, v
 import { ApiError, errorText } from '@/lib/api';
 import { som } from '@/lib/geo';
 import { COUNTRIES } from '@/lib/platform-data';
+import { FINANCE_FEATURES } from '@/lib/distribution';
 import { countryOf } from '@/lib/platform';
 import { checkPinfl, checkStir, companyMatches, directorMatches, lookupCompany, type LookupResult } from '@/lib/registry';
 import { haptic, useStore, type AccountKind, type User } from '@/lib/store';
@@ -28,11 +29,12 @@ const GLOW = require('@/assets/images/glow.png');
 const DEFAULT_CODE_LEN = 5;
 const MAX_ATTEMPTS = 5;
 
-const PILLS: { icon: 'rocket-outline' | 'trending-up-outline' | 'car-sport-outline'; label: string }[] = [
+const PILLS = ([
   { icon: 'rocket-outline', label: tx('Loyihalar') },
   { icon: 'trending-up-outline', label: tx('Investorlar') },
   { icon: 'car-sport-outline', label: tx('Taksi') },
-];
+] satisfies { icon: 'rocket-outline' | 'trending-up-outline' | 'car-sport-outline'; label: string }[])
+  .filter(x => FINANCE_FEATURES || x.icon !== 'trending-up-outline'); // Play'da investorlar bo'limi yo'q
 
 const CODES = [
   { code: '+998', country: 'UZ', len: 9 },
@@ -323,7 +325,7 @@ export default function Login() {
             <>
               <BrandLogo width={Math.max(84, logoW - shrink)} style={{ alignSelf: 'center', marginTop: roomy ? 12 : 4 }} />
               <Text style={[styles.tagTitle, short && { marginTop: 10 }]}>{tr('Xalqaro raqamli loyihalar platformasi')}</Text>
-              {roomy && <Text style={styles.tagSub}>{tr('Loyihalar, hamkorlar va investorlar — bir joyda')}</Text>}
+              {roomy && <Text style={styles.tagSub}>{FINANCE_FEATURES ? tr('Loyihalar, hamkorlar va investorlar — bir joyda') : tr('Loyihalar, hamkorlar va mutaxassislar — bir joyda')}</Text>}
               <View style={[styles.pills, short && { marginTop: 14 }]}>
                 {PILLS.map(x => (
                   <View key={x.label} style={styles.pill}>
@@ -493,7 +495,7 @@ export default function Login() {
               <View style={{ gap: 8 }}>
                 <Text style={[styles.groupLabel, { color: c.muted }]}>{tr('Hisob turi')}</Text>
                 <View style={{ flexDirection: 'row', gap: 10 }}>
-                  {([['person', tx('Jismoniy shaxs'), 'person', tx('Tadbirkor, mutaxassis, investor')], ['company', tx('Kompaniya'), 'business', tx('MChJ, AJ, xorijiy kompaniya')]] as const).map(([id, l, i, d]) => {
+                  {([['person', tx('Jismoniy shaxs'), 'person', FINANCE_FEATURES ? tx('Tadbirkor, mutaxassis, investor') : tx('Tadbirkor, mutaxassis')], ['company', tx('Kompaniya'), 'business', tx('MChJ, AJ, xorijiy kompaniya')]] as const).map(([id, l, i, d]) => {
                     const on = kind === id;
                     const art = KIND_ART[id];
                     return (

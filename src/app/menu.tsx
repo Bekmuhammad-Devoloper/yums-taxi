@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { RotatingName } from '@/components/rotating-name';
 import { toast } from '@/components/toast';
 import { Avatar, Card, DEFAULT_AVATAR, ListItem, Screen, SectionTitle, Txt } from '@/components/ui';
+import { FINANCE_FEATURES } from '@/lib/distribution';
 import { som } from '@/lib/geo';
 import { SECTION_ART } from '@/lib/section-art';
 import { SECTOR_ART } from '@/lib/sector-art';
@@ -57,9 +58,9 @@ export default function Menu() {
         </View>
       </Card>
 
-      {/* Balans va safarlar */}
+      {/* Balans va safarlar (Play yig'ilishida balans yo'q — faqat safarlar) */}
       <View style={styles.stats}>
-        <Pressable style={({ pressed }) => [{ flex: 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]} onPress={() => { haptic.tap(); router.push('/payment'); }} accessibilityRole="button">
+        {FINANCE_FEATURES && <Pressable style={({ pressed }) => [{ flex: 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]} onPress={() => { haptic.tap(); router.push('/payment'); }} accessibilityRole="button">
           <LinearGradient colors={['#FFE27A', '#FFC800']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.balance}>
             <View style={styles.tileHead}>
               <View style={styles.tileIconDark}><Ionicons name="wallet" size={16} color="#FFC800" /></View>
@@ -71,7 +72,7 @@ export default function Menu() {
               <Text style={styles.cashbackText} numberOfLines={2} maxFontSizeMultiplier={MAX_SCALE}>{tr('Har safardan 3% keshbek')}</Text>
             </View>
           </LinearGradient>
-        </Pressable>
+        </Pressable>}
         <Pressable style={({ pressed }) => [{ flex: 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]} onPress={() => { haptic.tap(); router.push('/history'); }} accessibilityRole="button">
           <View style={[styles.trips, { backgroundColor: c.surface, borderColor: c.line }]}>
             <View style={styles.tileHead}>
@@ -91,7 +92,7 @@ export default function Menu() {
       <SectionTitle>{tr('Safar')}</SectionTitle>
       <Card style={styles.list}>
         <ListItem icon="time-outline" art={ART.history} title={tr('Safarlar tarixi')} sub={done.length ? tr('{n} ta safar', { n: done.length }) : tr("Hali safar yo'q")} onPress={() => router.push('/history')} />
-        <ListItem icon="card-outline" art={SECTOR_ART.finance} title={tr("To'lov usullari")} sub={tr('Kartalar, balans, promokodlar')} onPress={() => router.push('/payment')} />
+        <ListItem icon="card-outline" art={SECTOR_ART.finance} title={tr("To'lov usullari")} sub={FINANCE_FEATURES ? tr('Kartalar, balans, promokodlar') : tr('Kartalar va promokodlar')} onPress={() => router.push('/payment')} />
         <ListItem icon="bookmark-outline" art={SECTION_ART.world} title={tr('Manzillarim')} sub={tr('Uy, ish')} onPress={() => router.push('/places')} />
         <ListItem icon="shield-checkmark-outline" art={ART.safety} title={tr('Xavfsizlik')} sub={tr("SOS va ishonchli kontaktlar")} onPress={() => router.push('/safety')} />
       </Card>
@@ -104,7 +105,7 @@ export default function Menu() {
       </Card>
 
       <Card style={styles.list}>
-        <ListItem icon="grid-outline" art={SECTION_ART.project} title={tr('YUMS platformasi')} sub={tr('Loyihalar, biznes, investitsiya, bozor')} onPress={() => router.dismissTo('/')} />
+        <ListItem icon="grid-outline" art={SECTION_ART.project} title={tr('YUMS platformasi')} sub={FINANCE_FEATURES ? tr('Loyihalar, biznes, investitsiya, bozor') : tr('Loyihalar, biznes, bozor')} onPress={() => router.dismissTo('/')} />
         <ListItem icon="log-out-outline" title={tr('Chiqish')} danger onPress={() => { logout(); router.replace('/login'); }} />
       </Card>
 

@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { Redirect, router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useState } from 'react';
 import { LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -8,6 +8,7 @@ import { LayoutAnimation, Pressable, ScrollView, StyleSheet, Text, View } from '
 import { InvestorCard, ProjectCard } from '@/components/platform-ui';
 import { alpha, Card, Chip, ListItem, Screen, SectionTitle, Segmented, Txt } from '@/components/ui';
 import { useContactInvestor } from '@/lib/actions';
+import { FINANCE_FEATURES } from '@/lib/distribution';
 import { INVESTOR_KINDS, type Investor } from '@/lib/platform-data';
 import { short, usePlatform } from '@/lib/platform';
 import { haptic, useStore } from '@/lib/store';
@@ -20,7 +21,12 @@ type IconName = keyof typeof Ionicons.glyphMap;
 // Bosh kartochka banneri: chap tomoni toza binafsha (matn uchun), o'ngda raketa, o'sish grafigi va tangalar
 const HERO_ART = require('@/assets/cards/invest.webp') as number;
 
-export default function Invest() {
+/** Play yig'ilishida YUMS Invest yo'q (distribution.ts, FINANCE_FEATURES) — havola ochilsa bosh sahifaga */
+export default function InvestRoute() {
+  return FINANCE_FEATURES ? <Invest /> : <Redirect href="/" />;
+}
+
+function Invest() {
   const { colors: c } = useStore();
   const p = usePlatform();
   const contact = useContactInvestor();

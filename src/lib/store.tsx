@@ -10,6 +10,7 @@ import { toast } from '@/components/toast';
 import { deleteAccount as closeAccount, loadProfile, signOut, updateProfile, type ProfilePatch } from './account-api';
 import { ApiError, errorText, hasSession, setSessionLostHandler } from './api';
 import type { Card, Driver, LatLng, PaymentId, Place, Ride } from './data';
+import { FINANCE_FEATURES } from './distribution';
 import { decodePolyline, distanceKm, type RouteInfo } from './geo';
 import { deviceLang, isLang, reloadForDirection, setAppLang, t as translate, tr, type Lang } from './i18n';
 import { registerThisDevice } from './push';
@@ -401,7 +402,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const l: Lang = isLang(m[K.lang]) ? m[K.lang] : deviceLang();
         if (setAppLang(l)) reloadForDirection();
         setLangState(l);
-        if (m[K.payment]) setPaymentState(m[K.payment]);
+        // Play yig'ilishida balans to'lovi yo'q (distribution.ts) — saqlangan «balans» naqdga aylanadi
+        if (m[K.payment]) setPaymentState(!FINANCE_FEATURES && m[K.payment].id === 'balance' ? { id: 'cash' } : m[K.payment]);
         if (Array.isArray(m[SKIPPED_KEY])) skipped.current = new Set(m[SKIPPED_KEY]);
       } catch {
         // xotira mavjud emas — standart qiymatlar bilan davom etamiz
