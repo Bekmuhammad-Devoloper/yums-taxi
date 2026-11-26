@@ -17,7 +17,7 @@ export const APP_STORE_BUILD = Platform.OS === 'ios';
 export const DIGITAL_SALES = !PLAY_BUILD && !APP_STORE_BUILD;
 
 /** Moliyaviy funksiyalar: YUMS balans va uni to'ldirish, keshbek, YUMS Invest, investorlar katalogi va loyihada
- *  «investitsiya izlash». Google Play ularni faqat tashkilot (yuridik shaxs) akkauntiga ruxsat beradi — shaxsiy
- *  akkauntdagi Play yig'ilishida o'chiq; tashkilot akkauntiga ko'chgach qaytariladi. Taksi naqd va karta bilan
- *  to'lanadi — bu o'zgarmaydi. */
-export const FINANCE_FEATURES = !PLAY_BUILD;
+ *  «investitsiya izlash». Google Play ham, App Store ham (Apple 5.1.1(ix)) ularni faqat tashkilot (yuridik shaxs)
+ *  akkauntiga ruxsat beradi — shaxsiy akkauntlardagi Play va iOS yig'ilishlarida o'chiq; tashkilot akkauntiga
+ *  ko'chgach qaytariladi. Faqat GitHub'dagi APK'da bor. Taksi naqd va karta bilan to'lanadi — bu o'zgarmaydi. */
+export const FINANCE_FEATURES = !PLAY_BUILD && !APP_STORE_BUILD;
